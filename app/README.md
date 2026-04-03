@@ -1,4 +1,4 @@
-# The Fluid Ledger — web app
+# InHand — web app
 
 Next.js (App Router) + TypeScript + Tailwind + shadcn/ui.
 
@@ -26,11 +26,11 @@ Restart the dev server after changing `.env.local`.
 ## Routes
 
 - `/` — Marketing landing  
-- `/salary` — CTC input  
-- `/salary/breakdown` — Salary breakdown table & KPIs  
+- `/salary` — Salary input: **manual CTC** or **document upload** (mock parse); **Last tracked salaries / Last compared offers**  
+- `/salary/breakdown` — Breakdown KPIs; **editable** monthly components; estimated vs document banners  
 - `/lifestyle` — Lifestyle sliders & surplus gauge  
 - `/premium` — Hub for planning tools  
-- `/premium/offer-comparison` — Compare 2–3 offers (interactive)  
+- `/premium/offer-comparison` — **Manual** or **upload** 2–3 offer documents (mock parse)  
 - `/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  
 - `/premium/emi-analyzer` — EMI + DTI vs in-hand & lifestyle  
 - `/paywall` — Upgrade / waitlist copy (links into Premium hub)

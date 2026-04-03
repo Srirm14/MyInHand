@@ -1,7 +1,7 @@
 {
   "name": "inhand",
   "private": true,
-  "description": "The Fluid Ledger — run scripts from repo root; app lives in ./app",
+  "description": "InHand — run scripts from repo root; app lives in ./app",
   "scripts": {
     "dev": "npm run dev --prefix app",
     "build": "npm run build --prefix app",

@@ -39,6 +39,9 @@ export function SalaryBreakdownView() {
   const input = useSalaryStore((s) => s.input);
   const breakdown = useSalaryStore((s) => s.breakdown);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
+  const updateBreakdownComponentMonthly = useSalaryStore(
+    (s) => s.updateBreakdownComponentMonthly
+  );
 
   useEffect(() => {
     if (!breakdown && input.annualCTC >= 100_000) {
@@ -61,14 +64,43 @@ export function SalaryBreakdownView() {
   }
 
   const regimeLabel = input.taxRegime === "old" ? "Old Regime" : "New Regime";
+  const source = breakdown.meta?.resultSource ?? "manual_estimated";
+  const isDocument = source === "document_parsed";
 
   return (
     <PageShell className="py-8 md:py-10">
+      <div className="mb-6 space-y-3">
+        {isDocument ? (
+          <div className="rounded-xl border border-teal-200 bg-teal-50/90 px-4 py-3 text-sm text-navy-800">
+            <span className="font-semibold text-teal-800">Document-based results</span>
+            {breakdown.meta?.documentFileName && (
+              <span className="text-navy-600">
+                {" "}
+                — parsed from <cite className="not-italic font-medium">{breakdown.meta.documentFileName}</cite>
+              </span>
+            )}
+            . Figures use the same tax engine with extracted CTC hints; confirm
+            components against your letter before deciding.
+          </div>
+        ) : (
+          <div className="rounded-xl border border-navy-200 bg-navy-50/80 px-4 py-3 text-sm text-navy-700">
+            <span className="font-semibold text-navy-800">Estimated breakdown</span> — built
+            from your CTC, city tier, and regime using standard Indian payroll assumptions
+            (basic split, HRA, PF, reimbursements). Not your employer&apos;s exact payslip.
+          </div>
+        )}
+        {breakdown.meta?.componentsAdjusted && (
+          <p className="text-xs text-navy-500 px-1">
+            You edited monthly line items; in-hand and tax totals follow your adjusted numbers.
+          </p>
+        )}
+      </div>
+
       <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl">
           <SectionHeader
             title="Salary Breakdown"
-            subtitle="Detailed architecture of your monthly earnings and statutory contributions."
+            subtitle="Monthly components, deductions, and tax impact — edit any monthly value to correct estimates."
           />
         </div>
         <div className="rounded-2xl border border-navy-200/50 bg-white p-5 shadow-sm max-w-md lg:mt-4">
@@ -115,7 +147,12 @@ export function SalaryBreakdownView() {
 
       <div className="mt-10 rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-h3 text-navy-800">Monthly component breakup</h2>
+          <div>
+            <h2 className="text-h3 text-navy-800">Monthly component breakup</h2>
+            <p className="text-xs text-navy-400 mt-1">
+              Click a monthly amount to adjust; annual column updates automatically.
+            </p>
+          </div>
           <div className="flex flex-wrap gap-3">
             <Button
               type="button"
@@ -156,7 +193,11 @@ export function SalaryBreakdownView() {
           </TableHeader>
           <TableBody>
             {breakdown.components.map((row) => (
-              <ComponentRow key={row.id} row={row} />
+              <EditableComponentRow
+                key={row.id}
+                row={row}
+                onMonthlyCommit={(id, v) => updateBreakdownComponentMonthly(id, v)}
+              />
             ))}
           </TableBody>
         </Table>
@@ -249,7 +290,13 @@ export function SalaryBreakdownView() {
   );
 }
 
-function ComponentRow({ row }: { row: SalaryComponent }) {
+function EditableComponentRow({
+  row,
+  onMonthlyCommit,
+}: {
+  row: SalaryComponent;
+  onMonthlyCommit: (id: string, monthly: number) => void;
+}) {
   const isDeduction = row.type === "deduction";
   const typeBadge = {
     earning: "bg-emerald-50 text-emerald-700 border-0",
@@ -266,14 +313,27 @@ function ComponentRow({ row }: { row: SalaryComponent }) {
   return (
     <TableRow className="border-navy-100">
       <TableCell className="pl-4 font-medium text-navy-800">{row.name}</TableCell>
-      <TableCell
-        className={cn(
-          "font-semibold tabular-nums",
-          isDeduction && "text-danger-600",
-          row.type === "tax-free" && "text-emerald-600"
-        )}
-      >
-        {formatCurrency(row.monthlyValue)}
+      <TableCell className="p-2">
+        <input
+          key={`${row.id}-${row.monthlyValue}`}
+          type="text"
+          inputMode="numeric"
+          defaultValue={String(row.monthlyValue)}
+          aria-label={`${row.name} monthly`}
+          className={cn(
+            "w-full min-w-[7rem] rounded-lg border border-navy-200 bg-white px-2 py-1.5 text-sm font-semibold tabular-nums outline-none focus:ring-2 focus:ring-teal-200",
+            isDeduction && "text-danger-600",
+            row.type === "tax-free" && "text-emerald-600"
+          )}
+          onBlur={(e) => {
+            const raw = e.target.value.replace(/\D/g, "");
+            const n = raw ? parseInt(raw, 10) : 0;
+            if (n !== row.monthlyValue) onMonthlyCommit(row.id, n);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+          }}
+        />
       </TableCell>
       <TableCell className="text-navy-600 tabular-nums">
         {formatCurrency(row.annualValue)}

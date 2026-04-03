@@ -1,4 +1,4 @@
-# ARCHITECTURE.md — The Fluid Ledger
+# ARCHITECTURE.md — InHand
 
 ## Tech Stack
 
@@ -24,7 +24,7 @@ src/
 │   ├── login/, signup/, forgot-password/  # Auth (public)
 │   ├── profile/                  # Lightweight profile (protected)
 │   ├── salary/
-│   │   ├── page.tsx              # CTC Input form
+│   │   ├── page.tsx              # Salary input (manual CTC + document upload + recents)
 │   │   └── breakdown/
 │   │       └── page.tsx          # Free salary breakdown
 │   ├── lifestyle/
@@ -42,7 +42,7 @@ src/
 │
 ├── components/
 │   ├── ui/                       # shadcn/ui primitives (button, input, card, etc.)
-│   ├── features/                 # Screen-level compositions (landing, salary, lifestyle)
+│   ├── features/                 # landing, salary (ctc-input, breakdown, recents), lifestyle, premium
 │   ├── shared/                   # Composed reusable components
 │   │   ├── stat-card.tsx
 │   │   ├── feature-card.tsx
@@ -51,7 +51,8 @@ src/
 │   │   ├── slider-card.tsx
 │   │   ├── section-header.tsx
 │   │   ├── segmented-selector.tsx
-│   │   └── donut-gauge.tsx
+│   │   ├── donut-gauge.tsx
+│   │   └── save-progress-cta.tsx
 │   ├── auth/                     # Auth page shell (shared card layout)
 │   ├── providers/                # Client providers (e.g. auth cookie sync)
 │   └── layout/
@@ -67,7 +68,8 @@ src/
 │   │   ├── lifestyle.schema.ts
 │   │   └── offer.schema.ts
 │   ├── stores/                   # Zustand stores
-│   │   ├── use-salary-store.ts
+│   │   ├── use-salary-store.ts   # Input, breakdown, document apply, editable components
+│   │   ├── use-history-store.ts # Persisted (localStorage); salary + offer recents + premium sheet
 │   │   ├── use-lifestyle-store.ts
 │   │   ├── use-premium-store.ts
 │   │   └── use-auth-store.ts     # Persisted demo auth (replace with real API)
@@ -82,8 +84,12 @@ src/
 │   │   ├── salary.types.ts
 │   │   ├── lifestyle.types.ts
 │   │   ├── offer.types.ts
+│   │   ├── history.types.ts
 │   │   └── user.types.ts
-│   ├── mocks/                    # Mock data
+│   ├── mocks/                    # Mock data & mock parsers
+│   │   ├── auth.demo.ts
+│   │   ├── parse-salary-document.mock.ts  # ASSUMPTION: replace with API/OCR
+│   │   ├── parse-offer-document.mock.ts
 │   │   ├── salary.mock.ts
 │   │   └── offers.mock.ts
 │   ├── constants/                # App constants
@@ -93,7 +99,9 @@ src/
 │   └── utils/                    # Pure utility functions
 │       ├── format-currency.ts
 │       ├── calculate-tax.ts
-│       └── calculate-pf.ts
+│       ├── calculate-salary.ts   # Breakdown + aggregateBreakdownTotals (editable rows)
+│       ├── calculate-emi.ts
+│       └── format-relative-time.ts
 │
 └── styles/
     └── globals.css               # Tailwind base + custom tokens
@@ -124,8 +132,9 @@ Zod schema (lib/schemas/)
 
 | What | Where |
 |------|-------|
-| User input state (CTC, city, regime) | Zustand store |
-| Calculated results | Derived in hooks from store values |
+| User input state (CTC, city, regime) | Zustand `use-salary-store` |
+| Salary / offer recents (last 5) | Zustand `use-history-store` (persisted) |
+| Calculated results | Derived from store + `calculate-salary` |
 | Server data (if/when API exists) | TanStack React Query |
 | Form transient state | React Hook Form (local) |
 | UI ephemeral state (modals, tabs) | React useState (local) |
@@ -160,13 +169,13 @@ Zod schema (lib/schemas/)
 
 `middleware.ts` gates **`/profile`** (session) and **`/premium/*`** (session + env premium). Free salary/lifestyle routes stay public. Demo auth uses `use-auth-store` + `fl_session_email` cookie; replace with a real auth API for production.
 
-### Mock-First Approach
+### Mock-first approach
 
-All calculations run client-side with mock data until a backend exists. Every service function should have a `// MOCK:` or `// API:` comment indicating its data source. Zustand stores persist user inputs across the session. No backend is required for Phase 1-4.
+Calculations run client-side. **Salary/offer document** flows use mock parsers (filename heuristics) with `// ASSUMPTION:` — swap for API/OCR when a backend exists. **`use-history-store`** persists last 5 salary + offer entries to `localStorage` (`inhand-history`). Other stores: see `State Separation` table. Mark future server calls with `// MOCK:` or `// API:` as appropriate.
 
 ### Assumptions
 
 - Authentication is **demo-local** (Zustand persist + session cookie marker). Swap for OAuth/password API + HttpOnly cookies when backend exists. Premium gate remains client-side (`NEXT_PUBLIC_ACCESS_MODE` / store) on top of sign-in.
 - All tax calculations use FY 2025-26 slabs (configurable in constants).
-- No PDF upload parsing yet. Offer comparison uses manual input.
+- **Document upload** uses **client-side mock parsers** (filename heuristics); production should use a secure upload + OCR/API. Manual CTC and offer entry remain the fallback.
 - No payment integration. Paywall is UI-only for now.

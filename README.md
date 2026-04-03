@@ -1,6 +1,6 @@
-# The Fluid Ledger (Inhand)
+# InHand
 
-Salary intelligence for Indian salaried employees — CTC breakdown, lifestyle surplus, and (planned) premium modules.
+Salary intelligence for Indian employees — manual or document-based salary input, editable breakdown, lifestyle surplus, offer comparison (manual or upload mock), and premium modules. Product docs: `PRODUCT_FLOW.md`, `ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `AGENTS.md`.
 
 ## Repository layout
 

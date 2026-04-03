@@ -1,19 +1,19 @@
-# PRODUCT_FLOW.md — The Fluid Ledger
+# PRODUCT_FLOW.md — InHand
 
 ## Journey Overview (tiered)
 
 ### Logged out — base product only
 
 - **Header:** brand, **Salary** only (no Offers / Forecast / EMI, no Premium chip, no History). **Log in** / **Sign up** on the right.
-- **Flow:** Landing → CTC → free breakdown → lifestyle check → surplus/deficit.
+- **Flow:** Landing → Salary input → breakdown → lifestyle check → surplus/deficit.
 - **Save nudge:** After breakdown and on lifestyle, **Save your activity** card → `login?from=…` / `signup?from=…`.
 - **Premium CTAs** (in copy, footer, feature cards): resolve to **sign-in first**, then paywall or tool depending on tier (`useTieredPremiumLinks`).
-- **History:** not available (premium-only feature).
+- **Navbar History:** premium-only (right sheet, last 5). **Salary page recents:** everyone sees **Last tracked salaries** / **Last compared offers** (persisted `useHistoryStore`, last 3 each).
 
 ### Logged in — free tier
 
-- **Header:** **Salary** only + **Profile**. No History, no Premium crown, no deep premium nav links.
-- **Flow:** same free salary + lifestyle path; CTC runs are **not** written to History.
+- **Header:** **Salary** only + **Profile**. No History in nav, no Premium crown, no deep premium nav links.
+- **Flow:** same free salary + lifestyle path; each successful salary run still **appends to persisted history** for the salary-page recents (not the premium History sheet).
 - **Premium intent:** links go to **`/paywall`** (and deep `?tool=` where relevant).
 
 ### Logged in — premium tier (`NEXT_PUBLIC_ACCESS_MODE=premium` or dev default)
@@ -46,8 +46,8 @@ Signed-in (premium env)
 
 **Core inputs:** None.
 **Core outputs:** Navigation to CTC Input or demo.
-**Primary CTA:** "Calculate In-Hand Pay →"
-**Secondary CTA:** "Watch Demo"
+**Primary CTA:** "Estimate my in-hand pay" (see live `marketing-landing.tsx`).
+**Secondary CTA:** "See a free breakdown"
 
 **Sections:**
 - Hero: headline, subline, dual CTA
@@ -61,54 +61,47 @@ Signed-in (premium env)
 
 ---
 
-### 2. CTC Input (`/salary`)
+### 2. Salary input (`/salary`)
 
-**Purpose:** Collect salary details to calculate breakdown.
+**Purpose:** Start a breakdown from **manual CTC** (estimated) or **uploaded document** (document-labeled mock parse).
 
-**Core inputs:**
-- Full Name (optional, for personalization)
-- Email (optional, for saving results)
-- Annual CTC (₹, required)
-- City Tier: Tier 1 Metro / Tier 2 Urban / Tier 3 Semi-Urban
-- Tax Regime: Old Regime / New Regime
+**Modes (tabs):**
+- **Manual CTC:** Full Name, Email, Annual CTC, City Tier, Tax Regime → **estimated** breakdown (`SalaryResultSource.manual_estimated`).
+- **Upload document:** PDF or image (offer letter / salary structure). **Mock parser** (`parse-salary-document.mock.ts`) infers CTC from filename patterns (e.g. `24L`, 6–9 digit number); labels result **`document_parsed`** until a real OCR/API ships.
 
-**Core outputs:** Navigation to breakdown with calculated data.
-**Primary CTA:** "Show Breakdown →"
+**Core outputs:** Navigate to `/salary/breakdown` with store populated; push entry to **persisted** `useHistoryStore` for recents.
 
-**Validation (Zod):**
-- CTC: required, number, min ₹1,00,000, max ₹10,00,00,000
-- City Tier: required enum
-- Tax Regime: required enum
+**Below the form:**
+- **Last tracked salaries** — restore snapshot → breakdown.
+- **Last compared offers** — restore offers → offer comparison (`useTieredPremiumLinks`).
 
-**Empty state:** Fresh form with placeholder values (₹12,00,000).
-**Edge cases:** Very low CTC (below tax threshold), very high CTC, decimal input.
-**Bottom features:** Growth Analysis, Max Deductions, Secure Entry trust badges.
+**Primary CTA (manual):** "Show estimated breakdown"
+**Validation (Zod):** manual path only — CTC min ₹1,00,000, city tier, regime.
+
+**Bottom:** same three feature trust cards as before.
 
 ---
 
-### 3. Free Salary Breakdown (`/salary/breakdown`)
+### 3. Salary breakdown (`/salary/breakdown`)
 
-**Purpose:** Show the user their actual monthly in-hand salary with full component breakdown.
+**Purpose:** Show in-hand and component table; distinguish **estimated** vs **document-based** copy; allow **corrections**.
 
-**Core inputs:** CTC, City Tier, Tax Regime (from Zustand store).
+**Core inputs:** `useSalaryStore` (input + breakdown).
+
+**Banners:**
+- **Estimated breakdown** — manual path; states assumptions (not employer payslip).
+- **Document-based results** — upload path; shows source filename; user should verify.
+
 **Core outputs:**
-- Monthly in-hand amount
-- Annual income tax
-- Total monthly deductions
-- Component-wise table (Basic, HRA, PF, Professional Tax, TDS, Reimbursements)
+- Monthly in-hand, annual tax, total deductions (recalc when line items change)
+- Component table: **monthly cells are editable** (blur/Enter commits); annual column and totals use `aggregateBreakdownTotals`. Flag `meta.componentsAdjusted` after edits.
 
 **Primary CTA:** "Add Lifestyle Expenses" / "Optimize My Tax"
-**Secondary CTA:** "Download PDF"
+**Secondary CTA:** "Download PDF" (placeholder)
 
-**Key UI elements:**
-- Wealth Insight card (top-right): take-home %, tax efficiency comparison
-- 3x Stat cards: Monthly In-hand, Annual Income Tax, Total Deductions
-- Component table: Component, Monthly Value, Annual Total, Type badge, Status icon
-- Bottom section: "Check your surplus" CTA card, Allocation Benchmarks, Savings potential card
+**Key UI elements:** stat cards, editable breakup table, surplus / benchmarks / savings cards, `SaveProgressCta` for anonymous users.
 
-**Type badges:** EARNING (green), DEDUCTION (red), TAX FREE (teal)
-**Edge cases:** Zero deductions, no HRA (Tier 3), new regime (no 80C).
-**Upgrade hooks:** "Optimize My Tax" → premium, "Detailed Components" → premium.
+**Upgrade hooks:** Tax / forecast links use `useTieredPremiumLinks`.
 
 ---
 
@@ -222,13 +215,17 @@ Signed-in (premium env)
 
 ---
 
-### 12. Offer Comparison (`/premium/offer-comparison`)
+### 12. Offer comparison (`/premium/offer-comparison`)
 
-**Purpose:** Compare 2-3 job offers on real take-home and total value.
+**Purpose:** Compare 2–3 offers on in-hand and a simple first-year value score.
 
-**Core inputs:** CTC details for each offer (manual input), city tier, regime.
-**Core outputs:** Side-by-side in-hand comparison, component diff, total value score.
-**Edge cases:** Single offer (show "add another"), mismatched components.
+**Entry modes (toggle):**
+- **Manual:** Up to three offer cards — company, CTC, tier, regime, joining bonus, ESOP (same engine as salary breakdown).
+- **Upload offers:** Pick 2–3 PDFs/images; **mock parser** (`parse-offer-document.mock.ts`) fills drafts from filename heuristics. User verifies each card. Banner when any row has `documentFileName`.
+
+**Core outputs:** Comparison table, winner hints; debounced push to `useHistoryStore` for salary-page **Last compared offers**.
+
+**Edge cases:** Fewer than two valid offers → empty table message; minimum two offers for upload flow.
 
 ---
 

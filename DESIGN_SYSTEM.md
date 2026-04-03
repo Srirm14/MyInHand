@@ -1,4 +1,4 @@
-# DESIGN_SYSTEM.md — The Fluid Ledger
+# DESIGN_SYSTEM.md — InHand
 
 Extracted from provided design screenshots. This is the source of truth for all UI implementation.
 

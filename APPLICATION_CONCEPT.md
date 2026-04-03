@@ -1,4 +1,4 @@
-# APPLICATION_CONCEPT.md — The Fluid Ledger
+# APPLICATION_CONCEPT.md — InHand
 
 ## What It Is
 
@@ -54,4 +54,4 @@ Financial planning is a focused, sit-down activity. Users compare numbers, read 
 
 ## Why This Is More Than a Calculator
 
-Calculators give one number. The Fluid Ledger connects salary → taxes → lifestyle → affordability → wealth trajectory → offer decisions into a single coherent journey. It's a financial decision-making platform, not a one-off tool.
+Calculators give one number. InHand connects salary → taxes → lifestyle → affordability → wealth trajectory → offer decisions into a single coherent journey. It's a financial decision-making platform, not a one-off tool.

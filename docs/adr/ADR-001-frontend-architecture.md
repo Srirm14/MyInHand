@@ -1,4 +1,4 @@
-# ADR-001: Frontend Architecture for The Fluid Ledger
+# ADR-001: Frontend Architecture for InHand
 
 **Status:** Accepted
 **Date:** 2026-04-03

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SectionHeader } from "@/components/shared/section-header";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
@@ -14,6 +14,7 @@ import { CITY_TIERS, type CityTier } from "@/lib/constants/city-tiers";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
 import type { OfferDraft } from "@/lib/types/offer.types";
+import { mockParseOfferDocument } from "@/lib/mocks/parse-offer-document.mock";
 import { calculateSalaryBreakdown } from "@/lib/utils/calculate-salary";
 import {
   formatCurrency,
@@ -40,7 +41,14 @@ function emptyOffer(id: string): OfferDraft {
   };
 }
 
+type OfferEntryMode = "manual" | "upload";
+
 export function OfferComparisonView() {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [entryMode, setEntryMode] = useState<OfferEntryMode>("manual");
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   const [offers, setOffers] = useState<OfferDraft[]>(() => {
     const pending =
       useOfferComparisonRestoreStore.getState().takeRestore();
@@ -132,14 +140,75 @@ export function OfferComparisonView() {
     setOffers((prev) => prev.filter((o) => o.id !== id));
   };
 
+  const anyFromDocument = useMemo(
+    () => offers.some((o) => Boolean(o.documentFileName)),
+    [offers]
+  );
+
+  const onOfferFiles = async (list: FileList | null) => {
+    const files = Array.from(list ?? []).slice(0, 3);
+    if (fileRef.current) fileRef.current.value = "";
+    if (files.length < 2) {
+      setUploadError("Select 2–3 offer letters or PDFs to compare.");
+      return;
+    }
+    setUploadError(null);
+    setUploadBusy(true);
+    try {
+      const d = {
+        cityTier: offers[0]?.cityTier ?? ("tier1" as const),
+        taxRegime: offers[0]?.taxRegime ?? ("new" as const),
+      };
+      const parsed = await Promise.all(
+        files.map((f) => mockParseOfferDocument(f, d))
+      );
+      setOffers(parsed);
+      setEntryMode("manual");
+    } finally {
+      setUploadBusy(false);
+    }
+  };
+
   return (
     <PageShell className="py-8 md:py-10">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <SectionHeader
           title="Offer comparison"
-          subtitle="Enter up to three offers with the same tax engine as your free breakdown. Compare in-hand and a simple first-year value score."
+          subtitle="Manual entry for up to three offers, or upload multiple documents for a deeper mock parse (verify CTC and regime in each card)."
         />
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <div className="inline-flex rounded-xl border border-navy-200 bg-navy-50/40 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setEntryMode("manual");
+                setUploadError(null);
+              }}
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs font-semibold",
+                entryMode === "manual"
+                  ? "bg-white text-navy-800 shadow-sm"
+                  : "text-navy-500"
+              )}
+            >
+              Manual
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEntryMode("upload");
+                setUploadError(null);
+              }}
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs font-semibold",
+                entryMode === "upload"
+                  ? "bg-white text-navy-800 shadow-sm"
+                  : "text-navy-500"
+              )}
+            >
+              Upload offers
+            </button>
+          </div>
           <Button
             type="button"
             variant="outline"
@@ -162,6 +231,48 @@ export function OfferComparisonView() {
         </div>
       </div>
 
+      {entryMode === "upload" && (
+        <div className="mt-8 rounded-2xl border border-teal-200/60 bg-teal-50/40 p-6">
+          <div className="flex items-start gap-3">
+            <Upload className="size-5 text-teal-600 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-3">
+              <p className="text-sm font-semibold text-navy-800">
+                Advanced: compare from documents
+              </p>
+              <p className="text-xs text-navy-600 leading-relaxed">
+                Select two or three files (PDF or image). Mock parser infers company name
+                from the filename and CTC from patterns like <code className="text-navy-800">24L</code> or a 6–9 digit amount — then runs the same in-hand engine. Replace with real OCR when your API is live.
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                accept=".pdf,.png,.jpg,.jpeg,image/*,application/pdf"
+                className="hidden"
+                onChange={(e) => onOfferFiles(e.target.files)}
+              />
+              <Button
+                type="button"
+                disabled={uploadBusy}
+                onClick={() => fileRef.current?.click()}
+                className="rounded-full"
+              >
+                {uploadBusy ? "Parsing…" : "Choose 2–3 files"}
+              </Button>
+              {uploadError && (
+                <p className="text-xs text-danger-600">{uploadError}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {anyFromDocument && (
+        <p className="mt-6 text-xs text-teal-800 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
+          This comparison includes document-parsed offers — double-check CTC, regime, and city tier in each card.
+        </p>
+      )}
+
       <div
         className={cn(
           "mt-10 grid gap-6",
@@ -173,8 +284,10 @@ export function OfferComparisonView() {
             key={o.id}
             className="rounded-2xl border border-navy-200/50 bg-white p-5 shadow-sm space-y-4"
           >
-            <div className="flex items-center justify-between">
-              <span className="text-label text-navy-400">Offer</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-label text-navy-400">
+                {o.documentFileName ? "Document offer" : "Offer"}
+              </span>
               {offers.length > 2 && (
                 <button
                   type="button"
@@ -267,6 +380,11 @@ export function OfferComparisonView() {
                 />
               </div>
             </div>
+            {o.documentFileName && (
+              <p className="text-[11px] text-teal-700 font-medium leading-snug">
+                From file: {o.documentFileName}
+              </p>
+            )}
             <p className="text-[11px] text-navy-400 leading-snug">
               ESOP counted at 25% liquid equivalent for first-year score only.
             </p>

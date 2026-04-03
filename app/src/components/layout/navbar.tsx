@@ -44,14 +44,16 @@ function NavbarInner() {
   const searchParams = useSearchParams();
   const paywallTool = searchParams.get("tool");
   const user = useAuthStore((s) => s.user);
-  const [authReady, setAuthReady] = useState(
-    () => globalThis.window !== undefined && useAuthStore.persist.hasHydrated()
-  );
+  /** Always false on SSR + first client paint so markup matches (avoids hydration mismatch). */
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    return useAuthStore.persist.onFinishHydration(() => {
-      setAuthReady(true);
-    });
+    const markReady = () => setAuthReady(true);
+    const unsub = useAuthStore.persist.onFinishHydration(markReady);
+    if (useAuthStore.persist.hasHydrated()) {
+      queueMicrotask(markReady);
+    }
+    return unsub;
   }, []);
 
   const onAuthPath =

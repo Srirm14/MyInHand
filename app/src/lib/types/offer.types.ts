@@ -10,6 +10,8 @@ export interface OfferDraft {
   taxRegime: TaxRegime;
   joiningBonus: number;
   esopValue: number;
+  /** Populated when row came from mock document parse */
+  documentFileName?: string;
 }
 
 export interface OfferInput {

@@ -1,4 +1,4 @@
-# IMPLEMENTATION_PLAN.md — The Fluid Ledger
+# IMPLEMENTATION_PLAN.md — InHand
 
 ## Phase 1: App Shell & Architecture
 

@@ -4,7 +4,12 @@ import {
   EPF_WAGE_CEILING,
   PROFESSIONAL_TAX_MONTHLY,
 } from "@/lib/constants/tax-slabs";
-import type { TaxRegime, SalaryBreakdown, SalaryComponent } from "@/lib/types/salary.types";
+import type {
+  TaxRegime,
+  SalaryBreakdown,
+  SalaryBreakdownMeta,
+  SalaryComponent,
+} from "@/lib/types/salary.types";
 import { calculateIncomeTax } from "./calculate-tax";
 
 /**
@@ -20,10 +25,43 @@ import { calculateIncomeTax } from "./calculate-tax";
  * These assumptions match common Indian IT company structures.
  * A future version can accept custom component splits.
  */
+/** Recompute headline totals when user edits monthly component cells. */
+export function aggregateBreakdownTotals(
+  components: SalaryComponent[],
+  annualCTC: number
+): Pick<
+  SalaryBreakdown,
+  "monthlyInHand" | "annualIncomeTax" | "totalMonthlyDeductions" | "takeHomePercent"
+> {
+  let inflow = 0;
+  let deductions = 0;
+  let annualIncomeTax = 0;
+  for (const c of components) {
+    if (c.type === "deduction") {
+      deductions += c.monthlyValue;
+      if (c.id === "income_tax") annualIncomeTax = c.annualValue;
+    } else {
+      inflow += c.monthlyValue;
+    }
+  }
+  const monthlyInHand = Math.round(inflow - deductions);
+  const takeHomePercent =
+    annualCTC > 0
+      ? Number((((monthlyInHand * 12) / annualCTC) * 100).toFixed(1))
+      : 0;
+  return {
+    monthlyInHand,
+    annualIncomeTax,
+    totalMonthlyDeductions: Math.round(deductions),
+    takeHomePercent,
+  };
+}
+
 export function calculateSalaryBreakdown(
   annualCTC: number,
   cityTier: CityTier,
-  regime: TaxRegime
+  regime: TaxRegime,
+  metaOverrides?: Partial<SalaryBreakdownMeta>
 ): SalaryBreakdown {
   const tierConfig = CITY_TIERS.find((t) => t.value === cityTier)!;
 
@@ -129,11 +167,18 @@ export function calculateSalaryBreakdown(
       ? Number(((monthlyInHand * 12 / annualCTC) * 100).toFixed(1))
       : 0;
 
+  const meta: SalaryBreakdownMeta = {
+    resultSource: metaOverrides?.resultSource ?? "manual_estimated",
+    documentFileName: metaOverrides?.documentFileName,
+    componentsAdjusted: metaOverrides?.componentsAdjusted ?? false,
+  };
+
   return {
     monthlyInHand: Math.round(monthlyInHand),
     annualIncomeTax: taxResult.annualTax,
     totalMonthlyDeductions: Math.round(totalMonthlyDeductions),
     takeHomePercent,
     components,
+    meta,
   };
 }

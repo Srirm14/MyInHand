@@ -1,5 +1,5 @@
 import type { OfferDraft } from "./offer.types";
-import type { SalaryInput } from "./salary.types";
+import type { SalaryInput, SalaryResultSource } from "./salary.types";
 
 export interface SalaryHistoryEntry {
   kind: "salary";
@@ -11,6 +11,7 @@ export interface SalaryHistoryEntry {
   monthlyInHand: number;
   regimeLabel: string;
   snapshot: SalaryInput;
+  resultSource?: SalaryResultSource;
 }
 
 export interface OfferComparisonHistoryEntry {

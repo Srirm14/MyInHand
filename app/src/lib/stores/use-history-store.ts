@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { HistoryEntry } from "@/lib/types/history.types";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { SalaryInput } from "@/lib/types/salary.types";
@@ -15,60 +16,73 @@ interface HistoryState {
   pushSalaryCalculation: (input: SalaryInput, monthlyInHand: number) => void;
   pushOfferComparison: (
     offers: OfferDraft[],
-    validCompanies: { companyName: string; monthlyInHand: number; firstYearValue: number }[]
+    validCompanies: {
+      companyName: string;
+      monthlyInHand: number;
+      firstYearValue: number;
+    }[]
   ) => void;
 }
 
-export const useHistoryStore = create<HistoryState>((set) => ({
-  entries: [],
+export const useHistoryStore = create<HistoryState>()(
+  persist(
+    (set) => ({
+      entries: [],
 
-  pushSalaryCalculation: (input, monthlyInHand) => {
-    const title =
-      input.fullName?.trim() ||
-      `₹${(input.annualCTC / 100000).toFixed(1)}L CTC`;
-    const entry: HistoryEntry = {
-      kind: "salary",
-      id: crypto.randomUUID(),
-      at: Date.now(),
-      title,
-      annualCTC: input.annualCTC,
-      monthlyInHand,
-      regimeLabel: regimeLabel(input.taxRegime),
-      snapshot: { ...input },
-    };
-    set((s) => ({
-      entries: [entry, ...s.entries].slice(0, MAX),
-    }));
-  },
+      pushSalaryCalculation: (input, monthlyInHand) => {
+        const title =
+          input.fullName?.trim() ||
+          `₹${(input.annualCTC / 100000).toFixed(1)}L CTC`;
+        const entry: HistoryEntry = {
+          kind: "salary",
+          id: crypto.randomUUID(),
+          at: Date.now(),
+          title,
+          annualCTC: input.annualCTC,
+          monthlyInHand,
+          regimeLabel: regimeLabel(input.taxRegime),
+          snapshot: { ...input },
+          resultSource: input.resultSource,
+        };
+        set((s) => ({
+          entries: [entry, ...s.entries].slice(0, MAX),
+        }));
+      },
 
-  pushOfferComparison: (offers, validCompanies) => {
-    if (validCompanies.length < 2) return;
+      pushOfferComparison: (offers, validCompanies) => {
+        if (validCompanies.length < 2) return;
 
-    const bestHand = validCompanies.reduce((a, b) =>
-      b.monthlyInHand > a.monthlyInHand ? b : a
-    );
-    const bestVal = validCompanies.reduce((a, b) =>
-      b.firstYearValue > a.firstYearValue ? b : a
-    );
-    let winnerSummary: string;
-    if (bestHand.companyName === bestVal.companyName) {
-      winnerSummary = `${bestHand.companyName} leads on in-hand & 1Y value`;
-    } else {
-      winnerSummary = `${bestHand.companyName} best in-hand · ${bestVal.companyName} best 1Y value`;
+        const bestHand = validCompanies.reduce((a, b) =>
+          b.monthlyInHand > a.monthlyInHand ? b : a
+        );
+        const bestVal = validCompanies.reduce((a, b) =>
+          b.firstYearValue > a.firstYearValue ? b : a
+        );
+        let winnerSummary: string;
+        if (bestHand.companyName === bestVal.companyName) {
+          winnerSummary = `${bestHand.companyName} leads on in-hand & 1Y value`;
+        } else {
+          winnerSummary = `${bestHand.companyName} best in-hand · ${bestVal.companyName} best 1Y value`;
+        }
+
+        const entry: HistoryEntry = {
+          kind: "offer_comparison",
+          id: crypto.randomUUID(),
+          at: Date.now(),
+          title: `Compare ${validCompanies.length} offers`,
+          offerCount: validCompanies.length,
+          winnerSummary,
+          offersSnapshot: offers.map((o) => ({ ...o })),
+        };
+
+        set((s) => ({
+          entries: [entry, ...s.entries].slice(0, MAX),
+        }));
+      },
+    }),
+    {
+      name: "inhand-history",
+      partialize: (s) => ({ entries: s.entries }),
     }
-
-    const entry: HistoryEntry = {
-      kind: "offer_comparison",
-      id: crypto.randomUUID(),
-      at: Date.now(),
-      title: `Compare ${validCompanies.length} offers`,
-      offerCount: validCompanies.length,
-      winnerSummary,
-      offersSnapshot: offers.map((o) => ({ ...o })),
-    };
-
-    set((s) => ({
-      entries: [entry, ...s.entries].slice(0, MAX),
-    }));
-  },
-}));
+  )
+);
