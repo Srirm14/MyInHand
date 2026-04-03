@@ -2,56 +2,82 @@
 
 ## Project: InHand (salary intelligence SaaS)
 
-Salary intelligence SaaS for Indian salaried employees. Desktop-first, light-mode, premium aesthetic.
+Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode only, teal-based premium aesthetic.
 
 ## How to Work in This Repo
 
 1. **Read this file first** before any task.
-2. **Check `ARCHITECTURE.md`** for folder structure and conventions.
+2. **Check `ARCHITECTURE.md`** for folder structure, routes, and conventions.
 3. **Check `DESIGN_SYSTEM.md`** before creating any UI component.
 4. **Check `PRODUCT_FLOW.md`** before implementing any screen.
+5. **Check `SALARY_COMPONENTS.md`** before touching breakdown table logic.
+
+## Key Codebase Facts
+
+- **107 files** across app/, components/, lib/.
+- **5 Zustand stores:** auth, salary, lifestyle, history, offer-comparison-restore.
+- **4 Zod schemas:** auth, ctc-input, lifestyle, offer.
+- **3 access tiers:** anonymous, signed-in free, signed-in premium.
+- **Brand name:** "InHand" (not "The Fluid Ledger" — that was a design mockup name).
+- **Premium gate:** env `NEXT_PUBLIC_ACCESS_MODE=premium` + session cookie; dev defaults to premium.
+- **Auth:** Demo-local (Zustand persist + cookie marker). No real backend yet.
 
 ## Planning Rules
 
-- **Summarize your plan** in 3-5 bullets before writing code for any feature.
+- **Summarize your plan** in 3–5 bullets before writing code for any feature.
 - **Ask for clarification** when: requirements are ambiguous, a screen has no design reference, or business logic has multiple valid interpretations.
-- **Do not guess backend behavior.** If you assume an API shape, add a `// ASSUMPTION:` comment and note it in your plan summary.
+- **Do not guess backend behavior.** If you assume an API shape, add `// ASSUMPTION:` comment.
 
 ## Credit & Token Efficiency
 
 - **Only read files relevant to the current task.** Do not scan the whole codebase.
-- **Reuse existing components.** Check `src/components/ui/` and `src/components/shared/` before creating new ones.
-- **Do not rewrite stable files** unless the task explicitly requires changes to them.
+- **Reuse existing components.** Check `src/components/shared/` and `src/components/ui/` first.
+- **Do not rewrite stable files** unless the task explicitly requires it.
 - **Keep responses action-oriented.** Code and concise explanation, not essays.
 - **No speculative implementation.** Only build what is asked for.
 
 ## Implementation Rules
 
-- **Incremental delivery.** One screen or feature per task. Verify it works before moving on.
-- **Verify before claiming done:** Does it render? Does TypeScript compile? Are props typed? Does it match the design reference?
+- **Incremental delivery.** One screen or feature per task.
+- **Verify before claiming done:** Does it render? Does TS compile? Are props typed? Does it match screenshots?
 - **Prefer reusable patterns** over one-off code. If you build something twice, extract it.
-- **Follow the component layering:** `ui/` (primitives) → `shared/` (composed) → `features/` (screen-specific).
+- **Follow component layering:** `ui/` (shadcn primitives) → `shared/` (composed) → `features/` (screen-specific) → `app/` (route pages, thin).
 
 ## UI & Design Rules
 
-- Follow `DESIGN_SYSTEM.md` for all colors, spacing, typography, and component patterns.
-- Match the provided screenshots as closely as possible.
-- **Do not invent colors, fonts, or spacing values** outside the design system.
+- Follow `DESIGN_SYSTEM.md` for all colors, spacing, typography, and patterns.
+- Match provided screenshots as closely as possible.
+- **Do not invent colors, fonts, or spacing** outside the design system.
 - Light mode only. No dark mode.
 - Use Lucide React for all icons. No other icon libraries.
+- Indian number formatting: `₹1,42,500` via `Intl.NumberFormat('en-IN')`.
+- LPA format for nav/summaries: `formatCTCAsLPA()` from `lib/utils/format-currency.ts`.
 
 ## Code Conventions
 
-- All components: PascalCase files, named exports.
-- All schemas: `src/lib/schemas/` with Zod, named `[feature].schema.ts`.
-- All stores: `src/lib/stores/` with Zustand, named `use-[name]-store.ts`.
-- All hooks: `src/lib/hooks/`, named `use-[name].ts`.
-- All types: `src/lib/types/`, named `[domain].types.ts`.
-- All mock data: `src/lib/mocks/`, named `[feature].mock.ts`.
+- Components: PascalCase export, `kebab-case.tsx` filename.
+- Schemas: `src/lib/schemas/[feature].schema.ts` with Zod.
+- Stores: `src/lib/stores/use-[name]-store.ts` with Zustand.
+- Hooks: `src/lib/hooks/use-[name].ts`.
+- Types: `src/lib/types/[domain].types.ts`.
+- Mocks: `src/lib/mocks/[feature].mock.ts`.
+- Utils: `src/lib/utils/[name].ts` — pure functions, no React.
+- Constants: `src/lib/constants/[name].ts`.
+
+## Nav Architecture (important)
+
+- **SalaryNavItem** (`components/layout/salary-nav-item.tsx`): Smart context-aware nav.
+  - No CTC: shows "Salary"
+  - CTC entered: shows "Salary (25 LPA)"
+  - Premium + 2+ history entries: dropdown chevron with last 5 salary contexts
+  - Free users: static label only
+- **Premium nav links** (Offers, Forecast, EMI): only visible for premium signed-in users.
+- **History sheet** (`recent-history-sheet.tsx`): premium-only right drawer, last 5 entries.
+- **`useTieredPremiumLinks()`**: routes anon → login, free → paywall, premium → tool.
 
 ## Documentation Rules
 
-- Update `ARCHITECTURE.md` if you add a new folder or convention.
+- Update `ARCHITECTURE.md` if you add a new folder, store, or convention.
 - Update `DESIGN_SYSTEM.md` if you add a new token or pattern.
 - Update `PRODUCT_FLOW.md` if screen requirements change.
 - Keep all docs concise. No bloat.

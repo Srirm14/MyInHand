@@ -44,3 +44,33 @@ export function formatIndianNumber(num: number): string {
 export function formatPercentage(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`;
 }
+
+/**
+ * Format annual CTC as a compact LPA/Cr label for nav and summaries.
+ *
+ * Examples:
+ *   800000   → "8 LPA"
+ *   1200000  → "12 LPA"
+ *   1850000  → "18.5 LPA"
+ *   2500000  → "25 LPA"
+ *   10000000 → "1 Cr"
+ *   12500000 → "1.25 Cr"
+ *
+ * Rules:
+ *   - ≥ 1 Cr → "X.XX Cr" (drop trailing zeros)
+ *   - < 1 Cr → "X.X LPA" or "X LPA" (drop .0)
+ */
+export function formatCTCAsLPA(annualCTC: number): string {
+  if (annualCTC <= 0) return "";
+  const abs = Math.abs(annualCTC);
+
+  if (abs >= 10_000_000) {
+    const cr = abs / 10_000_000;
+    const formatted = cr % 1 === 0 ? cr.toFixed(0) : parseFloat(cr.toFixed(2)).toString();
+    return `${formatted} Cr`;
+  }
+
+  const lpa = abs / 100_000;
+  const formatted = lpa % 1 === 0 ? lpa.toFixed(0) : parseFloat(lpa.toFixed(1)).toString();
+  return `${formatted} LPA`;
+}

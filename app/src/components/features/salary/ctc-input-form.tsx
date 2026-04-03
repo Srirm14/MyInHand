@@ -98,9 +98,10 @@ export function CtcInputForm() {
   const pushSalaryHistory = () => {
     const { input: nextInput, breakdown } = useSalaryStore.getState();
     if (breakdown) {
-      useHistoryStore
+      const id = useHistoryStore
         .getState()
         .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);
+      useSalaryStore.getState().setActiveSalaryHistoryId(id);
     }
   };
 

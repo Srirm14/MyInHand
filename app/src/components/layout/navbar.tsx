@@ -4,39 +4,21 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Crown, User } from "lucide-react";
+import { SalaryNavItem } from "@/components/layout/salary-nav-item";
 import { RecentHistoryNavButton } from "@/components/layout/recent-history-sheet";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
-import { PREMIUM_UNLOCKED, type PaywallTool } from "@/lib/config/access-mode";
+import { PREMIUM_UNLOCKED, premiumToolHref } from "@/lib/config/access-mode";
 import { cn } from "@/lib/utils";
 
-const PREMIUM_NAV: { label: string; tool: PaywallTool }[] = [
-  { label: "Offers", tool: "offers" },
-  { label: "Forecast", tool: "forecast" },
-  { label: "EMI", tool: "emi" },
-];
-
-const PREMIUM_TOOL_HREF: Record<PaywallTool, string> = {
-  offers: "/premium/offer-comparison",
-  forecast: "/premium/wealth-forecast",
-  emi: "/premium/emi-analyzer",
-};
-
-function navSalaryActive(pathname: string) {
-  return pathname === "/salary" || pathname.startsWith("/salary/");
-}
-
-function navPremiumItemActive(
+function navOfferComparisonActive(
   pathname: string,
-  tool: PaywallTool,
   paywallTool: string | null
 ) {
-  const href = PREMIUM_TOOL_HREF[tool];
-  const onPremiumRoute = pathname === href || pathname.startsWith(`${href}/`);
-  if (PREMIUM_UNLOCKED) {
-    return onPremiumRoute;
-  }
-  return pathname === "/paywall" && (paywallTool ?? "offers") === tool;
+  const href = "/premium/offer-comparison";
+  const onRoute = pathname === href || pathname.startsWith(`${href}/`);
+  if (PREMIUM_UNLOCKED) return onRoute;
+  return pathname === "/paywall" && (paywallTool ?? "offers") === "offers";
 }
 
 function NavbarInner() {
@@ -44,7 +26,6 @@ function NavbarInner() {
   const searchParams = useSearchParams();
   const paywallTool = searchParams.get("tool");
   const user = useAuthStore((s) => s.user);
-  /** Always false on SSR + first client paint so markup matches (avoids hydration mismatch). */
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
@@ -63,51 +44,40 @@ function NavbarInner() {
 
   const showProductChrome = !onAuthPath;
   const showPremiumHeader = authReady && Boolean(user) && PREMIUM_UNLOCKED;
-  /** History is a premium-only utility; free signed-in users do not see it. */
   const showHistory = showProductChrome && showPremiumHeader;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-navy-200/60 shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+        {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
           <span className="font-display text-xl font-bold text-teal-600 tracking-tight">
             InHand
           </span>
         </Link>
 
+        {/* Center Navigation */}
         <nav className="hidden md:flex items-center gap-8">
-          <Link
-            href="/salary"
-            className={cn(
-              "text-sm font-medium transition-colors",
-              navSalaryActive(pathname)
-                ? "text-navy-800 underline decoration-2 underline-offset-[20px] decoration-teal-600"
-                : "text-navy-500 hover:text-navy-800"
-            )}
-          >
-            Salary
-          </Link>
-          {showPremiumHeader &&
-            PREMIUM_NAV.map(({ label, tool }) => {
-              const href = PREMIUM_TOOL_HREF[tool];
-              const active = navPremiumItemActive(pathname, tool, paywallTool);
-              return (
-                <Link
-                  key={label}
-                  href={href}
-                  className={cn(
-                    "text-sm font-medium transition-colors",
-                    active
-                      ? "text-navy-800 underline decoration-2 underline-offset-[20px] decoration-teal-600"
-                      : "text-navy-500 hover:text-navy-800"
-                  )}
-                >
-                  {label}
-                </Link>
-              );
-            })}
+          {/* Smart Salary nav — context-aware with LPA label + premium dropdown */}
+          <SalaryNavItem />
+
+          {/* Offer comparison — paywall when not premium; Forecast/EMI stay under Premium hub */}
+          {showProductChrome && (
+            <Link
+              href={premiumToolHref("offers")}
+              className={cn(
+                "text-sm font-medium transition-colors",
+                navOfferComparisonActive(pathname, paywallTool)
+                  ? "text-navy-800 underline decoration-2 underline-offset-[20px] decoration-teal-600"
+                  : "text-navy-500 hover:text-navy-800"
+              )}
+            >
+              Offer comparison
+            </Link>
+          )}
         </nav>
 
+        {/* Right Actions */}
         <div className="flex items-center gap-2 md:gap-3">
           {showPremiumHeader && showProductChrome && (
             <Link
@@ -161,7 +131,10 @@ function NavbarInner() {
               </div>
             )
           ) : (
-            <div className="h-9 w-24 rounded-full bg-navy-100 animate-pulse" aria-hidden />
+            <div
+              className="h-9 w-24 rounded-full bg-navy-100 animate-pulse"
+              aria-hidden
+            />
           )}
         </div>
       </div>

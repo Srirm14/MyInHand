@@ -4,185 +4,191 @@
 
 | Layer | Tool |
 |-------|------|
-| Framework | Next.js 14+ (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript (strict) |
-| Styling | Tailwind CSS 3.4+ |
-| Components | shadcn/ui |
-| State (client) | Zustand |
-| State (server) | TanStack React Query |
-| Forms | React Hook Form + Zod |
+| Styling | Tailwind CSS 4 |
+| Components | shadcn/ui v4 |
+| State (client) | Zustand 5 |
+| State (server) | TanStack React Query 5 |
+| Forms | React Hook Form 7 + Zod 4 |
 | Icons | Lucide React |
-| Fonts | Plus Jakarta Sans (display), Inter (body) via `next/font/google` |
+| Fonts | Plus Jakarta Sans + Inter via `next/font/google` |
 
-## Product docs (repo root)
+## Related Docs
 
-- **`SALARY_COMPONENTS.md`** — Salary breakdown IA, component model, tooltip/badge rules, grouping (earnings / employer CTC / deductions). Pairs with `lib/constants/salary-component-catalog.ts` and `salary-breakdown-view.tsx`.
+- **`SALARY_COMPONENTS.md`** — Breakdown IA, component model, tooltip/badge rules, grouping.
+- **`DESIGN_SYSTEM.md`** — Colors, typography, card/form/nav patterns.
+- **`PRODUCT_FLOW.md`** — Screen definitions, access tiers, CTA behavior.
 
-## Folder Structure
+## Folder Structure (107 files)
 
 ```
 src/
-├── app/                          # Next.js App Router
-│   ├── layout.tsx                # Root layout (fonts, providers, nav)
-│   ├── page.tsx                  # Landing page (public)
-│   ├── login/, signup/, forgot-password/  # Auth (public)
-│   ├── profile/                  # Lightweight profile (protected)
+├── app/                              # Next.js App Router (thin route pages)
+│   ├── layout.tsx                    # Root: fonts, providers (AuthSync, TooltipProvider), Navbar, Footer
+│   ├── page.tsx                      # Landing (MarketingLanding)
+│   ├── login/page.tsx                # Auth
+│   ├── signup/page.tsx
+│   ├── forgot-password/page.tsx
+│   ├── profile/page.tsx              # Protected
 │   ├── salary/
-│   │   ├── page.tsx              # Salary input (manual CTC + document upload + recents)
-│   │   └── breakdown/
-│   │       └── page.tsx          # Free salary breakdown
-│   ├── lifestyle/
-│   │   └── page.tsx              # Monthly plan + surplus (`MonthlyPlanView`)
-│   ├── premium/
-│   │   ├── page.tsx              # Premium dashboard
-│   │   ├── lifestyle-planner/
-│   │   ├── components/
-│   │   ├── wealth-forecast/
-│   │   ├── offer-comparison/
-│   │   ├── offer-score/
-│   │   └── emi-analyzer/
-│   └── paywall/
-│       └── page.tsx              # Premium paywall / upgrade
+│   │   ├── page.tsx                  # CTC input + document upload + recents
+│   │   └── breakdown/page.tsx        # Editable breakdown (SalaryBreakdownView)
+│   ├── lifestyle/page.tsx            # Monthly plan (MonthlyPlanView)
+│   ├── paywall/page.tsx              # Premium gate (locked/unlocked variants)
+│   └── premium/
+│       ├── layout.tsx                # Premium route guard
+│       ├── page.tsx                  # Dashboard hub (PremiumDashboard)
+│       ├── offer-comparison/page.tsx # OfferComparisonView
+│       ├── wealth-forecast/page.tsx  # WealthForecastView
+│       └── emi-analyzer/page.tsx     # EmiAnalyzerView
 │
 ├── components/
-│   ├── ui/                       # shadcn/ui primitives (button, input, card, etc.)
-│   ├── features/                 # landing, salary (breakdown: component table + planning handoff UI), lifestyle (monthly-plan-view), premium
-│   ├── shared/                   # Composed reusable components
-│   │   ├── stat-card.tsx
-│   │   ├── feature-card.tsx
-│   │   ├── badge-label.tsx
-│   │   ├── currency-display.tsx
-│   │   ├── slider-card.tsx
-│   │   ├── section-header.tsx
-│   │   ├── segmented-selector.tsx
-│   │   ├── donut-gauge.tsx
-│   │   └── save-progress-cta.tsx
-│   ├── auth/                     # Auth page shell (shared card layout)
-│   ├── providers/                # Client providers (e.g. auth cookie sync)
+│   ├── ui/                           # shadcn/ui primitives (13: button, input, label, badge, slider, table, sheet, tooltip, dialog, card, tabs, separator, inr-money-input)
+│   ├── shared/                       # Composed reusable (15 components)
+│   │   ├── stat-card.tsx             # KPI card with amount, trend, icon
+│   │   ├── feature-card.tsx          # Icon + title + CTA (supports href)
+│   │   ├── currency-display.tsx      # ₹ formatted display
+│   │   ├── badge-label.tsx           # Earning/deduction/tax-free badges
+│   │   ├── section-header.tsx        # Title + subtitle + actions
+│   │   ├── segmented-selector.tsx    # Button group toggle
+│   │   ├── slider-card.tsx           # Icon + range slider + amount
+│   │   ├── lifestyle-planning-slider-card.tsx  # Dynamic-scale variant
+│   │   ├── donut-gauge.tsx           # SVG donut for surplus
+│   │   ├── insight-card.tsx          # Sparkles highlight card
+│   │   ├── upgrade-banner.tsx        # Teal premium CTA banner
+│   │   ├── save-progress-cta.tsx     # Login nudge for anonymous
+│   │   ├── cash-path-interactive-row.tsx
+│   │   ├── salary-breakdown-editable-panel.tsx
+│   │   └── salary-breakdown-readonly-panel.tsx
+│   ├── features/                     # Screen-specific compositions
+│   │   ├── landing/marketing-landing.tsx
+│   │   ├── salary/ctc-input-form.tsx
+│   │   ├── salary/compensation-ctc-section.tsx  # Form + Controlled variants
+│   │   ├── salary/salary-breakdown-view.tsx
+│   │   ├── salary/salary-recents-panels.tsx
+│   │   ├── lifestyle/monthly-plan-view.tsx
+│   │   ├── premium/premium-dashboard.tsx
+│   │   ├── premium/offer-comparison-view.tsx
+│   │   ├── premium/wealth-forecast-view.tsx
+│   │   └── premium/emi-analyzer-view.tsx
+│   ├── auth/auth-page-shell.tsx      # Centered card for auth forms
+│   ├── providers/auth-sync.tsx       # Cookie ↔ store sync
 │   └── layout/
-│       ├── navbar.tsx
+│       ├── navbar.tsx                # Top nav with tiered chrome
+│       ├── salary-nav-item.tsx       # Context-aware "Salary (25 LPA)" + premium dropdown
+│       ├── recent-history-sheet.tsx   # Premium history drawer
 │       ├── footer.tsx
 │       └── page-shell.tsx
 │
 ├── lib/
-│   ├── auth/                     # Client session cookie helpers (demo; use HttpOnly + API in prod)
-│   ├── schemas/                  # Zod schemas
-│   │   ├── auth.schema.ts
-│   │   ├── ctc-input.schema.ts
+│   ├── auth/session-cookie.ts        # Demo cookie helpers (fl_session_email)
+│   ├── config/access-mode.ts         # PREMIUM_UNLOCKED, PaywallTool, tier logic
+│   ├── schemas/                      # Zod (4)
+│   │   ├── auth.schema.ts            # login, signup, forgot-password, profile
+│   │   ├── ctc-input.schema.ts       # CTC + fixed/variable split validation
 │   │   ├── lifestyle.schema.ts
 │   │   └── offer.schema.ts
-│   ├── stores/                   # Zustand stores
-│   │   ├── use-salary-store.ts   # Input, breakdown, document apply, editable components
-│   │   ├── use-history-store.ts # Persisted (localStorage); salary + offer recents + premium sheet
-│   │   ├── use-lifestyle-store.ts
-│   │   ├── use-premium-store.ts
-│   │   └── use-auth-store.ts     # Persisted demo auth (replace with real API)
-│   ├── hooks/                    # Custom React hooks
-│   │   ├── use-tiered-premium-links.ts
-│   │   ├── use-salary-calculation.ts
-│   │   ├── use-tax-calculation.ts
-│   │   └── use-currency-format.ts
-│   ├── services/                 # API service functions (for React Query)
-│   │   └── salary.service.ts
-│   ├── types/                    # TypeScript type definitions
-│   │   ├── salary.types.ts
-│   │   ├── lifestyle.types.ts
-│   │   ├── offer.types.ts
-│   │   ├── history.types.ts
-│   │   └── user.types.ts
-│   ├── mocks/                    # Mock data & mock parsers
-│   │   ├── auth.demo.ts
-│   │   ├── parse-salary-document.mock.ts  # ASSUMPTION: replace with API/OCR
-│   │   ├── parse-offer-document.mock.ts
-│   │   ├── salary.mock.ts
-│   │   └── offers.mock.ts
-│   ├── constants/                # App constants
-│   │   ├── tax-slabs.ts
-│   │   ├── city-tiers.ts
-│   │   ├── salary-components.ts   # Legacy reference list
-│   │   └── salary-component-catalog.ts  # Breakdown tooltips + copy by component id
-│   └── utils/                    # Pure utility functions
-│       ├── format-currency.ts
-│       ├── calculate-tax.ts
-│       ├── calculate-salary.ts   # Initial breakdown, recalculateBreakdownFromComponents (formula+override), aggregateBreakdownTotals
-│       ├── compensation-split.ts # Total ↔ fixed ↔ variable sync (manual CTC + offers)
-│       ├── coerce-salary-snapshot.ts  # History restore: default compensation fields
-│       ├── calculate-emi.ts
-│       └── format-relative-time.ts
+│   ├── stores/                       # Zustand (5 + 1 helper)
+│   │   ├── use-auth-store.ts         # Persisted demo auth (users, login, signup, logout, profile)
+│   │   ├── use-salary-store.ts       # Input, breakdown, doc parse, editable components
+│   │   ├── use-lifestyle-store.ts    # Expenses, surplus calc
+│   │   ├── use-history-store.ts      # Persisted (localStorage); salary + offer recents
+│   │   ├── use-offer-comparison-restore-store.ts  # One-shot restore from history
+│   │   └── salary-breakdown-recalc-context.ts     # Helper: builds recalc params
+│   ├── hooks/
+│   │   └── use-tiered-premium-links.ts  # anon→login, free→paywall, premium→tool
+│   ├── types/                        # TypeScript (5)
+│   │   ├── user.types.ts             # UserProfile, LocalAccountRecord
+│   │   ├── salary.types.ts           # SalaryInput, SalaryBreakdown, SalaryComponent, groups, sections, tags
+│   │   ├── lifestyle.types.ts        # LifestyleExpenses, SurplusResult
+│   │   ├── offer.types.ts            # OfferDraft, OfferInput, OfferComparison
+│   │   └── history.types.ts          # SalaryHistoryEntry, OfferComparisonHistoryEntry
+│   ├── mocks/                        # Mock data & parsers (3)
+│   │   ├── auth.demo.ts              # Demo credentials (demo@fluidledger.app / password123)
+│   │   ├── parse-salary-document.mock.ts  # Filename-based CTC extraction
+│   │   └── parse-offer-document.mock.ts   # Filename-based offer parse
+│   ├── constants/                    # Tax, city, component data (4)
+│   │   ├── tax-slabs.ts              # FY 2025-26 old + new regime
+│   │   ├── city-tiers.ts             # Tier1/2/3 + HRA percentages
+│   │   ├── salary-components.ts      # Legacy reference list
+│   │   └── salary-component-catalog.ts  # 268-line detailed tooltips
+│   └── utils/                        # Pure functions (11)
+│       ├── format-currency.ts        # formatCurrency, formatCurrencyCompact, formatCTCAsLPA, formatIndianNumber, formatPercentage
+│       ├── format-relative-time.ts
+│       ├── calculate-salary.ts       # Core breakdown engine + recalc + derive summaries
+│       ├── calculate-tax.ts          # Slab calc + rebate + cess
+│       ├── calculate-emi.ts          # Reducing balance EMI
+│       ├── project-wealth.ts         # Year-by-year wealth projection
+│       ├── compensation-split.ts     # Total ↔ fixed ↔ variable sync
+│       ├── coerce-salary-snapshot.ts # History restore: fill missing fields
+│       ├── lifestyle-slider-scale.ts # Dynamic slider bounds
+│       ├── offer-breakdown-recalc-context.ts
+│       └── utils.ts                  # cn() tailwind merge (also at lib/utils.ts)
 │
-└── styles/
-    └── globals.css               # Tailwind base + custom tokens
+├── middleware.ts                     # Route protection: /profile (session), /premium/* (session + premium)
+└── styles/globals.css                # Tailwind tokens + custom utility classes
 ```
 
-## Key Architectural Patterns
-
-### Component Layering
+## Component Layering (strict)
 
 ```
-ui/          → shadcn/ui primitives. Never modified directly. Extend via className.
-shared/      → Composed from ui/ primitives. Reusable across features. Typed props.
-features/    → Screen-specific components. Import from shared/ and ui/.
-app/pages    → Thin orchestration. Compose feature components. Minimal logic.
+Layer 1: ui/         → shadcn primitives. Never modify source. Extend via className/variants.
+Layer 2: shared/     → Composed reusable. Import from L1 only.
+Layer 3: features/   → Screen-specific. Import from L1 + L2.
+Layer 4: app/pages   → Route handlers. Compose L3. Zero business logic.
 ```
 
-### Form Architecture
+Dependencies flow downward only.
 
-```
-Zod schema (lib/schemas/)
-  → inferred TypeScript type via z.infer<>
-  → useForm<SchemaType>({ resolver: zodResolver(schema) })
-  → shadcn/ui FormField components
-  → onSubmit writes to Zustand store or calls service
-```
+## State Architecture
 
-### State Separation
-
-| What | Where |
-|------|-------|
-| User input state (CTC, optional fixed/variable split, city, regime) | Zustand `use-salary-store` (`SalaryInput`) |
-| Salary / offer recents (last 5) | Zustand `use-history-store` (persisted) |
-| Calculated results | Derived from store + `calculate-salary` |
-| Server data (if/when API exists) | TanStack React Query |
+| Concern | Solution |
+|---------|----------|
+| User inputs (CTC, split, city, regime) | `use-salary-store` (SalaryInput) |
+| Salary breakdown (components, summaries) | `use-salary-store` (SalaryBreakdown) |
+| Lifestyle expenses + surplus | `use-lifestyle-store` |
+| Auth (demo local) | `use-auth-store` (persisted, cookie sync) |
+| Salary + offer recents (last 5) | `use-history-store` (persisted localStorage) |
+| Offer restore from history | `use-offer-comparison-restore-store` (one-shot) |
 | Form transient state | React Hook Form (local) |
-| UI ephemeral state (modals, tabs) | React useState (local) |
+| UI ephemeral state | React useState (local) |
 
-### Naming Conventions
+## Form Pattern
 
-- Components: `PascalCase.tsx` (e.g., `StatCard.tsx` → renamed to `stat-card.tsx` for file, `StatCard` for export)
-- Files: `kebab-case.ts` / `kebab-case.tsx`
-- Schemas: `[feature].schema.ts`
-- Stores: `use-[name]-store.ts`
-- Hooks: `use-[name].ts`
-- Types: `[domain].types.ts`
-- Constants: `kebab-case.ts`
+```
+Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) → FormField → onSubmit → store
+```
 
-### Route Structure
+## Route Access
 
-| Route | Screen | Access |
-|-------|--------|--------|
-| `/` | Landing Page | Public |
-| `/login`, `/signup`, `/forgot-password` | Auth | Public |
-| `/salary` | CTC Input | Public (anonymous OK) |
-| `/salary/breakdown` | Free Salary Breakdown | Public |
-| `/lifestyle` | Monthly plan | Public |
-| `/profile` | Profile | **Signed-in** |
-| `/paywall` | Premium Upgrade | Public |
-| `/premium` | Premium Dashboard | **Signed-in** + env `premium` tier |
-| `/premium/lifestyle-planner` | Affordability Planner | **Signed-in** + Premium |
-| `/premium/wealth-forecast` | Wealth Forecast | **Signed-in** + Premium |
-| `/premium/offer-comparison` | Offer Comparison | **Signed-in** + Premium |
-| `/premium/offer-score` | Side-by-Side Score | **Signed-in** + Premium |
-| `/premium/emi-analyzer` | EMI Analyzer | **Signed-in** + Premium |
+| Route | Access |
+|-------|--------|
+| `/` | Public |
+| `/login`, `/signup`, `/forgot-password` | Public (redirect if logged in) |
+| `/salary`, `/salary/breakdown` | Public (anonymous OK) |
+| `/lifestyle` | Public |
+| `/profile` | Signed-in (middleware) |
+| `/paywall` | Public |
+| `/premium`, `/premium/*` | Signed-in + env premium (middleware) |
 
-`middleware.ts` gates **`/profile`** (session) and **`/premium/*`** (session + env premium). Free salary/lifestyle routes stay public. Demo auth uses `use-auth-store` + `fl_session_email` cookie; replace with a real auth API for production.
+## Nav Architecture
 
-### Mock-first approach
+**SalaryNavItem** is the smart context-aware nav entry:
+- No CTC → "Salary"
+- CTC entered → "Salary (25 LPA)" via `formatCTCAsLPA()`
+- Premium + 2+ history entries → dropdown chevron, last 5 salary contexts, click to switch
+- Free → static label, no dropdown
 
-Calculations run client-side. **Salary/offer document** flows use mock parsers (filename heuristics) with `// ASSUMPTION:` — swap for API/OCR when a backend exists. **`use-history-store`** persists last 5 salary + offer entries to `localStorage` (`inhand-history`). Other stores: see `State Separation` table. Mark future server calls with `// MOCK:` or `// API:` as appropriate.
+Premium nav links (Offers, Forecast, EMI) only visible for premium signed-in users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
 
-### Assumptions
+## Mock-First Approach
 
-- Authentication is **demo-local** (Zustand persist + session cookie marker). Swap for OAuth/password API + HttpOnly cookies when backend exists. Premium gate remains client-side (`NEXT_PUBLIC_ACCESS_MODE` / store) on top of sign-in.
-- All tax calculations use FY 2025-26 slabs (configurable in constants).
-- **Document upload** uses **client-side mock parsers** (filename heuristics); production should use a secure upload + OCR/API. Manual CTC and offer entry remain the fallback.
-- No payment integration. Paywall is UI-only for now.
+All calculations client-side. Document upload uses mock parsers (filename heuristics, `// ASSUMPTION:`). History persisted to localStorage. Demo auth in Zustand. Mark future server calls with `// MOCK:` or `// API:`.
+
+## Assumptions
+
+- Auth is demo-local. Swap for OAuth + HttpOnly cookies when backend exists.
+- Tax slabs: FY 2025-26. Configurable in `constants/tax-slabs.ts`.
+- Document upload: client-side mock parsers. Replace with upload + OCR/API.
+- No payment integration. Paywall is UI-only.

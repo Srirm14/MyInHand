@@ -19,6 +19,9 @@ export function SalaryRecentsPanels() {
   const entries = useHistoryStore((s) => s.entries);
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
+  const setActiveSalaryHistoryId = useSalaryStore(
+    (s) => s.setActiveSalaryHistoryId
+  );
   const queueRestore = useOfferComparisonRestoreStore((s) => s.queueRestore);
   const { toolHref } = useTieredPremiumLinks();
 
@@ -69,6 +72,7 @@ export function SalaryRecentsPanels() {
                       })
                     );
                     calculateBreakdown();
+                    setActiveSalaryHistoryId(e.id);
                     router.push("/salary/breakdown");
                   }}
                   className={cn(

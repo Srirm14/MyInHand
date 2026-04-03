@@ -9,7 +9,12 @@
       "Bash(npx create-next-app@latest app --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
       "Bash(npm install:*)",
       "Bash(npx shadcn@latest init -d)",
-      "Bash(npx shadcn@latest add card input label form slider table badge separator tabs tooltip sheet dialog -y)"
+      "Bash(npx shadcn@latest add card input label form slider table badge separator tabs tooltip sheet dialog -y)",
+      "Bash(wc -l /Users/sriram.v/Desktop/Inhand/app/src/lib/utils/*.ts)",
+      "Bash(grep -v \":0$\")",
+      "Bash(grep -l \"export function\" src/lib/utils/*.ts src/lib/constants/*.ts)",
+      "Bash(npx tsc:*)",
+      "mcp__Claude_Preview__preview_start"
     ]
   }
 }

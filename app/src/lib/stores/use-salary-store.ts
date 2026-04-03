@@ -16,6 +16,9 @@ import { buildBreakdownRecalcContext } from "@/lib/stores/salary-breakdown-recal
 interface SalaryState {
   input: SalaryInput;
   breakdown: SalaryBreakdown | null;
+  /** Last salary history entry applied from nav/history (for highlighting). */
+  activeSalaryHistoryId: string | null;
+  setActiveSalaryHistoryId: (id: string | null) => void;
   setInput: (input: Partial<SalaryInput>) => void;
   calculateBreakdown: () => void;
   /** After mock document parse — sets input + breakdown */
@@ -46,6 +49,9 @@ const defaultInput: SalaryInput = {
 export const useSalaryStore = create<SalaryState>((set, get) => ({
   input: defaultInput,
   breakdown: null,
+  activeSalaryHistoryId: null,
+
+  setActiveSalaryHistoryId: (id) => set({ activeSalaryHistoryId: id }),
 
   setInput: (partial) =>
     set((state) => ({
@@ -187,5 +193,6 @@ export const useSalaryStore = create<SalaryState>((set, get) => ({
     });
   },
 
-  reset: () => set({ input: defaultInput, breakdown: null }),
+  reset: () =>
+    set({ input: defaultInput, breakdown: null, activeSalaryHistoryId: null }),
 }));

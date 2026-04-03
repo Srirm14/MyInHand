@@ -2,19 +2,19 @@
 
 ## What It Is
 
-A desktop-first SaaS application that gives Indian salaried employees complete clarity on their salary, taxes, deductions, lifestyle affordability, and long-term wealth trajectory.
+A desktop-first SaaS that gives Indian salaried employees complete clarity on their salary, taxes, deductions, lifestyle affordability, and long-term wealth trajectory.
 
 ## Who It's For
 
-Indian salaried professionals (primarily tech, corporate, and startup employees) earning ₹5L–₹50L+ CTC who want to:
+Indian salaried professionals (tech, corporate, startup) earning ₹5L–₹50L+ CTC who want to:
 - Understand their actual in-hand salary before or after joining
 - Compare multiple job offers with real take-home numbers
-- Plan lifestyle expenses against their actual disposable income
+- Plan lifestyle expenses against actual disposable income
 - Forecast long-term wealth based on current salary and habits
 
 ## The Problem
 
-Most Indian employees don't understand their salary slip. CTC ≠ in-hand pay. Tax regimes are confusing. HRA, PF, professional tax, and reimbursements create a gap between what's promised and what's deposited. Existing calculators are basic, ugly, and don't connect salary to lifestyle decisions.
+CTC ≠ in-hand pay. Tax regimes are confusing. HRA, PF, professional tax, and reimbursements create a gap between what's promised and what's deposited. Existing calculators are basic, ugly, and don't connect salary to lifestyle decisions.
 
 ## Primary User Questions
 
@@ -26,32 +26,28 @@ Most Indian employees don't understand their salary slip. CTC ≠ in-hand pay. T
 
 ## Free vs Premium
 
-| Free | Premium |
+| Free (anonymous or signed-in) | Premium (signed-in + env premium) |
 |------|---------|
-| CTC → In-hand breakdown | All free features |
-| Basic tax calculation | Detailed salary components (HRA, LTA, ESOP, Bonus) |
-| Simple lifestyle check (rent, food, transport) | Lifestyle Affordability Planner with sliders |
-| Surplus/deficit indicator | Wealth Forecast (5/10/20 year) |
-| | Offer Comparison (upload 2-3 offers) |
-| | Side-by-Side Offer Score |
-| | EMI Analyzer with loan scenarios |
+| CTC → In-hand breakdown (estimated or document-parsed) | All free features |
+| Editable component table (allowances, variable pay) | Wealth Forecast (5/10/20 year) |
+| Monthly lifestyle plan (rent, food, transport, misc) | Offer Comparison (2–3 offers side-by-side) |
+| Surplus/deficit indicator | EMI Analyzer with loan scenarios |
+| Salary + offer recents on salary page | Full history sheet (last 5 actions) |
+| | Premium nav links (Offers, Forecast, EMI) |
+| | Context-aware Salary nav dropdown |
 
 ## Value Proposition
 
-"Understand your salary, down to the last rupee." — Precision financial tools crafted specifically for the nuances of the Indian corporate ecosystem.
+"From CTC to in-hand clarity." — Breakups, deductions, tax impact, lifestyle affordability, offer comparison, and wealth scenarios built for Indian payroll.
 
 ## Product Personality
 
-- Premium, not flashy
-- Intelligent, not complex
-- Trustworthy, not corporate-boring
-- Calm confidence, not anxiety-inducing
-- Financial clarity as empowerment
+Premium, calm, intelligent, trustworthy. Financial clarity as empowerment, not anxiety.
 
-## Desktop-First Positioning
+## Desktop-First
 
-Financial planning is a focused, sit-down activity. Users compare numbers, read tables, adjust sliders. Desktop-first ensures optimal data density, readability, and interaction quality. Mobile can follow later as a responsive adaptation.
+Financial planning is a focused, sit-down activity. Desktop-first ensures optimal data density, readability, and interaction quality. Mobile responsive is secondary.
 
-## Why This Is More Than a Calculator
+## Why More Than a Calculator
 
-Calculators give one number. InHand connects salary → taxes → lifestyle → affordability → wealth trajectory → offer decisions into a single coherent journey. It's a financial decision-making platform, not a one-off tool.
+Calculators give one number. InHand connects salary → taxes → editable components → lifestyle → affordability → wealth trajectory → offer decisions into a single coherent journey.

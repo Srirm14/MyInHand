@@ -1,133 +1,88 @@
 # IMPLEMENTATION_PLAN.md — InHand
 
-## Phase 1: App Shell & Architecture
+## Current Status
 
-**Deliverables:**
-- Next.js project with App Router, TypeScript strict
-- Tailwind CSS configured with custom design tokens (colors, fonts, spacing)
-- shadcn/ui initialized
-- Folder structure as defined in ARCHITECTURE.md
-- Root layout with font loading (Plus Jakarta Sans + Inter)
-- Navbar component
-- Footer component
-- PageShell wrapper component
-- Basic routing skeleton (all routes with placeholder pages)
-
-**Dependencies:** None.
-**Risks:** Font loading performance. Mitigate: use `next/font/google` with `display: swap`.
-**Mock:** None needed.
-**Verify before moving on:**
-- `npm run build` passes
-- All routes render placeholder content
-- Fonts load correctly
-- Tailwind custom tokens work (test a primary-600 button)
+**Phases 1–4 substantially complete.** App shell, design tokens, shared components, auth, free flow (landing → input → breakdown → monthly plan), premium dashboard, offer comparison, wealth forecast, EMI analyzer — all implemented. Nav is context-aware with salary dropdown for premium users.
 
 ---
 
-## Phase 2: Design Tokens & Reusable Components
+## Phase 1: App Shell & Architecture ✅
 
-**Deliverables:**
-- All shared components from DESIGN_SYSTEM.md:
-  - StatCard, FeatureCard, BadgeLabel, CurrencyDisplay
-  - SliderCard, SectionHeader, SegmentedSelector
-  - DonutGauge, PageShell
-- shadcn/ui components installed: Button, Input, Card, Label, Form, Slider, Table, Badge, Separator
-- Currency formatting utility (`format-currency.ts`)
-- Constants: tax slabs, city tiers, salary component definitions
-
-**Dependencies:** Phase 1 complete.
-**Risks:** Over-engineering components. Keep props minimal, extend later.
-**Mock:** Create `salary.mock.ts` with sample breakdown for 12L and 24L CTC.
-**Verify before moving on:**
-- Each shared component renders correctly in isolation
-- CurrencyDisplay shows ₹1,42,500 format correctly
-- SegmentedSelector toggles state
-- StatCard matches screenshot aesthetic
+**Delivered:**
+- Next.js 16 project with App Router, TypeScript strict
+- Tailwind CSS 4 with custom design tokens (teal/navy/emerald/danger palette)
+- shadcn/ui v4 initialized (13 primitives)
+- Folder structure per ARCHITECTURE.md
+- Root layout: Plus Jakarta Sans + Inter, AuthSync provider, Navbar, Footer
+- Middleware: route protection for /profile and /premium/*
 
 ---
 
-## Phase 3: Landing Page & Free Flow
+## Phase 2: Design Tokens & Reusable Components ✅
 
-**Deliverables:**
-- Landing Page (`/`) — full implementation matching screenshot
-- CTC Input Page (`/salary`) — form with RHF + Zod validation
-- Free Salary Breakdown (`/salary/breakdown`) — stat cards; Component breakup (quick links, table, cash path); benchmarks + plan handoff cards; tiered links to EMI / forecast
-- Monthly plan (`/lifestyle`) — amount inputs + sliders + surplus gauge
-- Zustand stores: `use-salary-store.ts`, `use-lifestyle-store.ts`
-- Tax calculation utilities (old regime + new regime)
-- PF and deduction calculation utilities
-
-**Dependencies:** Phase 2 components ready.
-**Risks:** Tax calculation accuracy. Mitigate: use known test cases, document slab sources.
-**Mock:** All calculations client-side. No API calls.
-**Verify before moving on:**
-- Full free journey works end-to-end: Landing → Input → Breakdown → Monthly plan → Surplus
-- Numbers are correct for sample inputs (12L metro old regime, 24L tier-2 new regime)
-- Form validation shows errors properly
-- Surplus gauge shows correct donut proportion
-- Upgrade hooks are visible and link to paywall
+**Delivered:**
+- 15 shared components: StatCard, FeatureCard, CurrencyDisplay, BadgeLabel, SegmentedSelector, SliderCard, DonutGauge, InsightCard, UpgradeBanner, SaveProgressCta, SectionHeader, LifestylePlanningSliderCard, CashPathInteractiveRow, SalaryBreakdownEditablePanel, SalaryBreakdownReadonlyPanel
+- Currency formatting: formatCurrency, formatCurrencyCompact, formatCTCAsLPA, formatIndianNumber, formatPercentage
+- Constants: tax slabs (FY 2025-26), city tiers, salary component catalog (268 lines)
+- Mock data: demo auth, salary/offer document parsers
 
 ---
 
-## Phase 4: Premium Dashboard & Modules
+## Phase 3: Landing Page & Free Flow ✅
 
-**Deliverables:**
-- Premium Paywall page (`/paywall`)
-- Premium Dashboard (`/premium`) — module card grid
-- Lifestyle Affordability Planner (`/premium/lifestyle-planner`)
-- Detailed Salary Components view
-- Wealth Forecast with projection chart
-- Premium gate: Zustand `isPremium` flag, redirect non-premium users
-
-**Dependencies:** Phase 3 stores and calculation utils.
-**Risks:** Chart library choice. Options: Recharts (lightweight) or simple SVG. Decide before building.
-**Mock:** Investment return rates, salary growth assumptions as constants.
-**Verify before moving on:**
-- Premium gate works (non-premium sees paywall)
-- Dashboard shows all module cards
-- Wealth forecast produces reasonable 5/10/20yr numbers
-- Lifestyle planner expands on basic check with more categories
+**Delivered:**
+- Landing page (MarketingLanding)
+- CTC Input with manual + document upload + compensation split
+- Salary Breakdown with editable components (add/rename/remove allowances + variable rows)
+- Monthly plan (lifestyle sliders + surplus gauge)
+- Auth: login, signup, forgot-password, profile
+- Zustand stores: salary, lifestyle, history, auth
+- Tax + PF + salary calculation engine
 
 ---
 
-## Phase 5: Offer Comparison & Score
+## Phase 4: Premium Dashboard & Modules ✅
 
-**Deliverables:**
-- Offer Comparison page — add 2-3 offers with CTC input forms
-- Side-by-Side Score — weighted scoring with visual comparison
-- EMI Analyzer — loan input, post-EMI disposable income
-- Offer data Zustand store
-
-**Dependencies:** Phase 3-4 calculation utils.
-**Risks:** Complex multi-form state. Mitigate: each offer is an independent form instance writing to array in store.
-**Mock:** Sample offer data for 2 offers (startup vs MNC).
-**Verify before moving on:**
-- Can add, edit, remove offers
-- Side-by-side comparison renders correctly
-- EMI correctly reduces disposable income
-- Score reflects weighted criteria
+**Delivered:**
+- Premium paywall (locked/unlocked variants)
+- Premium dashboard hub
+- Offer Comparison (2–3 offers, side-by-side)
+- Wealth Forecast (5/10/20 year projection)
+- EMI Analyzer (loan scenarios)
+- Premium route guard (middleware + layout)
+- Context-aware SalaryNavItem with premium dropdown
 
 ---
 
-## Phase 6: Polish, States & Cleanup
+## Phase 5: Polish & Cleanup — IN PROGRESS
 
 **Deliverables:**
-- Loading skeletons for all pages
-- Empty states for all pages
-- Error boundaries
-- Form validation UX polish (inline errors, focus management)
-- Responsive adjustments (tablet/mobile basic support)
-- SEO: meta tags, Open Graph
-- Performance: check bundle size, lazy load premium routes
-- Documentation cleanup: update all 6 project files if conventions changed
+- [ ] Loading skeletons for all pages
+- [ ] Empty states for all pages (especially premium tools with no data)
+- [ ] Error boundaries
+- [ ] Form validation UX polish (inline errors, focus management)
+- [ ] Responsive adjustments (tablet/mobile basic support)
+- [ ] SEO: meta tags, Open Graph per page
+- [ ] Performance: bundle analysis, lazy load premium routes
+- [ ] Cleanup: verify no dead imports, consolidate duplicate utils
+- [ ] Unused shadcn primitives: card.tsx, dialog.tsx, tabs.tsx, separator.tsx — keep if planned for use, otherwise remove
 
-**Dependencies:** All phases complete.
-**Risks:** Scope creep. Keep polish focused on the defined screens only.
-**Mock:** None new.
-**Verify before moving on:**
+**Dependencies:** All phases 1–4.
+**Risks:** Scope creep. Focus on defined screens only.
+**Verify:**
 - All pages have loading/empty/error states
-- Lighthouse score > 90 (performance)
-- No TypeScript errors
-- No console warnings
-- All forms validate correctly
+- No TypeScript errors, no console warnings
 - Indian number formatting consistent everywhere
+- Lighthouse perf > 90
+
+---
+
+## Phase 6: Future (not started)
+
+- Real backend API (auth, calculations, document OCR)
+- Payment integration (Razorpay/Stripe for premium)
+- Mobile responsive pass
+- PDF export for salary breakdown
+- Email report delivery
+- Analytics / telemetry
+- Multi-language support (Hindi)

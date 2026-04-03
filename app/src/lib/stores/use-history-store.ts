@@ -4,8 +4,11 @@ import type { HistoryEntry } from "@/lib/types/history.types";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { SalaryInput } from "@/lib/types/salary.types";
 import type { TaxRegime } from "@/lib/types/salary.types";
+import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 
-const MAX = 5;
+const MAX_MIXED_ENTRIES = 5;
+/** Premium nav + history page — salary-only contexts (not offer rows). */
+const MAX_SALARY_CONTEXTS = 40;
 
 function regimeLabel(regime: TaxRegime): string {
   return regime === "old" ? "Old regime" : "New regime";
@@ -13,7 +16,9 @@ function regimeLabel(regime: TaxRegime): string {
 
 interface HistoryState {
   entries: HistoryEntry[];
-  pushSalaryCalculation: (input: SalaryInput, monthlyInHand: number) => void;
+  /** Salary runs only — newest first; powers nav switcher & /salary/history. */
+  salaryContexts: SalaryHistoryEntry[];
+  pushSalaryCalculation: (input: SalaryInput, monthlyInHand: number) => string;
   pushOfferComparison: (
     offers: OfferDraft[],
     validCompanies: {
@@ -28,14 +33,16 @@ export const useHistoryStore = create<HistoryState>()(
   persist(
     (set) => ({
       entries: [],
+      salaryContexts: [],
 
       pushSalaryCalculation: (input, monthlyInHand) => {
+        const id = crypto.randomUUID();
         const title =
           input.fullName?.trim() ||
           `₹${(input.annualCTC / 100000).toFixed(1)}L CTC`;
-        const entry: HistoryEntry = {
+        const entry: SalaryHistoryEntry = {
           kind: "salary",
-          id: crypto.randomUUID(),
+          id,
           at: Date.now(),
           title,
           annualCTC: input.annualCTC,
@@ -45,8 +52,10 @@ export const useHistoryStore = create<HistoryState>()(
           resultSource: input.resultSource,
         };
         set((s) => ({
-          entries: [entry, ...s.entries].slice(0, MAX),
+          entries: [entry, ...s.entries].slice(0, MAX_MIXED_ENTRIES),
+          salaryContexts: [entry, ...s.salaryContexts].slice(0, MAX_SALARY_CONTEXTS),
         }));
+        return id;
       },
 
       pushOfferComparison: (offers, validCompanies) => {
@@ -76,13 +85,30 @@ export const useHistoryStore = create<HistoryState>()(
         };
 
         set((s) => ({
-          entries: [entry, ...s.entries].slice(0, MAX),
+          entries: [entry, ...s.entries].slice(0, MAX_MIXED_ENTRIES),
         }));
       },
     }),
     {
       name: "inhand-history",
-      partialize: (s) => ({ entries: s.entries }),
+      partialize: (s) => ({
+        entries: s.entries,
+        salaryContexts: s.salaryContexts,
+      }),
+      merge: (persisted, current) => {
+        const p = persisted as Partial<HistoryState> | undefined;
+        const entries = p?.entries ?? current.entries;
+        const salaryContexts =
+          p?.salaryContexts && p.salaryContexts.length > 0
+            ? p.salaryContexts
+            : entries.filter((e): e is SalaryHistoryEntry => e.kind === "salary");
+        return {
+          ...current,
+          ...p,
+          entries,
+          salaryContexts,
+        };
+      },
     }
   )
 );

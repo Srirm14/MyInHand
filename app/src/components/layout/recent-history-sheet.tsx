@@ -52,6 +52,9 @@ function RecentHistorySheet({
   const entries = useHistoryStore((s) => s.entries);
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
+  const setActiveSalaryHistoryId = useSalaryStore(
+    (s) => s.setActiveSalaryHistoryId
+  );
   const queueOfferRestore = useOfferComparisonRestoreStore(
     (s) => s.queueRestore
   );
@@ -61,6 +64,7 @@ function RecentHistorySheet({
       if (entry.kind === "salary") {
         setInput(coerceSalarySnapshot(entry.snapshot));
         calculateBreakdown();
+        setActiveSalaryHistoryId(entry.id);
         router.push("/salary/breakdown");
       } else {
         queueOfferRestore(entry.offersSnapshot);
@@ -73,6 +77,7 @@ function RecentHistorySheet({
       onOpenChange,
       queueOfferRestore,
       router,
+      setActiveSalaryHistoryId,
       setInput,
       toolHref,
     ]
