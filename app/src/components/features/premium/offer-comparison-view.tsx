@@ -888,7 +888,11 @@ export function OfferComparisonView() {
 
       <p className="mt-8 text-center text-xs text-navy-400">
         Same CTC structure assumptions as your{" "}
-        <Link href="/salary/breakdown" className="text-teal-600 hover:underline">
+        <Link
+          href="/salary/breakdown"
+          scroll={false}
+          className="text-teal-600 hover:underline"
+        >
           salary breakdown
         </Link>
         .

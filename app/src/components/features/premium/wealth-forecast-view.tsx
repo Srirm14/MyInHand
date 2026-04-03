@@ -52,6 +52,7 @@ export function WealthForecastView() {
     <PageShell className="py-8 md:py-10">
       <Link
         href="/salary/breakdown"
+        scroll={false}
         className={cn(
           buttonVariants({ variant: "ghost" }),
           "group -ml-1.5 mb-1 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"

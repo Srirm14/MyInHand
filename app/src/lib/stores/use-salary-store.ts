@@ -35,19 +35,22 @@ interface SalaryState {
   reset: () => void;
 }
 
-const defaultInput: SalaryInput = {
+/** Clean slate for “new in-hand check” / salary input step (no default CTC). */
+export const emptySalaryInput: SalaryInput = {
   fullName: "",
   email: "",
-  annualCTC: 1_200_000,
+  annualCTC: 0,
   compensationMode: "total_only",
   fixedAnnual: 0,
   variableAnnual: 0,
   cityTier: "tier1" as CityTier,
   taxRegime: "old" as TaxRegime,
+  resultSource: "manual_estimated",
+  documentFileName: undefined,
 };
 
 export const useSalaryStore = create<SalaryState>((set, get) => ({
-  input: defaultInput,
+  input: { ...emptySalaryInput },
   breakdown: null,
   activeSalaryHistoryId: null,
 
@@ -194,5 +197,9 @@ export const useSalaryStore = create<SalaryState>((set, get) => ({
   },
 
   reset: () =>
-    set({ input: defaultInput, breakdown: null, activeSalaryHistoryId: null }),
+    set({
+      input: { ...emptySalaryInput },
+      breakdown: null,
+      activeSalaryHistoryId: null,
+    }),
 }));

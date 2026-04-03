@@ -28,8 +28,12 @@ import {
 } from "@/components/ui/tooltip";
 import { CITY_TIERS } from "@/lib/constants/city-tiers";
 import { ctcInputSchema, type CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
+import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
-import { useHistoryStore } from "@/lib/stores/use-history-store";
+import {
+  useHistoryStore,
+  SALARY_HISTORY_MAX_ENTRIES,
+} from "@/lib/stores/use-history-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { TaxRegime } from "@/lib/types/salary.types";
 import { cn } from "@/lib/utils";
@@ -58,12 +62,16 @@ export function CtcInputForm() {
   const [docParsing, setDocParsing] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
 
+  const salaryHistoryCount = useHistoryStore((s) => s.salaryContexts.length);
+  const historyLimitReached =
+    salaryHistoryCount >= SALARY_HISTORY_MAX_ENTRIES;
+
   const form = useForm<CTCInputFormData>({
     resolver: zodResolver(ctcInputSchema),
     defaultValues: {
       fullName: input.fullName ?? "",
       email: input.email ?? "",
-      annualCTC: input.annualCTC || 1_200_000,
+      annualCTC: Math.max(0, input.annualCTC),
       compensationMode: input.compensationMode ?? "total_only",
       fixedAnnual: input.fixedAnnual ?? 0,
       variableAnnual: input.variableAnnual ?? 0,
@@ -76,7 +84,7 @@ export function CtcInputForm() {
     form.reset({
       fullName: input.fullName ?? "",
       email: input.email ?? "",
-      annualCTC: input.annualCTC || 1_200_000,
+      annualCTC: Math.max(0, input.annualCTC),
       compensationMode: input.compensationMode ?? "total_only",
       fixedAnnual: input.fixedAnnual ?? 0,
       variableAnnual: input.variableAnnual ?? 0,
@@ -97,15 +105,17 @@ export function CtcInputForm() {
 
   const pushSalaryHistory = () => {
     const { input: nextInput, breakdown } = useSalaryStore.getState();
-    if (breakdown) {
-      const id = useHistoryStore
-        .getState()
-        .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);
+    if (!breakdown) return;
+    const id = useHistoryStore
+      .getState()
+      .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);
+    if (id != null) {
       useSalaryStore.getState().setActiveSalaryHistoryId(id);
     }
   };
 
   const onSubmit = (data: CTCInputFormData) => {
+    if (historyLimitReached) return;
     setInput({
       fullName: data.fullName,
       email: data.email,
@@ -122,17 +132,20 @@ export function CtcInputForm() {
     });
     calculateBreakdown();
     pushSalaryHistory();
+    clearSalaryBreakdownScrollSave();
     router.push("/salary/breakdown");
   };
 
   const onDocumentSelected = async (fileList: FileList | null) => {
     const file = fileList?.[0];
     if (!file) return;
+    if (historyLimitReached) return;
     setDocError(null);
     setDocParsing(true);
     try {
       await applyParsedSalaryDocument(file);
       pushSalaryHistory();
+      clearSalaryBreakdownScrollSave();
       router.push("/salary/breakdown");
     } catch {
       setDocError(
@@ -198,6 +211,28 @@ export function CtcInputForm() {
           </div>
         </div>
 
+        {historyLimitReached ? (
+          <div
+            className="mb-8 rounded-xl border border-amber-200/90 bg-amber-50/85 px-4 py-3.5 text-left shadow-sm shadow-amber-900/[0.03]"
+            aria-live="polite"
+          >
+            <p className="text-sm font-semibold text-amber-950">
+              History limit reached
+            </p>
+            <p className="mt-1.5 text-xs text-amber-900/90 leading-relaxed max-w-xl">
+              You already have {SALARY_HISTORY_MAX_ENTRIES} saved salaries on this
+              device. Remove one from{" "}
+              <Link
+                href="/salary/history"
+                className="font-semibold text-teal-800 underline-offset-2 hover:underline"
+              >
+                Saved salaries
+              </Link>{" "}
+              to save a new run.
+            </p>
+          </div>
+        ) : null}
+
         {entryMode === "document" ? (
           <div className="rounded-2xl border border-navy-200/50 bg-white p-6 md:p-8 shadow-sm space-y-4">
             <div className="flex items-start gap-3 rounded-xl bg-teal-50/80 border border-teal-100 px-4 py-3">
@@ -220,7 +255,7 @@ export function CtcInputForm() {
             />
             <Button
               type="button"
-              disabled={docParsing}
+              disabled={docParsing || historyLimitReached}
               onClick={() => fileRef.current?.click()}
               className="w-full h-12 rounded-full text-base font-semibold"
             >
@@ -329,6 +364,7 @@ export function CtcInputForm() {
 
             <Button
               type="submit"
+              disabled={historyLimitReached}
               className="mt-10 h-12 w-full rounded-full text-base font-semibold shadow-md hover:shadow-lg"
             >
               Show estimated breakdown

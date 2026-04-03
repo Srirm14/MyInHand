@@ -97,7 +97,8 @@ src/
 │   │   ├── use-offer-comparison-restore-store.ts  # One-shot restore from history
 │   │   └── salary-breakdown-recalc-context.ts     # Helper: builds recalc params
 │   ├── hooks/
-│   │   └── use-tiered-premium-links.ts  # anon→login, free→paywall, premium→tool
+│   │   ├── use-tiered-premium-links.ts  # anon→login, free→paywall, premium→tool
+│   │   └── use-salary-breakdown-scroll-restoration.ts  # sessionStorage Y + layout restore; detour links use pointerdown + inbound `scroll={false}`
 │   ├── types/                        # TypeScript (5)
 │   │   ├── user.types.ts             # UserProfile, LocalAccountRecord
 │   │   ├── salary.types.ts           # SalaryInput, SalaryBreakdown, SalaryComponent, groups, sections, tags
@@ -181,6 +182,10 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 - Free → static label, no dropdown
 
 Premium nav links (Offers, Forecast, EMI) only visible for premium signed-in users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
+
+**Salary breakdown scroll:** Leaving `/salary/breakdown` for Monthly plan / EMI / Forecast (etc.) saves `window` scroll Y in `sessionStorage` (`useSalaryBreakdownScrollRestoration` + `persistSalaryBreakdownScrollNow` on outbound pointerdown). Returning uses `useLayoutEffect` restore and `Link scroll={false}` on “Back to breakdown” so the App Router does not force the document to the top after restore. `clearSalaryBreakdownScrollSave()` on fresh CTC submit or “Back to salary inputs” resets the saved position.
+
+**Salary entry history (premium):** `use-history-store` keeps at most **`SALARY_HISTORY_MAX_ENTRIES` (40)** `salaryContexts` (newest first). The nav chevron lists the **five** most recent; `/salary/history` shows the full list. `removeSalaryContext(id)` drops one row from `salaryContexts` and the mixed `entries` list. **SalaryNavItem** chevron is an entry menu: **New in-hand check** (resets store + `/salary`, empty CTC), saved rows with trash (confirm dialog), and **Manage saved salaries**. New runs are blocked at 40 until the user removes an entry (banner on salary form + history page).
 
 ## Mock-First Approach
 

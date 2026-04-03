@@ -7,8 +7,8 @@ import type { TaxRegime } from "@/lib/types/salary.types";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 
 const MAX_MIXED_ENTRIES = 5;
-/** Premium nav + history page — salary-only contexts (not offer rows). */
-const MAX_SALARY_CONTEXTS = 40;
+/** Max salary runs stored on device (nav shows 5 most recent; full list on /salary/history). */
+export const SALARY_HISTORY_MAX_ENTRIES = 40;
 
 function regimeLabel(regime: TaxRegime): string {
   return regime === "old" ? "Old regime" : "New regime";
@@ -18,7 +18,12 @@ interface HistoryState {
   entries: HistoryEntry[];
   /** Salary runs only — newest first; powers nav switcher & /salary/history. */
   salaryContexts: SalaryHistoryEntry[];
-  pushSalaryCalculation: (input: SalaryInput, monthlyInHand: number) => string;
+  /** Remove one saved salary from nav/history (and matching mixed `entries` row). */
+  removeSalaryContext: (id: string) => void;
+  pushSalaryCalculation: (
+    input: SalaryInput,
+    monthlyInHand: number
+  ) => string | null;
   pushOfferComparison: (
     offers: OfferDraft[],
     validCompanies: {
@@ -31,11 +36,23 @@ interface HistoryState {
 
 export const useHistoryStore = create<HistoryState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       entries: [],
       salaryContexts: [],
 
+      removeSalaryContext: (id) =>
+        set((s) => ({
+          salaryContexts: s.salaryContexts.filter((e) => e.id !== id),
+          entries: s.entries.filter(
+            (e) => !(e.kind === "salary" && e.id === id)
+          ),
+        })),
+
       pushSalaryCalculation: (input, monthlyInHand) => {
+        const { salaryContexts } = get();
+        if (salaryContexts.length >= SALARY_HISTORY_MAX_ENTRIES) {
+          return null;
+        }
         const id = crypto.randomUUID();
         const title =
           input.fullName?.trim() ||
@@ -53,7 +70,10 @@ export const useHistoryStore = create<HistoryState>()(
         };
         set((s) => ({
           entries: [entry, ...s.entries].slice(0, MAX_MIXED_ENTRIES),
-          salaryContexts: [entry, ...s.salaryContexts].slice(0, MAX_SALARY_CONTEXTS),
+          salaryContexts: [entry, ...s.salaryContexts].slice(
+            0,
+            SALARY_HISTORY_MAX_ENTRIES
+          ),
         }));
         return id;
       },
@@ -61,11 +81,14 @@ export const useHistoryStore = create<HistoryState>()(
       pushOfferComparison: (offers, validCompanies) => {
         if (validCompanies.length < 2) return;
 
-        const bestHand = validCompanies.reduce((a, b) =>
-          b.monthlyInHand > a.monthlyInHand ? b : a
+        const first = validCompanies[0]!;
+        const bestHand = validCompanies.reduce(
+          (a, b) => (b.monthlyInHand > a.monthlyInHand ? b : a),
+          first
         );
-        const bestVal = validCompanies.reduce((a, b) =>
-          b.firstYearValue > a.firstYearValue ? b : a
+        const bestVal = validCompanies.reduce(
+          (a, b) => (b.firstYearValue > a.firstYearValue ? b : a),
+          first
         );
         let winnerSummary: string;
         if (bestHand.companyName === bestVal.companyName) {
@@ -98,10 +121,14 @@ export const useHistoryStore = create<HistoryState>()(
       merge: (persisted, current) => {
         const p = persisted as Partial<HistoryState> | undefined;
         const entries = p?.entries ?? current.entries;
-        const salaryContexts =
+        const salaryContextsRaw =
           p?.salaryContexts && p.salaryContexts.length > 0
             ? p.salaryContexts
             : entries.filter((e): e is SalaryHistoryEntry => e.kind === "salary");
+        const salaryContexts = salaryContextsRaw.slice(
+          0,
+          SALARY_HISTORY_MAX_ENTRIES
+        );
         return {
           ...current,
           ...p,

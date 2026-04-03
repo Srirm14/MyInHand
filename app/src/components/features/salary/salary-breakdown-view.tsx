@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   clearSalaryBreakdownScrollSave,
+  persistSalaryBreakdownScrollNow,
   useSalaryBreakdownScrollRestoration,
 } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import Link from "next/link";
@@ -522,6 +523,7 @@ export function SalaryBreakdownView() {
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 href="/lifestyle"
+                onPointerDownCapture={() => persistSalaryBreakdownScrollNow()}
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "h-8 gap-1.5 cursor-pointer rounded-full border-navy-200/90 bg-white px-3 text-xs font-semibold text-teal-700 hover:border-teal-200 hover:bg-teal-50"
@@ -532,6 +534,7 @@ export function SalaryBreakdownView() {
               </Link>
               <Link
                 href={toolHref("emi")}
+                onPointerDownCapture={() => persistSalaryBreakdownScrollNow()}
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "h-8 gap-1.5 cursor-pointer rounded-full border-navy-200/90 bg-white px-3 text-xs font-semibold text-teal-700 hover:border-teal-200 hover:bg-teal-50"
@@ -542,6 +545,7 @@ export function SalaryBreakdownView() {
               </Link>
               <Link
                 href={toolHref("forecast")}
+                onPointerDownCapture={() => persistSalaryBreakdownScrollNow()}
                 className={cn(
                   buttonVariants({ variant: "outline" }),
                   "h-8 gap-1.5 cursor-pointer rounded-full border-navy-200/90 bg-white px-3 text-xs font-semibold text-teal-700 hover:border-teal-200 hover:bg-teal-50"
@@ -855,6 +859,7 @@ function BreakdownNextStepCard({
   return (
     <Link
       href={href}
+      onPointerDownCapture={() => persistSalaryBreakdownScrollNow()}
       className={cn(
         "group flex min-h-[8.5rem] cursor-pointer flex-col rounded-xl border border-navy-200/70 bg-gradient-to-b from-white to-navy-50/30 p-4 shadow-sm transition-all",
         "hover:border-teal-200/90 hover:shadow-md hover:shadow-teal-900/[0.04]"

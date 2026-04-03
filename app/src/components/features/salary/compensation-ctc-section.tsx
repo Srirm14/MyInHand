@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Control, UseFormSetValue } from "react-hook-form";
 import { useWatch } from "react-hook-form";
 import type { CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
@@ -52,9 +52,8 @@ export function CompensationCtcSectionForm({
 
   const onModeChange = (next: CompensationMode) => {
     if (next === "fixed_variable") {
-      const { fixedAnnual: f, variableAnnual: v } = initialSplitFromTotal(
-        annualCTC || 1_200_000
-      );
+      const { fixedAnnual: f, variableAnnual: v } =
+        initialSplitFromTotal(annualCTC);
       sync({
         compensationMode: next,
         fixedAnnual: f,
@@ -238,6 +237,21 @@ function CompensationCtcInputs({
   const fixedErr = errors?.fixedAnnual?.message;
   const varErr = errors?.variableAnnual?.message;
 
+  const [totalFocused, setTotalFocused] = useState(false);
+  const [totalDraft, setTotalDraft] = useState("");
+  const totalInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (totalFocused) return;
+    setTotalDraft("");
+  }, [annualCTC, totalFocused]);
+
+  const displayTotal = totalFocused
+    ? totalDraft
+    : annualCTC > 0
+      ? formatIndianNumber(annualCTC)
+      : "";
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -289,16 +303,40 @@ function CompensationCtcInputs({
           ₹
         </span>
         <input
+          ref={totalInputRef}
           id="comp-total"
           type="text"
           inputMode="numeric"
+          autoComplete="off"
+          placeholder="00,00,000"
+          aria-label="Annual CTC in rupees"
           className={cn(
-            "min-w-0 flex-1 border-0 bg-transparent font-bold text-navy-800 outline-none",
+            "min-w-0 flex-1 border-0 bg-transparent font-bold text-navy-800 outline-none placeholder:text-navy-300 placeholder:font-semibold",
             compact ? "text-xl" : "text-2xl md:text-3xl"
           )}
-          value={annualCTC ? formatIndianNumber(annualCTC) : ""}
+          value={displayTotal}
+          onFocus={() => {
+            setTotalFocused(true);
+            setTotalDraft(annualCTC > 0 ? String(annualCTC) : "");
+            requestAnimationFrame(() => {
+              const el = totalInputRef.current;
+              if (el && document.activeElement === el) {
+                const len = el.value.length;
+                el.setSelectionRange(len, len);
+              }
+            });
+          }}
+          onBlur={(e) => {
+            setTotalFocused(false);
+            const raw = e.target.value.replace(/\D/g, "");
+            const n = Number.parseInt(raw || "0", 10);
+            onTotalChange(Number.isFinite(n) ? n : 0);
+          }}
           onChange={(e) => {
-            const raw = e.target.value.replace(/[^\d]/g, "");
+            const raw = e.target.value.replace(/\D/g, "");
+            if (totalFocused) {
+              setTotalDraft(raw);
+            }
             onTotalChange(raw ? Number(raw) : 0);
           }}
         />

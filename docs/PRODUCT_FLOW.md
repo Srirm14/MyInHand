@@ -141,17 +141,20 @@ Signed-in (premium):
 
 ## Salary Nav Behavior
 
-| User state | Nav label | Dropdown |
-|-----------|-----------|----------|
+| User state | Nav label | Entry switcher (▼) |
+|-----------|-----------|---------------------|
 | No CTC entered | "Salary" | No |
 | CTC entered, anonymous/free | "Salary (25 LPA)" | No |
-| CTC entered, premium, 1 history entry | "Salary (25 LPA)" | No |
-| CTC entered, premium, 2+ entries | "Salary (25 LPA) ▼" | Yes — last 5 salary contexts |
+| CTC entered, premium, breakdown loaded | "Salary (25 LPA) ▼" | Yes — **New in-hand check**, up to **5** recent saved rows (remove with confirm), link to `/salary/history`. Active CTC is **only** in the nav label—not duplicated in the menu. |
 
-Selecting a history entry from the dropdown:
+**New in-hand check** resets the salary store to an empty CTC (`annualCTC` 0) and opens `/salary`. Up to **40** salaries are stored on device; the form is blocked with a calm banner when full until one is removed.
+
+Selecting a saved entry from the switcher:
 1. Restores that salary input to the store
 2. Recalculates breakdown
 3. Updates nav label to new LPA
 4. Navigates to `/salary/breakdown`
+
+Removing the **active** saved entry applies the next newest saved row, or resets and sends the user to `/salary` if none remain.
 
 All salary-dependent screens (breakdown, lifestyle, premium tools) react to the store change.
