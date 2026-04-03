@@ -742,7 +742,8 @@ export function recalculateBreakdownFromComponents(
     comp(
       {
         id: "special_allowance",
-        name: "Special Allowance",
+        name:
+          rowById(prev, "special_allowance")?.name ?? "Special Allowance",
         description: isRowOverridden(rowById(prev, "special_allowance"))
           ? "Your entered amount"
           : "Residual after other CTC slices — add custom allowance rows above",
@@ -764,7 +765,7 @@ export function recalculateBreakdownFromComponents(
       comp(
         {
           id: "variable_pay",
-          name: "Variable pay",
+          name: rowById(prev, "variable_pay")?.name ?? "Variable pay",
           description:
             ctxVariableAnnual > 0
               ? "From your fixed + variable split (monthly = annual ÷ 12 for display)"

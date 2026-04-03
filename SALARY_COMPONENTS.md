@@ -101,8 +101,9 @@ Type column keeps **EARNING** / **DEDUCTION** / **TAX FREE** / **EMPLOYER (CTC)*
 ## 7. UX structure (breakdown table)
 
 - **Sections:** Subheader rows for fixed core, allowances, variable pay, then employer + deductions.
-- **Columns:** Component (info icon, optional remove on `removable`, custom name field for `isCustom`), **monthly** and **annual** editable inputs for **earnings** (either field drives the other via store `patchBreakdownComponent` + recalc); employer/deductions keep **monthly** edit with annual as display ×12.
-- **Add rows:** Ghost **+ Add allowance** / **+ Add variable / bonus line** (compact, not spreadsheet-dense).
+- **Section actions:** Small **+** control on the **Allowances** and **Variable pay** headers (tooltip); optional rows use a subtle **red trash** on the row (revealed on row hover / focus-within).
+- **Columns:** Component (info icon; **allowance + variable**: editable name for every row), **monthly** and **annual** on earnings; employer/deductions: monthly edit, annual read-only.
+- **INR inputs (`InrMoneyInput`, `components/ui/inr-money-input.tsx`):** ₹ prefix, **en-IN** grouping, **`.00`** on blur; while focused, digits-only draft; commits **integer rupees** to `patchBreakdownComponent`; debounced updates keep paired monthly/annual in sync via `recalculateBreakdownFromComponents`.
 - **Alignment:** Labels left, amounts right (`tabular-nums`).
 
 ---

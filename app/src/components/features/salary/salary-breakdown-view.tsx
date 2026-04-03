@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   startTransition,
+  type ReactNode,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -51,6 +52,10 @@ import type {
 } from "@/lib/types/salary.types";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { cn } from "@/lib/utils";
+import {
+  InrMoneyInput,
+  formatInrTwoDecimals,
+} from "@/components/ui/inr-money-input";
 
 const GROUP_TITLES: Record<SalaryComponentGroup, string> = {
   earnings: "Earnings & salary components",
@@ -405,9 +410,10 @@ export function SalaryBreakdownView() {
           <div>
             <h2 className="text-h3 text-navy-800">Component breakup</h2>
             <p className="text-xs text-navy-400 mt-1 max-w-2xl leading-relaxed">
-              Edit monthly or annual on each line — the other field updates. Allowances
-              and variable lines can be added or removed (where shown). Special
-              allowance stays the residual to your stated CTC unless you override it.
+              Amounts use ₹ with Indian grouping and two decimals (blur). Allowances
+              and variable pay: + in the section header to add rows; hover a row to
+              remove when allowed. Special allowance stays the CTC residual unless
+              overridden.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -457,6 +463,7 @@ export function SalaryBreakdownView() {
                 key={row.id}
                 row={row}
                 patchComponent={patchBreakdownComponent}
+                editableName={false}
               />
             ))}
             <GroupSubtotalRow
@@ -466,22 +473,26 @@ export function SalaryBreakdownView() {
 
             <SectionTableHeaderRow
               title="Allowances"
-              subtitle="Rename defaults or add rows (vehicle, washing, telephone, etc.). Remove optional lines if your employer does not use them."
+              subtitle="Rename or tune amounts to match your payslip. Hover a row to remove optional lines. Add employer-specific heads with +."
+              actions={
+                <SectionAddControl
+                  ariaLabel="Add allowance row"
+                  tooltip="Add allowance"
+                  onClick={addBreakdownAllowanceRow}
+                />
+              }
             />
             {earningsBySection.allowance.map((row) => (
               <EditableEarningRow
                 key={row.id}
                 row={row}
                 patchComponent={patchBreakdownComponent}
+                editableName
                 onRemove={
                   row.removable ? removeBreakdownComponent : undefined
                 }
               />
             ))}
-            <AddComponentRowButton
-              label="Add allowance"
-              onClick={addBreakdownAllowanceRow}
-            />
             <GroupSubtotalRow
               rows={earningsBySection.allowance}
               label="Subtotal — allowances"
@@ -489,7 +500,14 @@ export function SalaryBreakdownView() {
 
             <SectionTableHeaderRow
               title="Variable pay"
-              subtitle="Performance bonus, variable CTC, joining / retention — kept out of predictable monthly in-hand."
+              subtitle="Bonus, variable CTC, joining / retention — not part of est. monthly in-hand (excl. variable)."
+              actions={
+                <SectionAddControl
+                  ariaLabel="Add variable or bonus row"
+                  tooltip="Add variable / bonus"
+                  onClick={addBreakdownVariableRow}
+                />
+              }
             />
             {earningsBySection.variable_pay.length === 0 ? (
               <TableRow className="border-navy-100">
@@ -497,11 +515,10 @@ export function SalaryBreakdownView() {
                   colSpan={4}
                   className="pl-4 py-3 text-xs text-navy-500 leading-relaxed"
                 >
-                  No variable lines yet. Use{" "}
-                  <span className="font-medium text-navy-700">
-                    Add variable / bonus line
-                  </span>{" "}
-                  below, or enter a fixed + variable split on the salary page.
+                  No variable lines yet. Use the{" "}
+                  <span className="font-medium text-navy-700">+</span> beside
+                  the section title, or enter a fixed + variable split on the
+                  salary page.
                 </TableCell>
               </TableRow>
             ) : (
@@ -510,16 +527,13 @@ export function SalaryBreakdownView() {
                   key={row.id}
                   row={row}
                   patchComponent={patchBreakdownComponent}
+                  editableName
                   onRemove={
                     row.removable ? removeBreakdownComponent : undefined
                   }
                 />
               ))
             )}
-            <AddComponentRowButton
-              label="Add variable / bonus line"
-              onClick={addBreakdownVariableRow}
-            />
             <GroupSubtotalRow
               rows={earningsBySection.variable_pay}
               label="Subtotal — variable pay"
@@ -722,10 +736,10 @@ function GroupSubtotalRow({
         {label}
       </TableCell>
       <TableCell className="text-right py-2 text-sm font-bold tabular-nums text-navy-800">
-        {formatCurrency(monthly)}
+        ₹{formatInrTwoDecimals(monthly)}
       </TableCell>
       <TableCell className="text-right py-2 text-sm font-bold tabular-nums text-navy-800">
-        {formatCurrency(annual)}
+        ₹{formatInrTwoDecimals(annual)}
       </TableCell>
       <TableCell className="pr-4" />
     </TableRow>
@@ -816,48 +830,58 @@ function ComponentTooltipBody({
 function SectionTableHeaderRow({
   title,
   subtitle,
+  actions,
 }: {
   title: string;
   subtitle?: string;
+  actions?: ReactNode;
 }) {
   return (
     <TableRow className="border-navy-100 bg-navy-50/70 hover:bg-navy-50/70">
-      <TableCell colSpan={4} className="py-3 pl-4">
-        <p className="font-semibold text-[11px] uppercase tracking-wide text-navy-500">
-          {title}
-        </p>
-        {subtitle ? (
-          <p className="text-[11px] text-navy-400 mt-1 max-w-3xl leading-relaxed">
-            {subtitle}
-          </p>
-        ) : null}
+      <TableCell colSpan={4} className="py-3 pl-4 pr-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-[11px] uppercase tracking-wide text-navy-500">
+              {title}
+            </p>
+            {subtitle ? (
+              <p className="text-[11px] text-navy-400 mt-1 max-w-3xl leading-relaxed">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+          {actions ? (
+            <div className="flex shrink-0 items-center pt-0.5">{actions}</div>
+          ) : null}
+        </div>
       </TableCell>
     </TableRow>
   );
 }
 
-function AddComponentRowButton({
-  label,
+function SectionAddControl({
   onClick,
+  ariaLabel,
+  tooltip,
 }: {
-  label: string;
   onClick: () => void;
+  ariaLabel: string;
+  tooltip: string;
 }) {
   return (
-    <TableRow className="border-navy-100/80 border-dashed">
-      <TableCell colSpan={4} className="py-1.5 pl-3">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onClick}
-          className="h-8 rounded-full text-teal-700 hover:bg-teal-50 hover:text-teal-800 -ml-1"
-        >
-          <Plus className="size-4 mr-1 shrink-0" strokeWidth={2} />
-          {label}
-        </Button>
-      </TableCell>
-    </TableRow>
+    <Tooltip>
+      <TooltipTrigger
+        type="button"
+        onClick={onClick}
+        className="inline-flex size-7 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-navy-400 transition-colors hover:bg-teal-50 hover:text-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
+        aria-label={ariaLabel}
+      >
+        <Plus className="size-3.5" strokeWidth={2.5} />
+      </TooltipTrigger>
+      <TooltipContent side="left" className="max-w-xs text-xs font-normal">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -870,10 +894,12 @@ function EditableEarningRow({
   row,
   patchComponent,
   onRemove,
+  editableName = false,
 }: {
   row: SalaryComponent;
   patchComponent: PatchFn;
   onRemove?: (id: string) => void;
+  editableName?: boolean;
 }) {
   const typeBadge = {
     earning: "bg-emerald-50 text-emerald-700 border-0",
@@ -901,63 +927,28 @@ function EditableEarningRow({
     user_edited: "Override",
   }[row.lineSource];
 
-  const [monthlyText, setMonthlyText] = useState(() =>
-    row.monthlyValue === 0 ? "" : String(row.monthlyValue)
-  );
-  const [annualText, setAnnualText] = useState(() =>
-    row.annualValue === 0 ? "" : String(row.annualValue)
-  );
   const [nameText, setNameText] = useState(row.name);
-
-  const monthlyFocusedRef = useRef(false);
-  const annualFocusedRef = useRef(false);
-  const monthlyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const annualDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nameEditingRef = useRef(false);
 
   useEffect(() => {
-    if (monthlyFocusedRef.current) return;
-    const next = row.monthlyValue === 0 ? "" : String(row.monthlyValue);
-    startTransition(() => setMonthlyText(next));
-  }, [row.monthlyValue]);
-
-  useEffect(() => {
-    if (annualFocusedRef.current) return;
-    const next = row.annualValue === 0 ? "" : String(row.annualValue);
-    startTransition(() => setAnnualText(next));
-  }, [row.annualValue]);
-
-  useEffect(
-    () => () => {
-      if (monthlyDebounceRef.current) clearTimeout(monthlyDebounceRef.current);
-      if (annualDebounceRef.current) clearTimeout(annualDebounceRef.current);
-    },
-    []
-  );
-
-  const flushMonthly = (raw: string) => {
-    const digits = raw.replace(/\D/g, "");
-    const n = digits ? parseInt(digits, 10) : 0;
-    if (n !== row.monthlyValue) patchComponent(row.id, { monthlyValue: n });
-  };
-
-  const flushAnnual = (raw: string) => {
-    const digits = raw.replace(/\D/g, "");
-    const n = digits ? parseInt(digits, 10) : 0;
-    if (n !== row.annualValue) patchComponent(row.id, { annualValue: n });
-  };
+    if (nameEditingRef.current) return;
+    startTransition(() => setNameText(row.name));
+  }, [row.name]);
 
   const showRemove = Boolean(onRemove && row.removable);
+  const inrFieldClass =
+    row.type === "tax-free" ? "[&_input]:text-emerald-800" : undefined;
 
   return (
     <TableRow
       className={cn(
-        "border-navy-100 align-top",
+        "group/erow border-navy-100 align-top transition-colors",
         row.isCustom && "bg-teal-50/20"
       )}
     >
       <TableCell className="pl-4 py-3">
         <div className="flex items-start gap-2">
-          <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
+          <div className="flex shrink-0 pt-0.5">
             <Tooltip>
               <TooltipTrigger
                 type="button"
@@ -974,25 +965,19 @@ function EditableEarningRow({
                 <ComponentTooltipBody row={row} />
               </TooltipContent>
             </Tooltip>
-            {showRemove ? (
-              <button
-                type="button"
-                className="rounded-full p-0.5 text-navy-300 hover:text-danger-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
-                aria-label={`Remove ${row.name}`}
-                onClick={() => onRemove!(row.id)}
-              >
-                <Trash2 className="size-4" strokeWidth={2} />
-              </button>
-            ) : null}
           </div>
-          <div className="min-w-0 space-y-1 flex-1">
-            {row.isCustom ? (
+          <div className="min-w-0 flex-1 space-y-1">
+            {editableName ? (
               <input
                 type="text"
                 value={nameText}
                 aria-label="Component name"
                 className="w-full max-w-md rounded-lg border border-navy-200 bg-white px-2 py-1 text-sm font-medium text-navy-800 outline-none focus:ring-2 focus:ring-teal-200"
+                onFocus={() => {
+                  nameEditingRef.current = true;
+                }}
                 onBlur={() => {
+                  nameEditingRef.current = false;
                   patchComponent(row.id, {
                     name: nameText.trim() || row.name,
                   });
@@ -1036,81 +1021,46 @@ function EditableEarningRow({
               ))}
             </div>
           </div>
+          {showRemove ? (
+            <div className="flex shrink-0 self-start pt-0.5">
+              <Tooltip>
+                <TooltipTrigger
+                  type="button"
+                  className={cn(
+                    "rounded-lg border-0 bg-transparent p-1.5 text-danger-500/80 transition-all",
+                    "opacity-0 hover:bg-danger-50 hover:text-danger-600",
+                    "group-hover/erow:opacity-100 group-focus-within/erow:opacity-100",
+                    "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-200"
+                  )}
+                  aria-label={`Remove ${row.name}`}
+                  onClick={() => onRemove!(row.id)}
+                >
+                  <Trash2 className="size-3.5" strokeWidth={2} />
+                </TooltipTrigger>
+                <TooltipContent side="left" className="text-xs">
+                  Remove row
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          ) : null}
         </div>
       </TableCell>
       <TableCell className="p-2 align-middle text-right bg-teal-50/15">
-        <input
-          type="text"
-          inputMode="numeric"
-          value={monthlyText}
+        <InrMoneyInput
+          value={row.monthlyValue}
+          onCommit={(n) => patchComponent(row.id, { monthlyValue: n })}
           aria-label={`${row.name} monthly`}
-          className={cn(
-            "w-full min-w-[6.5rem] rounded-lg border border-navy-200 bg-white px-2 py-1.5 text-sm font-semibold tabular-nums outline-none focus:ring-2 focus:ring-teal-200 ml-auto block text-right",
-            row.type === "tax-free" && "text-emerald-700"
-          )}
-          onFocus={() => {
-            monthlyFocusedRef.current = true;
-          }}
-          onBlur={(e) => {
-            if (monthlyDebounceRef.current) {
-              clearTimeout(monthlyDebounceRef.current);
-              monthlyDebounceRef.current = null;
-            }
-            monthlyFocusedRef.current = false;
-            const v = e.target.value.replace(/\D/g, "");
-            const n = v ? parseInt(v, 10) : 0;
-            setMonthlyText(n === 0 ? "" : String(n));
-            flushMonthly(e.target.value);
-          }}
-          onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, "");
-            setMonthlyText(v);
-            if (monthlyDebounceRef.current)
-              clearTimeout(monthlyDebounceRef.current);
-            monthlyDebounceRef.current = setTimeout(() => {
-              monthlyDebounceRef.current = null;
-              flushMonthly(v);
-            }, 140);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          }}
+          className={cn("ml-auto", inrFieldClass)}
+          debounceMs={160}
         />
       </TableCell>
       <TableCell className="p-2 align-middle text-right bg-teal-50/10">
-        <input
-          type="text"
-          inputMode="numeric"
-          value={annualText}
+        <InrMoneyInput
+          value={row.annualValue}
+          onCommit={(n) => patchComponent(row.id, { annualValue: n })}
           aria-label={`${row.name} annual`}
-          className="w-full min-w-[6.5rem] rounded-lg border border-navy-200 bg-white px-2 py-1.5 text-sm font-semibold tabular-nums text-navy-800 outline-none focus:ring-2 focus:ring-teal-200 ml-auto block text-right"
-          onFocus={() => {
-            annualFocusedRef.current = true;
-          }}
-          onBlur={(e) => {
-            if (annualDebounceRef.current) {
-              clearTimeout(annualDebounceRef.current);
-              annualDebounceRef.current = null;
-            }
-            annualFocusedRef.current = false;
-            const v = e.target.value.replace(/\D/g, "");
-            const n = v ? parseInt(v, 10) : 0;
-            setAnnualText(n === 0 ? "" : String(n));
-            flushAnnual(e.target.value);
-          }}
-          onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, "");
-            setAnnualText(v);
-            if (annualDebounceRef.current)
-              clearTimeout(annualDebounceRef.current);
-            annualDebounceRef.current = setTimeout(() => {
-              annualDebounceRef.current = null;
-              flushAnnual(v);
-            }, 140);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          }}
+          className={cn("ml-auto", inrFieldClass)}
+          debounceMs={160}
         />
       </TableCell>
       <TableCell className="pr-4 align-middle">
@@ -1155,31 +1105,6 @@ function EditableSimpleComponentRow({
     parsed: "Parsed",
     user_edited: "Override",
   }[row.lineSource];
-
-  const [text, setText] = useState(() =>
-    row.monthlyValue === 0 ? "" : String(row.monthlyValue)
-  );
-  const focusedRef = useRef(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (focusedRef.current) return;
-    const next = row.monthlyValue === 0 ? "" : String(row.monthlyValue);
-    startTransition(() => setText(next));
-  }, [row.monthlyValue]);
-
-  useEffect(
-    () => () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    },
-    []
-  );
-
-  const flushCommit = (raw: string) => {
-    const digits = raw.replace(/\D/g, "");
-    const n = digits ? parseInt(digits, 10) : 0;
-    if (n !== row.monthlyValue) onMonthlyChange(row.id, n);
-  };
 
   return (
     <TableRow className="border-navy-100 align-top">
@@ -1230,47 +1155,27 @@ function EditableSimpleComponentRow({
         </div>
       </TableCell>
       <TableCell className="p-2 align-middle text-right bg-teal-50/15">
-        <input
-          type="text"
-          inputMode="numeric"
-          value={text}
+        <InrMoneyInput
+          value={row.monthlyValue}
+          onCommit={(n) => onMonthlyChange(row.id, n)}
           aria-label={`${row.name} monthly`}
           className={cn(
-            "w-full min-w-[6.5rem] rounded-lg border border-navy-200 bg-white px-2 py-1.5 text-sm font-semibold tabular-nums outline-none focus:ring-2 focus:ring-teal-200 ml-auto block text-right",
-            isDeduction && "text-danger-600",
-            row.type === "tax-free" && "text-emerald-700",
-            row.type === "employer" && "text-navy-700"
+            "ml-auto",
+            row.type === "employer" && "[&_input]:text-navy-700"
           )}
-          onFocus={() => {
-            focusedRef.current = true;
-          }}
-          onBlur={(e) => {
-            if (debounceRef.current) {
-              clearTimeout(debounceRef.current);
-              debounceRef.current = null;
-            }
-            focusedRef.current = false;
-            const v = e.target.value.replace(/\D/g, "");
-            const n = v ? parseInt(v, 10) : 0;
-            setText(n === 0 ? "" : String(n));
-            flushCommit(e.target.value);
-          }}
-          onChange={(e) => {
-            const v = e.target.value.replace(/\D/g, "");
-            setText(v);
-            if (debounceRef.current) clearTimeout(debounceRef.current);
-            debounceRef.current = setTimeout(() => {
-              debounceRef.current = null;
-              flushCommit(v);
-            }, 140);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          }}
+          deductionStyle={isDeduction}
+          debounceMs={160}
         />
       </TableCell>
-      <TableCell className="text-navy-700 tabular-nums text-right align-middle font-medium">
-        {formatCurrency(row.annualValue)}
+      <TableCell className="p-2 align-middle text-right">
+        <span
+          className={cn(
+            "inline-block min-w-[7.5rem] text-sm font-semibold tabular-nums text-navy-700",
+            isDeduction && "text-danger-600"
+          )}
+        >
+          ₹{formatInrTwoDecimals(row.annualValue)}
+        </span>
       </TableCell>
       <TableCell className="pr-4 align-middle">
         <Badge variant="secondary" className={cn("font-semibold text-[10px]", typeBadge)}>
