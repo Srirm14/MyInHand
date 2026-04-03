@@ -5,7 +5,7 @@ import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Shown after the free salary/lifestyle flow for anonymous users — nudges account (History is premium-only). */
+/** Shown after the free salary / monthly plan flow for anonymous users — nudges account (History is premium-only). */
 export function SaveProgressCta({
   returnTo,
   className,

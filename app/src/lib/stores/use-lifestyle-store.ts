@@ -13,6 +13,10 @@ const defaultExpenses: LifestyleExpenses = {
   food: 12_000,
   transport: 8_500,
   misc: 5_000,
+  utilities: 0,
+  shopping: 0,
+  savings: 0,
+  investments: 0,
 };
 
 export const useLifestyleStore = create<LifestyleState>((set, get) => ({
@@ -20,21 +24,34 @@ export const useLifestyleStore = create<LifestyleState>((set, get) => ({
 
   setExpense: (key, value) =>
     set((state) => ({
-      expenses: { ...state.expenses, [key]: value },
+      expenses: { ...state.expenses, [key]: Math.max(0, Math.round(value)) },
     })),
 
   calculateSurplus: (monthlyInHand: number): SurplusResult => {
-    const { expenses } = get();
-    const totalExpenses =
-      expenses.rent + expenses.food + expenses.transport + expenses.misc;
-    const surplus = monthlyInHand - totalExpenses;
+    const e = get().expenses;
+    const livingExpenses =
+      e.rent +
+      e.food +
+      e.transport +
+      e.misc +
+      e.utilities +
+      e.shopping;
+    const plannedSavings = e.savings;
+    const plannedInvestments = e.investments;
+    const totalMonthlyOutflow =
+      livingExpenses + plannedSavings + plannedInvestments;
+    const surplus = monthlyInHand - totalMonthlyOutflow;
     const surplusPercent =
       monthlyInHand > 0
         ? Number(((surplus / monthlyInHand) * 100).toFixed(1))
         : 0;
 
     return {
-      totalExpenses,
+      livingExpenses,
+      plannedSavings,
+      plannedInvestments,
+      totalMonthlyOutflow,
+      totalExpenses: livingExpenses,
       netIncome: monthlyInHand,
       surplus,
       surplusPercent,

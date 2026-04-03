@@ -52,7 +52,7 @@
 - Landing Page (`/`) — full implementation matching screenshot
 - CTC Input Page (`/salary`) — form with RHF + Zod validation
 - Free Salary Breakdown (`/salary/breakdown`) — stat cards + component table
-- Basic Lifestyle Check (`/lifestyle`) — sliders + surplus gauge
+- Monthly plan (`/lifestyle`) — amount inputs + sliders + surplus gauge
 - Zustand stores: `use-salary-store.ts`, `use-lifestyle-store.ts`
 - Tax calculation utilities (old regime + new regime)
 - PF and deduction calculation utilities
@@ -61,7 +61,7 @@
 **Risks:** Tax calculation accuracy. Mitigate: use known test cases, document slab sources.
 **Mock:** All calculations client-side. No API calls.
 **Verify before moving on:**
-- Full free journey works end-to-end: Landing → Input → Breakdown → Lifestyle → Surplus
+- Full free journey works end-to-end: Landing → Input → Breakdown → Monthly plan → Surplus
 - Numbers are correct for sample inputs (12L metro old regime, 24L tier-2 new regime)
 - Form validation shows errors properly
 - Surplus gauge shows correct donut proportion

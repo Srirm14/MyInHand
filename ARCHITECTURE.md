@@ -32,7 +32,7 @@ src/
 │   │   └── breakdown/
 │   │       └── page.tsx          # Free salary breakdown
 │   ├── lifestyle/
-│   │   └── page.tsx              # Basic lifestyle check + surplus
+│   │   └── page.tsx              # Monthly plan + surplus (`MonthlyPlanView`)
 │   ├── premium/
 │   │   ├── page.tsx              # Premium dashboard
 │   │   ├── lifestyle-planner/
@@ -46,7 +46,7 @@ src/
 │
 ├── components/
 │   ├── ui/                       # shadcn/ui primitives (button, input, card, etc.)
-│   ├── features/                 # landing, salary (ctc-input, compensation-ctc-section, breakdown, recents), lifestyle, premium
+│   ├── features/                 # landing, salary (…), lifestyle (monthly-plan-view), premium
 │   ├── shared/                   # Composed reusable components
 │   │   ├── stat-card.tsx
 │   │   ├── feature-card.tsx
@@ -164,7 +164,7 @@ Zod schema (lib/schemas/)
 | `/login`, `/signup`, `/forgot-password` | Auth | Public |
 | `/salary` | CTC Input | Public (anonymous OK) |
 | `/salary/breakdown` | Free Salary Breakdown | Public |
-| `/lifestyle` | Basic Lifestyle Check | Public |
+| `/lifestyle` | Monthly plan | Public |
 | `/profile` | Profile | **Signed-in** |
 | `/paywall` | Premium Upgrade | Public |
 | `/premium` | Premium Dashboard | **Signed-in** + env `premium` tier |

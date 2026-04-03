@@ -16,14 +16,12 @@ import { cn } from "@/lib/utils";
 
 export function EmiAnalyzerView() {
   const monthlyInHand = useSalaryStore((s) => s.breakdown?.monthlyInHand ?? 0);
-  const lifestyleTotalExpenses = useLifestyleStore(
-    (s) =>
-      s.expenses.rent +
-      s.expenses.food +
-      s.expenses.transport +
-      s.expenses.misc
-  );
   const calculateSurplus = useLifestyleStore((s) => s.calculateSurplus);
+
+  const lifestyleLivingExpenses =
+    monthlyInHand <= 0
+      ? 0
+      : calculateSurplus(monthlyInHand).livingExpenses;
 
   const lifestyleSurplus =
     monthlyInHand <= 0 ? 0 : calculateSurplus(monthlyInHand).surplus;
@@ -75,7 +73,7 @@ export function EmiAnalyzerView() {
     <PageShell className="py-8 md:py-10">
       <SectionHeader
         title="EMI analyzer"
-        subtitle="Fixed-rate EMI estimate and debt-to-income vs your last calculated in-hand. Lifestyle surplus uses current Lifestyle Check sliders."
+        subtitle="Fixed-rate EMI estimate and debt-to-income vs your last calculated in-hand. Surplus uses your current Monthly plan amounts."
       />
 
       {monthlyInHand <= 0 && (
@@ -181,14 +179,14 @@ export function EmiAnalyzerView() {
         {monthlyInHand > 0 && (
           <div className="mt-6 pt-6 border-t border-navy-100">
             <p className="text-xs text-navy-500 mb-2">
-              Lifestyle expenses (from{" "}
+              Living expenses (from{" "}
               <Link href="/lifestyle" className="text-teal-600 hover:underline">
-                Lifestyle Check
+                Monthly plan
               </Link>
-              ): {formatCurrency(lifestyleTotalExpenses)}/mo
+              ): {formatCurrency(lifestyleLivingExpenses)}/mo
             </p>
             <p className="text-label text-navy-400 mb-1">
-              After EMIs & lifestyle (from Lifestyle Check)
+              After EMIs & monthly plan (living spend)
             </p>
             <CurrencyDisplay
               amount={postEmiAfterLife}
@@ -201,7 +199,7 @@ export function EmiAnalyzerView() {
               href="/lifestyle"
               className="mt-2 inline-block text-sm text-teal-600 hover:underline"
             >
-              Adjust lifestyle sliders →
+              Adjust Monthly plan →
             </Link>
           </div>
         )}
@@ -223,9 +221,9 @@ export function EmiAnalyzerView() {
           {verdict === "warn" &&
             "Debt-to-income is high (>45%). Build a buffer before committing."}
           {verdict === "tight" &&
-            "EMIs fit in-hand but lifestyle spend pushes you negative — trim expenses or loan size."}
+            "EMIs fit in-hand but your monthly plan pushes you negative — trim spending or loan size."}
           {verdict === "ok" &&
-            "EMIs sit within a reasonable share of in-hand and leave room after your current lifestyle estimate."}
+            "EMIs sit within a reasonable share of in-hand and leave room after your current monthly plan."}
         </div>
       </div>
     </PageShell>

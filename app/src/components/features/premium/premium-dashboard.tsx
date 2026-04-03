@@ -106,7 +106,7 @@ export function PremiumDashboard() {
       <div className="mt-14 rounded-2xl border border-dashed border-navy-200 bg-navy-50/40 p-8 text-center">
         <LayoutGrid className="mx-auto size-10 text-navy-300 mb-3" />
         <p className="text-sm text-navy-500 max-w-md mx-auto">
-          More modules from the product map (lifestyle planner, detailed
+          More modules from the product map (affordability planner, detailed
           components, offer score) can plug into this hub the same way.
         </p>
       </div>

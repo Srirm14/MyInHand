@@ -28,11 +28,11 @@ Restart the dev server after changing `.env.local`.
 - `/` — Marketing landing  
 - `/salary` — Salary input: **manual CTC** (total-only or optional **fixed + variable** split) or **document upload** (mock parse); **Last tracked salaries / Last compared offers**  
 - `/salary/breakdown` — Breakdown KPIs; **editable** monthly components; estimated vs document banners  
-- `/lifestyle` — Lifestyle sliders & surplus gauge  
+- `/lifestyle` — Monthly plan (spending + surplus gauge)  
 - `/premium` — Hub for planning tools  
 - `/premium/offer-comparison` — **Manual** or **upload** 2–3 offers; same CTC split pattern as `/salary` per card (mock parse)  
 - `/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  
-- `/premium/emi-analyzer` — EMI + DTI vs in-hand & lifestyle  
+- `/premium/emi-analyzer` — EMI + DTI vs in-hand & monthly plan  
 - `/paywall` — Upgrade / waitlist copy (links into Premium hub)
 
 Design tokens and patterns: `../DESIGN_SYSTEM.md`.

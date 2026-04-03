@@ -5,26 +5,26 @@
 ### Logged out — base product only
 
 - **Header:** brand, **Salary** only (no Offers / Forecast / EMI, no Premium chip, no History). **Log in** / **Sign up** on the right.
-- **Flow:** Landing → Salary input → breakdown → lifestyle check → surplus/deficit.
-- **Save nudge:** After breakdown and on lifestyle, **Save your activity** card → `login?from=…` / `signup?from=…`.
+- **Flow:** Landing → Salary input → breakdown → monthly plan → surplus/deficit.
+- **Save nudge:** After breakdown and on monthly plan, **Save your activity** card → `login?from=…` / `signup?from=…`.
 - **Premium CTAs** (in copy, footer, feature cards): resolve to **sign-in first**, then paywall or tool depending on tier (`useTieredPremiumLinks`).
 - **Navbar History:** premium-only (right sheet, last 5). **Salary page recents:** everyone sees **Last tracked salaries** / **Last compared offers** (persisted `useHistoryStore`, last 3 each).
 
 ### Logged in — free tier
 
 - **Header:** **Salary** only + **Profile**. No History in nav, no Premium crown, no deep premium nav links.
-- **Flow:** same free salary + lifestyle path; each successful salary run still **appends to persisted history** for the salary-page recents (not the premium History sheet).
+- **Flow:** same free salary + monthly plan path; each successful salary run still **appends to persisted history** for the salary-page recents (not the premium History sheet).
 - **Premium intent:** links go to **`/paywall`** (and deep `?tool=` where relevant).
 
 ### Logged in — premium tier (`NEXT_PUBLIC_ACCESS_MODE=premium` or dev default)
 
 - **Header:** **Salary** + **Offers** / **Forecast** / **EMI** + **Premium** (teal pill, **crown** icon) + **History** + **Profile**.
 - **Flow:** paywall optional as marketing; **`/premium/*`** routes allowed (middleware: session + env premium).
-- **FAB** (CTC / lifestyle): quick jump to Premium hub for this tier only.
+- **FAB** (CTC / monthly plan): quick jump to Premium hub for this tier only.
 
 ```
 Anonymous
-  Landing → Salary → Breakdown → Lifestyle → Surplus/Deficit
+  Landing → Salary → Breakdown → Monthly plan → Surplus/Deficit
     └→ (optional) Log in / Sign up for profile & continue
 
 Signed-in (free env)
@@ -123,7 +123,7 @@ Signed-in (premium env)
 
 **Breakdown page UX:** Upload salary structure at top (same mock parser as `/salary`); debounced numeric commits (~140ms) + blur flush; **+** add-row controls; **remove** on `removable` rows.
 
-**Primary CTA:** "Add Lifestyle Expenses" / "Optimize My Tax"
+**Primary CTA:** "Open monthly plan" / "View wealth forecast"
 **Secondary CTA:** "Download PDF" (placeholder)
 
 **Key UI elements:** stat cards, grouped editable table + tooltips, net summary, benchmarks / scenario cards (no hardcoded savings rupees in copy), `SaveProgressCta` for anonymous users.
@@ -134,35 +134,31 @@ Signed-in (premium env)
 
 ### 4. "Want More Insights?" (Decision Point)
 
-**Purpose:** Fork the user into free lifestyle check or premium upgrade.
+**Purpose:** Fork the user into free monthly plan or premium upgrade.
 
 **Implementation:** Inline section at bottom of Salary Breakdown page (not a separate route).
 
 **Options:**
-- "Add Lifestyle Expenses" → `/lifestyle` (free)
+- "Open monthly plan" → `/lifestyle` (free)
 - "Unlock Premium Insights" → `/paywall` (premium)
 
 ---
 
-### 5. Basic Lifestyle Check (`/lifestyle`)
+### 5. Monthly plan (`/lifestyle`)
 
-**Purpose:** Let the user input basic monthly expenses and see if their salary supports their lifestyle.
+**Purpose:** Plan monthly spending (and on Pro: savings/investments) against estimated in-hand; see surplus or deficit.
 
-**Core inputs (sliders):**
-- Rent: ₹0 – ₹1,50,000
-- Food: ₹0 – ₹50,000
-- Transport: ₹0 – ₹30,000
-- Misc: ₹0 – ₹25,000
+**Core inputs:** INR fields (primary) + quick-adjust sliders with suggested scales that expand when amounts are high. Free: essentials; Pro: utilities, flexible spending, savings, investments.
 
 **Core outputs:**
 - Monthly Surplus Gauge (donut chart)
 - Surplus/deficit amount
 - Surplus percentage
-- Total Expenses vs Est. Net Income summary
-- Strategy Tip (contextual advice)
+- Expenses vs Est. Net Income (free); plan summary incl. savings/investments (Pro)
+- Wealth forecast CTA (`useTieredPremiumLinks`)
 
-**Primary CTA:** "Upgrade Now" (in teal banner)
-**Upgrade hook:** "Unlock 10-Year Foresight" — premium wealth forecast upsell banner.
+**Primary CTA:** "View wealth forecast" (tiered destination)
+**Upgrade hook:** Premium expands categories and ties plan to forecast.
 
 **Edge cases:** Expenses exceed income (deficit state — red donut, warning message). All sliders at zero. Rent higher than income.
 
@@ -170,9 +166,9 @@ Signed-in (premium env)
 
 ### 6. Surplus / Deficit Indicator
 
-**Purpose:** The key output of the lifestyle check.
+**Purpose:** The key output of the monthly plan.
 
-**Implementation:** Integrated into the lifestyle check page (right column).
+**Implementation:** Integrated into the monthly plan page (right column).
 
 **Visual:**
 - Surplus: Teal donut, green percentage, positive message

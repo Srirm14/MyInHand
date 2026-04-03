@@ -11,7 +11,7 @@ interface StatCardProps {
   trend?: string;
   /** Positive = teal underline, negative = red */
   sentiment?: "positive" | "negative" | "neutral";
-  /** Optional icon in top-right */
+  /** Optional icon — aligned top-right of the label row (same row as label on all breakpoints) */
   icon?: LucideIcon;
   className?: string;
 }
@@ -34,35 +34,42 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "relative rounded-2xl bg-white p-6 shadow-sm border border-navy-200/40",
+        "relative flex h-full flex-col rounded-2xl border border-navy-200/40 bg-white p-5 shadow-sm sm:p-6",
         className
       )}
     >
-      {/* Icon */}
-      {Icon && (
-        <div className="absolute top-5 right-5 text-navy-300">
-          <Icon className="size-6" />
-        </div>
-      )}
-
-      {/* Label */}
-      <p className="text-label text-navy-400 mb-2">{label}</p>
+      {/* Label + icon: explicit row so long labels never collide with the icon */}
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <p className="min-w-0 flex-1 text-label leading-snug text-navy-400">
+          {label}
+        </p>
+        {Icon ? (
+          <div
+            className="shrink-0 text-navy-300"
+            aria-hidden
+          >
+            <Icon className="size-5 sm:size-6" strokeWidth={1.75} />
+          </div>
+        ) : null}
+      </div>
 
       {/* Amount */}
-      <div className="flex items-baseline gap-2">
+      <div className="flex min-w-0 flex-wrap items-baseline gap-2">
         <CurrencyDisplay amount={amount} className="text-stat text-navy-800" />
-        {trend && (
+        {trend ? (
           <span className="text-xs font-medium text-emerald-600">{trend}</span>
-        )}
+        ) : null}
       </div>
 
       {/* Sublabel */}
-      {sublabel && (
-        <p className="mt-1 text-xs text-navy-400">{sublabel}</p>
-      )}
+      {sublabel ? (
+        <p className="mt-1 text-xs leading-snug text-navy-400">{sublabel}</p>
+      ) : null}
 
       {/* Underline accent */}
-      <div className={cn("mt-4 h-1 w-12 rounded-full", underlineColor)} />
+      <div className={cn("mt-auto pt-4")}>
+        <div className={cn("h-1 w-12 rounded-full", underlineColor)} />
+      </div>
     </div>
   );
 }

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { ChevronLeft } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SectionHeader } from "@/components/shared/section-header";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
+import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -48,12 +50,28 @@ export function WealthForecastView() {
 
   return (
     <PageShell className="py-8 md:py-10">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <Link
+        href="/salary/breakdown"
+        className={cn(
+          buttonVariants({ variant: "ghost" }),
+          "group -ml-1.5 mb-1 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+        )}
+        aria-label="Back to salary breakdown"
+      >
+        <ChevronLeft
+          className="size-3.5 opacity-70 transition-transform group-hover:-translate-x-0.5"
+          strokeWidth={2}
+          aria-hidden
+        />
+        Back to breakdown
+      </Link>
+      <div className="mt-1 mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <SectionHeader
+          className="mb-0"
           title="Wealth forecast"
           subtitle="Nominal projection: recurring savings from in-hand pay, annual salary growth, and a single portfolio return. Not financial advice."
         />
-        <div className="flex gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0 lg:pt-1">
           {HORIZONS.map((y) => (
             <button
               key={y}

@@ -133,7 +133,7 @@ export function MarketingLanding() {
         <section className="mt-24 rounded-2xl bg-teal-600 px-8 py-12 text-center text-white shadow-md">
           <h2 className="text-h2 text-white mb-3">Start with your CTC</h2>
           <p className="text-teal-50/90 max-w-xl mx-auto mb-8 leading-relaxed">
-            Free breakdown and lifestyle check. Add premium when you want offer
+            Free breakdown and monthly plan. Add premium when you want offer
             comparison, forecasts, and EMI checks tied to your numbers.
           </p>
           <Link

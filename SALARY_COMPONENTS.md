@@ -15,7 +15,7 @@ Product reference for the **Salary Breakdown** screen: information architecture,
    - **Employer contributions (CTC)** — Same group as before (`employer_contributions`).  
    - **Deductions** — Unchanged (`deductions`).
 4. **Net in-hand summary** — Fixed monthly cash (excl. variable), optional variable ÷12 line, deductions, **est. monthly in-hand (excl. variable)**, illustrative incl.-variable monthly, annual take-home ×12 for both. The **cash path** rows are displayed as paired label+value units (hover-highlight band) to make the “fixed → deductions → in-hand” flow easy to read.
-5. **Downstream CTAs** — Lifestyle, tax tools (unchanged).
+5. **Downstream CTAs** — Monthly plan, tax tools (unchanged).
 
 Rows: engine always emits core lines for the estimated template; **optional** allowance rows (meal, telecom) can be **removed**; **custom** allowance/variable rows are **added in the UI** and flow through `recalculateBreakdownFromComponents`.
 

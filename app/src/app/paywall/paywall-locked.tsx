@@ -21,7 +21,7 @@ const TOOL_COPY: Record<
   },
   emi: {
     title: "EMI analyzer",
-    body: "EMI math, debt-to-income, and impact on lifestyle surplus from your sliders.",
+    body: "EMI math, debt-to-income, and impact on your Monthly plan surplus.",
   },
 };
 
@@ -108,7 +108,7 @@ export function PaywallLocked({ tool, fromPremium }: PaywallLockedProps) {
               "rounded-full px-8 h-11 border-navy-200"
             )}
           >
-            Lifestyle check
+            Monthly plan
           </Link>
         </div>
       </div>

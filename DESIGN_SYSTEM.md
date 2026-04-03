@@ -55,7 +55,7 @@ From screenshots: **Plus Jakarta Sans** for headlines, **Inter** for body/labels
 
 ```
 Display:     Plus Jakarta Sans, 48px, ExtraBold (800)    — Landing hero
-H1:          Plus Jakarta Sans, 36px, Bold (700)          — Page titles (Salary Breakdown, Lifestyle Check)
+H1:          Plus Jakarta Sans, 36px, Bold (700)          — Page titles (Salary Breakdown, Monthly plan)
 H2:          Plus Jakarta Sans, 28px, SemiBold (600)      — Section headings
 H3:          Plus Jakarta Sans, 20px, SemiBold (600)      — Card titles
 Body:        Inter, 16px, Regular (400)                   — Paragraphs, descriptions
@@ -146,7 +146,7 @@ CTA hover:       shadow-lg              — Lift effect on primary buttons
 - Primary-600 background with white text (teal CTA cards)
 - Or white with teal accent for inline tips
 
-### Slider Card (Lifestyle)
+### Slider Card (Monthly plan)
 - White background, rounded-2xl, p-6
 - Lucide icon in teal circle (32px)
 - Category label + amount right-aligned
@@ -226,7 +226,7 @@ CTA hover:       shadow-lg              — Lift effect on primary buttons
 
 ## Donut/Gauge Chart (Surplus)
 
-- From Lifestyle Check screenshot:
+- From Monthly plan screenshot:
 - Large donut with teal segments on light gray track
 - Center: "SURPLUS" label (11px uppercase), large amount (36px bold), percentage below in green
 - Clean, no 3D effects

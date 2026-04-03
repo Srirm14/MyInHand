@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Banknote,
+  CalendarDays,
   ChevronLeft,
   Info,
   PiggyBank,
@@ -20,9 +21,9 @@ import {
   Receipt,
   Sparkles,
   Trash2,
+  LineChart,
   TrendingUp,
   Upload,
-  UserRound,
 } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { StatCard } from "@/components/shared/stat-card";
@@ -254,7 +255,23 @@ export function SalaryBreakdownView() {
 
   return (
     <PageShell className="py-8 md:py-10">
-      <div className="mb-5 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm">
+      <Link
+        href="/salary"
+        className={cn(
+          buttonVariants({ variant: "ghost" }),
+          "group -ml-1.5 mb-1 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+        )}
+        aria-label="Back to salary inputs"
+      >
+        <ChevronLeft
+          className="size-3.5 opacity-70 transition-transform group-hover:-translate-x-0.5"
+          strokeWidth={2}
+          aria-hidden
+        />
+        Back to salary inputs
+      </Link>
+
+      <div className="mt-1 mb-5 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
@@ -350,23 +367,7 @@ export function SalaryBreakdownView() {
 
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
         <header className="min-w-0 max-w-2xl">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-            <h1 className="text-h1 text-navy-800">Salary Breakdown</h1>
-            <Link
-              href="/salary"
-              className={cn(
-                buttonVariants({ variant: "ghost" }),
-                "group -mx-1.5 inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"
-              )}
-            >
-              <ChevronLeft
-                className="size-3.5 opacity-70 transition-transform group-hover:-translate-x-0.5"
-                strokeWidth={2}
-                aria-hidden
-              />
-              Edit salary inputs
-            </Link>
-          </div>
+          <h1 className="text-h1 text-navy-800">Salary Breakdown</h1>
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-navy-500">
             Tune rows to your offer. Variable pay is kept apart from the monthly
             figure you plan around. Row tooltips add context — not tax advice.
@@ -491,8 +492,8 @@ export function SalaryBreakdownView() {
       </div>
 
       <div className="mt-10 rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+          <div className="min-w-0 flex-1 max-w-2xl">
             <h2 className="text-h3 text-navy-800">Component breakup</h2>
             <p className="text-xs text-navy-500 mt-1.5 max-w-2xl leading-relaxed">
               Blurred amounts show ₹ with Indian grouping and paise. Focus to type
@@ -501,23 +502,44 @@ export function SalaryBreakdownView() {
               the gap to your stated CTC unless you lock your own figure.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:w-auto lg:shrink-0">
             <Button
               type="button"
               variant="outline"
-              className="rounded-full border-navy-200"
+              className="w-full rounded-full border-navy-200 sm:w-auto"
             >
               Download PDF
             </Button>
-            <Link
-              href="/lifestyle"
-              className={cn(
-                buttonVariants({ variant: "default" }),
-                "rounded-full bg-teal-600 hover:bg-teal-700"
-              )}
-            >
-              Add lifestyle expenses
-            </Link>
+            <div className="flex min-w-0 w-full shrink-0 flex-nowrap gap-2 sm:w-auto sm:justify-end">
+              <Link
+                href="/lifestyle"
+                className={cn(
+                  buttonVariants({ variant: "default" }),
+                  "inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full bg-teal-600 hover:bg-teal-700 whitespace-nowrap sm:min-h-9 sm:flex-initial"
+                )}
+              >
+                <CalendarDays
+                  className="size-4 shrink-0"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                Open monthly plan
+              </Link>
+              <Link
+                href={toolHref("forecast")}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full border-teal-600 text-teal-700 hover:bg-teal-50 whitespace-nowrap sm:min-h-9 sm:flex-initial"
+                )}
+              >
+                <LineChart
+                  className="size-4 shrink-0"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                View wealth forecast
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -731,14 +753,15 @@ export function SalaryBreakdownView() {
         <div className="mt-8 flex flex-col gap-4 rounded-xl border border-navy-100 bg-navy-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-              <UserRound className="size-5" />
+              <LineChart className="size-5" strokeWidth={2} aria-hidden />
             </div>
             <div>
               <p className="text-sm font-semibold text-navy-800">
-                Personalized Tax Plan Ready…
+                Wealth forecast from this breakdown
               </p>
               <p className="text-xs text-navy-500">
-                Unlock optimizations tailored to your regime and investments.
+                Project how in-hand pay—and your monthly plan—translate into
+                net worth over time.
               </p>
             </div>
           </div>
@@ -749,7 +772,7 @@ export function SalaryBreakdownView() {
               "rounded-full border-teal-600 text-teal-700 hover:bg-teal-50 shrink-0"
             )}
           >
-            Optimize My Tax
+            View wealth forecast
           </Link>
         </div>
       </div>
@@ -758,8 +781,8 @@ export function SalaryBreakdownView() {
         <div className="rounded-2xl bg-teal-600 p-6 text-white shadow-md">
           <h3 className="text-h3 text-white mb-2">Check your surplus.</h3>
           <p className="text-sm text-teal-50/90 leading-relaxed mb-6">
-            Connect lifestyle expenses to see how much room you have after
-            fixed costs each month.
+            Add rent, food, transport, and more to see how much room you have
+            after fixed costs each month.
           </p>
           <Link
             href="/lifestyle"
@@ -768,7 +791,7 @@ export function SalaryBreakdownView() {
               "rounded-full bg-white text-teal-700 hover:bg-teal-50 font-semibold"
             )}
           >
-            Add lifestyle expenses
+            Open monthly plan
           </Link>
         </div>
 
@@ -781,7 +804,7 @@ export function SalaryBreakdownView() {
               recommended="50% Recommended"
             />
             <BenchmarkBar
-              label="Wants & Lifestyle"
+              label="Wants & extras"
               fillPercent={32}
               recommended="30% Recommended"
             />
