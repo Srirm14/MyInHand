@@ -1,5 +1,6 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
+# Agent notes — `app/` (Next.js)
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
+1. **Product and UI rules** live one level up: [`../AGENTS.md`](../AGENTS.md), [`../DESIGN_SYSTEM.md`](../DESIGN_SYSTEM.md), [`../PRODUCT_FLOW.md`](../PRODUCT_FLOW.md), [`../ARCHITECTURE.md`](../ARCHITECTURE.md).
+2. **This folder** is the deployable Next.js app only; keep docs in the repo root unless the task is app-specific (e.g. this file or `README.md`).
+
+Next.js 16+ differs from older versions — follow current [Next.js App Router](https://nextjs.org/docs/app) docs when APIs look unfamiliar.

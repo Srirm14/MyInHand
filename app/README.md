@@ -1,36 +1,36 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The Fluid Ledger — web app
 
-## Getting Started
+Next.js (App Router) + TypeScript + Tailwind + shadcn/ui.
 
-First, run the development server:
+## Commands
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Access mode (env)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `app/.env.example` → `app/.env.local`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| `NEXT_PUBLIC_ACCESS_MODE` | Behavior |
+|---------------------------|----------|
+| `default` or unset | Free tier: `/premium/*` redirects to paywall; nav **Offers / Forecast / EMI / Premium** → paywall. |
+| `premium` | Full tools: `/premium/*` open; `/paywall` shows a short “already unlocked” notice. |
 
-## Learn More
+Restart the dev server after changing env.
 
-To learn more about Next.js, take a look at the following resources:
+## Routes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/` — Marketing landing  
+- `/salary` — CTC input  
+- `/salary/breakdown` — Salary breakdown table & KPIs  
+- `/lifestyle` — Lifestyle sliders & surplus gauge  
+- `/premium` — Hub for planning tools  
+- `/premium/offer-comparison` — Compare 2–3 offers (interactive)  
+- `/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  
+- `/premium/emi-analyzer` — EMI + DTI vs in-hand & lifestyle  
+- `/paywall` — Upgrade / waitlist copy (links into Premium hub)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Design tokens and patterns: `../DESIGN_SYSTEM.md`.

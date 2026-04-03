@@ -40,6 +40,7 @@ src/
 │
 ├── components/
 │   ├── ui/                       # shadcn/ui primitives (button, input, card, etc.)
+│   ├── features/                 # Screen-level compositions (landing, salary, lifestyle)
 │   ├── shared/                   # Composed reusable components
 │   │   ├── stat-card.tsx
 │   │   ├── feature-card.tsx

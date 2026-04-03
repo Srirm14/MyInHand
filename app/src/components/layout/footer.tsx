@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { Shield, Award, Lock } from "lucide-react";
+import { premiumToolHref } from "@/lib/config/access-mode";
 
 const productLinks = [
   { href: "/salary", label: "Calculator" },
-  { href: "/premium/wealth-forecast", label: "Optimizer" },
-  { href: "/premium/offer-comparison", label: "Compare" },
+  { href: premiumToolHref("forecast"), label: "Forecast" },
+  { href: premiumToolHref("offers"), label: "Compare" },
 ];
 
 const legalLinks = [

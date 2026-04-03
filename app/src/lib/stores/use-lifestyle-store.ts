@@ -9,10 +9,10 @@ interface LifestyleState {
 }
 
 const defaultExpenses: LifestyleExpenses = {
-  rent: 0,
-  food: 0,
-  transport: 0,
-  misc: 0,
+  rent: 45_000,
+  food: 12_000,
+  transport: 8_500,
+  misc: 5_000,
 };
 
 export const useLifestyleStore = create<LifestyleState>((set, get) => ({

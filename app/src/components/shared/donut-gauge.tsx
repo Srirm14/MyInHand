@@ -38,7 +38,7 @@ export function DonutGauge({
     sentiment === "positive" ? "text-emerald-600" : "text-danger-500";
 
   return (
-    <div className={cn("flex flex-col items-center", className)}>
+    <div className={cn("relative flex flex-col items-center", className)}>
       <svg width={size} height={size} className="transform -rotate-90">
         {/* Background track */}
         <circle
@@ -65,7 +65,10 @@ export function DonutGauge({
       </svg>
 
       {/* Center content */}
-      <div className="absolute flex flex-col items-center justify-center" style={{ width: size, height: size }}>
+      <div
+        className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+        aria-hidden
+      >
         <span className="text-label text-navy-400">{label}</span>
         <CurrencyDisplay
           amount={amount}

@@ -18,7 +18,7 @@ interface SalaryState {
 const defaultInput: SalaryInput = {
   fullName: "",
   email: "",
-  annualCTC: 0,
+  annualCTC: 1_200_000,
   cityTier: "tier1" as CityTier,
   taxRegime: "old" as TaxRegime,
 };
