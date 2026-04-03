@@ -103,12 +103,13 @@ export const SALARY_COMPONENT_TOOLTIPS: Record<string, SalaryComponentTooltipCop
   },
   variable_pay: {
     summary:
-      "Variable or incentive pay — often a separate part of CTC with payout rules (quarterly, annual, gate conditions).",
-    classification: "Conditional earning — may be one-time or periodic.",
+      "Performance bonus, variable CTC slice, retention, or other pay that is conditional or lumpy — not the same as guaranteed monthly salary.",
+    classification: "Variable / conditional earning.",
     cashImpact:
-      "When included here from your fixed + variable split, it’s spread monthly for display only; real payout timing differs.",
-    calculationNote: "Shown because you entered a variable amount; monthly figure is a simple annual ÷ 12 illustration.",
-    applicability: "Only relevant when your package has variable components.",
+      "Excluded from “monthly in-hand (excluding variable pay)” here; included in annual package and “incl. variable” views. When tied to your fixed + variable split, monthly is ÷12 for display only.",
+    calculationNote:
+      "If you entered a fixed + variable split on the salary page, this line reflects that slice. Real payout timing differs by employer.",
+    applicability: "Naming and payout timing differ widely by employer.",
   },
   joining_bonus: {
     summary: "One-time payment on joining, usually separate from regular salary.",
@@ -238,8 +239,30 @@ export const SALARY_COMPONENT_TOOLTIPS: Record<string, SalaryComponentTooltipCop
   },
 };
 
+const CUSTOM_ALLOWANCE_TOOLTIP: SalaryComponentTooltipCopy = {
+  summary:
+    "An allowance line you added to mirror your employer’s structure (e.g. vehicle, washing, telephone). Rename and set amounts to match your letter or payslip.",
+  classification: "Recurring earning — typically taxable unless specifically exempt under rules.",
+  cashImpact: "Included in fixed monthly cash before deductions in this model.",
+  applicability: "Fully user-defined — confirm tax treatment with your employer or advisor.",
+};
+
+const CUSTOM_VARIABLE_TOOLTIP: SalaryComponentTooltipCopy = {
+  summary:
+    "A variable or annual line you added (e.g. joining bonus, profit incentive). Use it when your package doesn’t fit the default rows.",
+  classification: "Variable / conditional earning.",
+  cashImpact:
+    "Counted in variable-pay totals and annual package views; not in monthly in-hand excluding variable.",
+  applicability: "Fully user-defined — payout rules are employer-specific.",
+};
+
 export function getSalaryComponentTooltip(
   id: string
 ): SalaryComponentTooltipCopy | null {
-  return SALARY_COMPONENT_TOOLTIPS[id] ?? null;
+  const known =
+    SALARY_COMPONENT_TOOLTIPS[id as keyof typeof SALARY_COMPONENT_TOOLTIPS];
+  if (known) return known;
+  if (id.startsWith("allow_")) return CUSTOM_ALLOWANCE_TOOLTIP;
+  if (id.startsWith("var_")) return CUSTOM_VARIABLE_TOOLTIP;
+  return null;
 }

@@ -29,6 +29,15 @@ export type SalaryComponentGroup =
   | "employer_contributions"
   | "deductions";
 
+/**
+ * UI / logic section — fixed vs flexible allowances vs variable pay.
+ * Employer + deductions omit section.
+ */
+export type SalaryBreakdownSection =
+  | "fixed_core"
+  | "allowance"
+  | "variable_pay";
+
 /** Provenance for badges (Estimated / Parsed / Edited) */
 export type ComponentLineSource = "estimated" | "parsed" | "user_edited";
 
@@ -49,8 +58,14 @@ export interface SalaryComponent {
   /** Badge coloring */
   type: "earning" | "deduction" | "tax-free" | "employer";
   group: SalaryComponentGroup;
+  /** Earnings-only subdivision; omit for employer/deduction rows */
+  section?: SalaryBreakdownSection;
   lineSource: ComponentLineSource;
   tags?: SalaryComponentTag[];
+  /** User-added allowance or variable line */
+  isCustom?: boolean;
+  /** Row can be removed from the table */
+  removable?: boolean;
 }
 
 /** Set when user edits any line after the initial breakdown was built */
@@ -68,10 +83,28 @@ export interface SalaryBreakdownMeta {
 }
 
 export interface SalaryBreakdown {
+  /**
+   * Practical monthly bank salary from fixed core + allowances − deductions.
+   * Excludes variable-pay section (bonuses / variable CTC slice shown separately).
+   */
   monthlyInHand: number;
+  /** Same as monthlyInHand — explicit alias for UI copy */
+  monthlyInHandExcludingVariable: number;
+  /** Fixed + variable cash inflow − deductions (illustrative if variable paid unevenly) */
+  monthlyInHandIncludingVariable: number;
   annualIncomeTax: number;
   totalMonthlyDeductions: number;
   takeHomePercent: number;
+  /** Annual sum of fixed core + allowance cash components */
+  annualFixedCashTotal: number;
+  /** Annual sum of variable-pay section cash */
+  annualVariableCashTotal: number;
+  /** Fixed + variable annual cash (before employer-only CTC slices) */
+  annualCashCompensation: number;
+  /** Earnings + employer contributions annual (sanity-check vs stated CTC) */
+  modeledAnnualPackage: number;
+  /** Input CTC for comparison line */
+  statedAnnualCTC: number;
   components: SalaryComponent[];
   meta?: SalaryBreakdownMeta;
 }

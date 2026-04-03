@@ -44,37 +44,77 @@ function comp(
  * small meal + telecom reimbursements, residual special allowance.
  * Employer PF and gratuity accrual are CTC-only (not monthly cash in-hand).
  */
-export function aggregateBreakdownTotals(
+/** Derive all summary numbers from the component list (single source of truth). */
+export function deriveBreakdownSummaries(
   components: SalaryComponent[],
-  annualCTC: number
-): Pick<
-  SalaryBreakdown,
-  "monthlyInHand" | "annualIncomeTax" | "totalMonthlyDeductions" | "takeHomePercent"
-> {
-  let inflow = 0;
+  statedAnnualCTC: number
+): Omit<SalaryBreakdown, "components" | "meta"> {
+  let fixedMonthly = 0;
+  let variableMonthly = 0;
+  let fixedAnnual = 0;
+  let variableAnnualSum = 0;
   let deductions = 0;
   let annualIncomeTax = 0;
+  let employerAnnual = 0;
+  let earningsAnnual = 0;
+
   for (const c of components) {
     if (c.group === "deductions") {
       deductions += c.monthlyValue;
       if (c.id === "income_tax") annualIncomeTax = c.annualValue;
-    } else if (c.group === "employer_contributions") {
       continue;
-    } else {
-      inflow += c.monthlyValue;
+    }
+    if (c.group === "employer_contributions") {
+      employerAnnual += c.annualValue;
+      continue;
+    }
+    if (c.group === "earnings" || c.type === "tax-free") {
+      earningsAnnual += c.annualValue;
+      if (c.section === "variable_pay") {
+        variableMonthly += c.monthlyValue;
+        variableAnnualSum += c.annualValue;
+      } else {
+        fixedMonthly += c.monthlyValue;
+        fixedAnnual += c.annualValue;
+      }
     }
   }
-  const monthlyInHand = Math.round(inflow - deductions);
-  const takeHomePercent =
-    annualCTC > 0
-      ? Number((((monthlyInHand * 12) / annualCTC) * 100).toFixed(1))
-      : 0;
+
+  const monthlyInHandExcludingVariable = Math.round(fixedMonthly - deductions);
+  const monthlyInHandIncludingVariable = Math.round(
+    fixedMonthly + variableMonthly - deductions
+  );
+  const modeledAnnualPackage = Math.round(earningsAnnual + employerAnnual);
+
   return {
-    monthlyInHand,
+    monthlyInHand: monthlyInHandExcludingVariable,
+    monthlyInHandExcludingVariable,
+    monthlyInHandIncludingVariable,
     annualIncomeTax,
     totalMonthlyDeductions: Math.round(deductions),
-    takeHomePercent,
+    takeHomePercent:
+      statedAnnualCTC > 0
+        ? Number(
+            (
+              ((monthlyInHandExcludingVariable * 12) / statedAnnualCTC) *
+              100
+            ).toFixed(1)
+          )
+        : 0,
+    annualFixedCashTotal: fixedAnnual,
+    annualVariableCashTotal: variableAnnualSum,
+    annualCashCompensation: fixedAnnual + variableAnnualSum,
+    modeledAnnualPackage,
+    statedAnnualCTC,
   };
+}
+
+/** @deprecated Use deriveBreakdownSummaries — kept for grep compatibility */
+export function aggregateBreakdownTotals(
+  components: SalaryComponent[],
+  annualCTC: number
+) {
+  return deriveBreakdownSummaries(components, annualCTC);
 }
 
 export function calculateSalaryBreakdown(
@@ -111,9 +151,13 @@ export function calculateSalaryBreakdown(
   const monthlyVariable =
     variableAnnual > 0 ? Math.round(variableAnnual / 12) : 0;
 
+  const annualDA = 0;
+  const monthlyDA = 0;
+
   const annualFixedParts =
     annualBasic +
     annualHRA +
+    annualDA +
     annualMeal +
     annualTelecom +
     variableAnnual +
@@ -151,6 +195,8 @@ export function calculateSalaryBreakdown(
         annualValue: annualBasic,
         type: "earning",
         group: "earnings",
+        section: "fixed_core",
+        removable: false,
         tags: ["recurring"],
       },
       src
@@ -164,7 +210,54 @@ export function calculateSalaryBreakdown(
         annualValue: annualHRA,
         type: "earning",
         group: "earnings",
+        section: "fixed_core",
+        removable: false,
         tags: ["tax_sensitive", "recurring"],
+      },
+      src
+    ),
+    comp(
+      {
+        id: "da",
+        name: "Dearness Allowance (DA)",
+        description: "Common in PSU / legacy structures — 0 if not applicable",
+        monthlyValue: monthlyDA,
+        annualValue: annualDA,
+        type: "earning",
+        group: "earnings",
+        section: "fixed_core",
+        removable: false,
+        tags: ["conditional", "recurring"],
+      },
+      src
+    ),
+    comp(
+      {
+        id: "meal_allowance",
+        name: "Meal / food allowance",
+        description: "Rename or remove if your employer uses a different head",
+        monthlyValue: monthlyMeal,
+        annualValue: annualMeal,
+        type: "tax-free",
+        group: "earnings",
+        section: "allowance",
+        removable: true,
+        tags: ["recurring", "tax_sensitive"],
+      },
+      src
+    ),
+    comp(
+      {
+        id: "telecom_reimbursement",
+        name: "Telecom / internet reimbursement",
+        description: "Illustrative — edit to match your offer",
+        monthlyValue: monthlyTelecom,
+        annualValue: annualTelecom,
+        type: "tax-free",
+        group: "earnings",
+        section: "allowance",
+        removable: true,
+        tags: ["recurring", "tax_sensitive"],
       },
       src
     ),
@@ -172,11 +265,13 @@ export function calculateSalaryBreakdown(
       {
         id: "special_allowance",
         name: "Special Allowance",
-        description: "Residual fixed pay after illustrative CTC slices",
+        description: "Residual fixed pay after other CTC slices — add custom rows above as needed",
         monthlyValue: monthlySpecialAllowance,
         annualValue: annualSpecialAllowance,
         type: "earning",
         group: "earnings",
+        section: "allowance",
+        removable: false,
         tags: ["recurring", "tax_sensitive"],
       },
       src
@@ -189,11 +284,13 @@ export function calculateSalaryBreakdown(
         {
           id: "variable_pay",
           name: "Variable pay",
-          description: "From your fixed + variable split (÷12 for display only)",
+          description: "From your fixed + variable split (monthly = annual ÷ 12 for display)",
           monthlyValue: monthlyVariable,
           annualValue: variableAnnual,
           type: "earning",
           group: "earnings",
+          section: "variable_pay",
+          removable: false,
           tags: ["conditional", "one_time"],
         },
         src
@@ -202,32 +299,6 @@ export function calculateSalaryBreakdown(
   }
 
   components.push(
-    comp(
-      {
-        id: "meal_allowance",
-        name: "Meal / food allowance",
-        description: "Illustrative portion of reimbursements",
-        monthlyValue: monthlyMeal,
-        annualValue: annualMeal,
-        type: "tax-free",
-        group: "earnings",
-        tags: ["recurring", "tax_sensitive"],
-      },
-      src
-    ),
-    comp(
-      {
-        id: "telecom_reimbursement",
-        name: "Telecom / internet reimbursement",
-        description: "Illustrative portion of reimbursements",
-        monthlyValue: monthlyTelecom,
-        annualValue: annualTelecom,
-        type: "tax-free",
-        group: "earnings",
-        tags: ["recurring", "tax_sensitive"],
-      },
-      src
-    ),
     comp(
       {
         id: "employer_pf",
@@ -295,7 +366,7 @@ export function calculateSalaryBreakdown(
     )
   );
 
-  const totals = aggregateBreakdownTotals(components, annualCTC);
+  const totals = deriveBreakdownSummaries(components, annualCTC);
 
   const meta: SalaryBreakdownMeta = {
     resultSource: metaOverrides?.resultSource ?? "manual_estimated",
@@ -341,9 +412,32 @@ function copyTags(
   return rowById(prev, id)?.tags ?? fallback;
 }
 
+function hasRow(prev: SalaryComponent[], id: string) {
+  return prev.some((c) => c.id === id);
+}
+
+function customAllowances(prev: SalaryComponent[]) {
+  return prev.filter((c) => c.isCustom && c.section === "allowance");
+}
+
+function customVariableRows(prev: SalaryComponent[]) {
+  return prev.filter((c) => c.isCustom && c.section === "variable_pay");
+}
+
+function cloneCustomFromPrev(
+  prev: SalaryComponent[],
+  row: SalaryComponent,
+  base: ComponentLineSource
+): SalaryComponent {
+  const p = rowById(prev, row.id)!;
+  const ls: ComponentLineSource =
+    p.lineSource === "user_edited" ? "user_edited" : base;
+  return comp({ ...p, lineSource: ls }, base);
+}
+
 /**
- * Single source of truth: component rows (with `user_edited` = manual override).
- * Re-applies formulas for non-overridden lines (basic→HRA→PF→gratuity→special residual→TDS), then aggregates.
+ * Formula rows + overrides + custom allowance/variable lines. Special allowance
+ * is residual to stated CTC after other slices (incl. custom allowances).
  */
 export function recalculateBreakdownFromComponents(
   prev: SalaryComponent[],
@@ -355,7 +449,6 @@ export function recalculateBreakdownFromComponents(
   const lineSrc = (id: string): ComponentLineSource =>
     isRowOverridden(rowById(prev, id)) ? "user_edited" : base;
 
-  // —— Basic ——
   let monthlyBasic: number;
   let annualBasic: number;
   if (isRowOverridden(rowById(prev, "basic"))) {
@@ -366,7 +459,6 @@ export function recalculateBreakdownFromComponents(
     monthlyBasic = Math.round(annualBasic / 12);
   }
 
-  // —— HRA ——
   let monthlyHRA: number;
   let annualHRA: number;
   if (isRowOverridden(rowById(prev, "hra"))) {
@@ -377,41 +469,78 @@ export function recalculateBreakdownFromComponents(
     monthlyHRA = Math.round(annualHRA / 12);
   }
 
+  let monthlyDA: number;
+  let annualDA: number;
+  if (!hasRow(prev, "da")) {
+    monthlyDA = 0;
+    annualDA = 0;
+  } else if (isRowOverridden(rowById(prev, "da"))) {
+    monthlyDA = monthlyOf(prev, "da");
+    annualDA = monthlyDA * 12;
+  } else {
+    monthlyDA = 0;
+    annualDA = 0;
+  }
+
   const DEF_MEAL = 3000;
   const DEF_TELE = 2000;
 
-  let monthlyMeal: number;
-  let annualMeal: number;
-  if (isRowOverridden(rowById(prev, "meal_allowance"))) {
-    monthlyMeal = monthlyOf(prev, "meal_allowance");
-    annualMeal = monthlyMeal * 12;
-  } else {
-    monthlyMeal = DEF_MEAL;
-    annualMeal = DEF_MEAL * 12;
-  }
-
-  let monthlyTelecom: number;
-  let annualTelecom: number;
-  if (isRowOverridden(rowById(prev, "telecom_reimbursement"))) {
-    monthlyTelecom = monthlyOf(prev, "telecom_reimbursement");
-    annualTelecom = monthlyTelecom * 12;
-  } else {
-    monthlyTelecom = DEF_TELE;
-    annualTelecom = DEF_TELE * 12;
-  }
-
-  const variableAnnual = Math.max(0, Math.round(ctx.variableAnnual));
-  let monthlyVariable = 0;
-  let variableAnnualEff = variableAnnual;
-  if (variableAnnual > 0) {
-    if (isRowOverridden(rowById(prev, "variable_pay"))) {
-      monthlyVariable = monthlyOf(prev, "variable_pay");
-      variableAnnualEff = monthlyVariable * 12;
+  let monthlyMeal = 0;
+  let annualMeal = 0;
+  if (hasRow(prev, "meal_allowance")) {
+    if (isRowOverridden(rowById(prev, "meal_allowance"))) {
+      monthlyMeal = monthlyOf(prev, "meal_allowance");
+      annualMeal = monthlyMeal * 12;
     } else {
-      monthlyVariable = Math.round(variableAnnual / 12);
-      variableAnnualEff = variableAnnual;
+      monthlyMeal = DEF_MEAL;
+      annualMeal = DEF_MEAL * 12;
     }
   }
+
+  let monthlyTelecom = 0;
+  let annualTelecom = 0;
+  if (hasRow(prev, "telecom_reimbursement")) {
+    if (isRowOverridden(rowById(prev, "telecom_reimbursement"))) {
+      monthlyTelecom = monthlyOf(prev, "telecom_reimbursement");
+      annualTelecom = monthlyTelecom * 12;
+    } else {
+      monthlyTelecom = DEF_TELE;
+      annualTelecom = DEF_TELE * 12;
+    }
+  }
+
+  const ctxVariableAnnual = Math.max(0, Math.round(ctx.variableAnnual));
+  let monthlyVariable = 0;
+  let variableAnnualStandard = 0;
+  if (hasRow(prev, "variable_pay")) {
+    if (
+      ctxVariableAnnual > 0 &&
+      !isRowOverridden(rowById(prev, "variable_pay"))
+    ) {
+      variableAnnualStandard = ctxVariableAnnual;
+      monthlyVariable = Math.round(ctxVariableAnnual / 12);
+    } else {
+      monthlyVariable = monthlyOf(prev, "variable_pay");
+      variableAnnualStandard = monthlyVariable * 12;
+    }
+  } else if (ctxVariableAnnual > 0) {
+    variableAnnualStandard = ctxVariableAnnual;
+    monthlyVariable = Math.round(ctxVariableAnnual / 12);
+  }
+
+  const allowCustoms = customAllowances(prev);
+  const customAllowAnnualSum = allowCustoms.reduce(
+    (s, c) => s + (rowById(prev, c.id)?.annualValue ?? 0),
+    0
+  );
+
+  const varCustoms = customVariableRows(prev);
+  const customVarAnnualSum = varCustoms.reduce(
+    (s, c) => s + (rowById(prev, c.id)?.annualValue ?? 0),
+    0
+  );
+
+  const variableBlockAnnual = variableAnnualStandard + customVarAnnualSum;
 
   const pfBase = Math.min(monthlyBasic, EPF_WAGE_CEILING);
 
@@ -451,15 +580,19 @@ export function recalculateBreakdownFromComponents(
     monthlySpecial = monthlyOf(prev, "special_allowance");
     annualSpecial = monthlySpecial * 12;
   } else {
-    const annualFixedParts =
-      annualBasic +
-      annualHRA +
-      annualMeal +
-      annualTelecom +
-      variableAnnualEff +
-      annualPFEmployer +
-      annualGratuityAccrual;
-    annualSpecial = Math.max(0, ctx.annualCTC - annualFixedParts);
+    annualSpecial = Math.max(
+      0,
+      ctx.annualCTC -
+        annualBasic -
+        annualHRA -
+        annualDA -
+        annualMeal -
+        annualTelecom -
+        customAllowAnnualSum -
+        variableBlockAnnual -
+        annualPFEmployer -
+        annualGratuityAccrual
+    );
     monthlySpecial = Math.round(annualSpecial / 12);
   }
 
@@ -496,6 +629,7 @@ export function recalculateBreakdownFromComponents(
     annualProfTax = monthlyProfTax * 12;
   }
 
+  const daRow = rowById(prev, "da");
   const components: SalaryComponent[] = [
     comp(
       {
@@ -506,6 +640,8 @@ export function recalculateBreakdownFromComponents(
         annualValue: annualBasic,
         type: "earning",
         group: "earnings",
+        section: "fixed_core",
+        removable: false,
         tags: copyTags(prev, "basic", ["recurring"]),
         lineSource: lineSrc("basic"),
       },
@@ -520,6 +656,8 @@ export function recalculateBreakdownFromComponents(
         annualValue: annualHRA,
         type: "earning",
         group: "earnings",
+        section: "fixed_core",
+        removable: false,
         tags: copyTags(prev, "hra", ["tax_sensitive", "recurring"]),
         lineSource: lineSrc("hra"),
       },
@@ -527,33 +665,116 @@ export function recalculateBreakdownFromComponents(
     ),
     comp(
       {
-        id: "special_allowance",
-        name: "Special Allowance",
-        description: isRowOverridden(rowById(prev, "special_allowance"))
-          ? "Your entered amount"
-          : "Residual fixed pay after illustrative CTC slices",
-        monthlyValue: monthlySpecial,
-        annualValue: annualSpecial,
+        id: "da",
+        name: daRow?.name ?? "Dearness Allowance (DA)",
+        description:
+          daRow?.description ??
+          "Common in PSU / legacy structures — 0 if not applicable",
+        monthlyValue: monthlyDA,
+        annualValue: annualDA,
         type: "earning",
         group: "earnings",
-        tags: copyTags(prev, "special_allowance", ["recurring", "tax_sensitive"]),
-        lineSource: lineSrc("special_allowance"),
+        section: "fixed_core",
+        removable: false,
+        tags: copyTags(prev, "da", ["conditional", "recurring"]),
+        lineSource: lineSrc("da"),
       },
       base
     ),
   ];
 
-  if (variableAnnual > 0) {
+  if (hasRow(prev, "meal_allowance")) {
+    components.push(
+      comp(
+        {
+          id: "meal_allowance",
+          name: rowById(prev, "meal_allowance")?.name ?? "Meal / food allowance",
+          description:
+            rowById(prev, "meal_allowance")?.description ??
+            "Rename or remove if your employer uses a different head",
+          monthlyValue: monthlyMeal,
+          annualValue: annualMeal,
+          type: "tax-free",
+          group: "earnings",
+          section: "allowance",
+          removable: true,
+          tags: copyTags(prev, "meal_allowance", ["recurring", "tax_sensitive"]),
+          lineSource: lineSrc("meal_allowance"),
+        },
+        base
+      )
+    );
+  }
+
+  if (hasRow(prev, "telecom_reimbursement")) {
+    components.push(
+      comp(
+        {
+          id: "telecom_reimbursement",
+          name:
+            rowById(prev, "telecom_reimbursement")?.name ??
+            "Telecom / internet reimbursement",
+          description:
+            rowById(prev, "telecom_reimbursement")?.description ??
+            "Illustrative — edit to match your offer",
+          monthlyValue: monthlyTelecom,
+          annualValue: annualTelecom,
+          type: "tax-free",
+          group: "earnings",
+          section: "allowance",
+          removable: true,
+          tags: copyTags(prev, "telecom_reimbursement", [
+            "recurring",
+            "tax_sensitive",
+          ]),
+          lineSource: lineSrc("telecom_reimbursement"),
+        },
+        base
+      )
+    );
+  }
+
+  for (const c of allowCustoms) {
+    components.push(cloneCustomFromPrev(prev, c, base));
+  }
+
+  components.push(
+    comp(
+      {
+        id: "special_allowance",
+        name: "Special Allowance",
+        description: isRowOverridden(rowById(prev, "special_allowance"))
+          ? "Your entered amount"
+          : "Residual after other CTC slices — add custom allowance rows above",
+        monthlyValue: monthlySpecial,
+        annualValue: annualSpecial,
+        type: "earning",
+        group: "earnings",
+        section: "allowance",
+        removable: false,
+        tags: copyTags(prev, "special_allowance", ["recurring", "tax_sensitive"]),
+        lineSource: lineSrc("special_allowance"),
+      },
+      base
+    )
+  );
+
+  if (ctxVariableAnnual > 0 || hasRow(prev, "variable_pay")) {
     components.push(
       comp(
         {
           id: "variable_pay",
           name: "Variable pay",
-          description: "From your fixed + variable split (÷12 for display only)",
+          description:
+            ctxVariableAnnual > 0
+              ? "From your fixed + variable split (monthly = annual ÷ 12 for display)"
+              : "Variable / performance component (edit annual or monthly)",
           monthlyValue: monthlyVariable,
-          annualValue: variableAnnualEff,
+          annualValue: variableAnnualStandard,
           type: "earning",
           group: "earnings",
+          section: "variable_pay",
+          removable: false,
           tags: copyTags(prev, "variable_pay", ["conditional", "one_time"]),
           lineSource: lineSrc("variable_pay"),
         },
@@ -562,38 +783,11 @@ export function recalculateBreakdownFromComponents(
     );
   }
 
+  for (const c of varCustoms) {
+    components.push(cloneCustomFromPrev(prev, c, base));
+  }
+
   components.push(
-    comp(
-      {
-        id: "meal_allowance",
-        name: "Meal / food allowance",
-        description: "Illustrative portion of reimbursements",
-        monthlyValue: monthlyMeal,
-        annualValue: annualMeal,
-        type: "tax-free",
-        group: "earnings",
-        tags: copyTags(prev, "meal_allowance", ["recurring", "tax_sensitive"]),
-        lineSource: lineSrc("meal_allowance"),
-      },
-      base
-    ),
-    comp(
-      {
-        id: "telecom_reimbursement",
-        name: "Telecom / internet reimbursement",
-        description: "Illustrative portion of reimbursements",
-        monthlyValue: monthlyTelecom,
-        annualValue: annualTelecom,
-        type: "tax-free",
-        group: "earnings",
-        tags: copyTags(prev, "telecom_reimbursement", [
-          "recurring",
-          "tax_sensitive",
-        ]),
-        lineSource: lineSrc("telecom_reimbursement"),
-      },
-      base
-    ),
     comp(
       {
         id: "employer_pf",
@@ -668,11 +862,7 @@ export function recalculateBreakdownFromComponents(
     )
   );
 
-  // comp() overwrites lineSource with second arg when partial omits it — we passed lineSource in partial, check comp():
-  // function comp(partial, defaultSource) { return { ...partial, lineSource: partial.lineSource ?? defaultSource } }
-  // Good — our lineSource is preserved.
-
-  const totals = aggregateBreakdownTotals(components, ctx.annualCTC);
+  const totals = deriveBreakdownSummaries(components, ctx.annualCTC);
 
   const editBasis =
     ctx.salaryResultSource === "document_parsed"

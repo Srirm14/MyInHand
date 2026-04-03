@@ -6,16 +6,18 @@ Product reference for the **Salary Breakdown** screen: information architecture,
 
 ## 1. Information architecture
 
-1. **Hero stats** — Monthly in-hand, annual tax, monthly deductions (unchanged high-level KPIs).
+1. **Hero stats** — **Est. monthly in-hand (excl. variable)**; **Monthly in-hand (incl. variable)** (÷12 illustrative); annual tax; total deductions. Plus a compact strip: **annual fixed cash**, **annual variable cash**, **total annual cash (fixed + variable)**, **stated CTC**, **modeled package** (earnings + employer lines).
 2. **Truth banner** — Estimated vs document-parsed; disclaimer that CTC ≠ in-hand.
-3. **Component table (grouped)**  
-   - **Earnings & cash components** — Amounts that typically flow into monthly gross / in-hand (basic, allowances, reimbursements, variable where modeled).  
-   - **Employer contributions & CTC-only** — Part of package value, not paid as monthly cash (employer PF, gratuity accrual, etc.).  
-   - **Deductions** — Reduce in-hand (employee PF, PT, TDS, etc.).
-4. **Net in-hand summary** — Short reconciliation: cash earnings (+) less deductions (=) monthly in-hand (ties to KPI).
+3. **Component table** — Earnings split into **sections** (not one flat “earnings” blob):  
+   - **Fixed salary components** — `section: fixed_core` (basic, HRA, DA).  
+   - **Allowances** — `section: allowance` — default meal/telecom/special + **user-added** rows (`id` prefix `allow_`, `isCustom`, `removable` where applicable). **Add allowance** control appends a row; optional defaults can be removed.  
+   - **Variable pay** — `section: variable_pay` — standard **variable_pay** line when fixed+variable split is set, plus **user-added** lines (`id` prefix `var_`). **Add variable / bonus line** appends a row. Kept **out** of “monthly in-hand excluding variable.”  
+   - **Employer contributions (CTC)** — Same group as before (`employer_contributions`).  
+   - **Deductions** — Unchanged (`deductions`).
+4. **Net in-hand summary** — Fixed monthly cash (excl. variable), optional variable ÷12 line, deductions, **est. monthly in-hand (excl. variable)**, illustrative incl.-variable monthly, annual take-home ×12 for both.
 5. **Downstream CTAs** — Lifestyle, tax tools (unchanged).
 
-Rows are **sparse**: only components with a non-zero value in the current run are shown, except core illustrative lines the engine always emits for the estimated template (basic, HRA, special, PF, tax, etc.). Optional heads (DA, LTA, joining bonus, …) appear when the engine or future parsers attach values.
+Rows: engine always emits core lines for the estimated template; **optional** allowance rows (meal, telecom) can be **removed**; **custom** allowance/variable rows are **added in the UI** and flow through `recalculateBreakdownFromComponents`.
 
 ---
 
@@ -29,10 +31,13 @@ Rows are **sparse**: only components with a non-zero value in the current run ar
 | `monthlyValue` / `annualValue` | Shown per period; annual = monthly × 12 when user edits monthly (existing behavior). |
 | `type` | `earning` \| `deduction` \| `tax-free` \| `employer` — drives badge color. |
 | `group` | `earnings` \| `employer_contributions` \| `deductions` — drives grouping and in-hand math. |
+| `section?` | `fixed_core` \| `allowance` \| `variable_pay` — earnings-only; splits fixed vs flexible allowances vs variable for UI and summaries. |
 | `lineSource` | `estimated` \| `parsed` \| `user_edited` — from engine, document flow, or cell edit. |
 | `tags?` | `employer_side`, `one_time`, `tax_sensitive`, `conditional`, `recurring` — extra chips. |
+| `isCustom?` | User-added allowance or variable row; **name** editable in UI. |
+| `removable?` | If true, UI may remove the row (optional default allowances, custom lines). |
 
-**In-hand aggregation rule:** Sum `monthlyValue` for `group === "earnings"`; subtract `group === "deductions"`; **ignore** `employer_contributions` for monthly cash.
+**In-hand aggregation rule:** Sum `monthlyValue` for `group === "earnings"` **excluding** `section === "variable_pay"` for **monthly in-hand (excl. variable)**; subtract `group === "deductions"`; **ignore** `employer_contributions` for monthly cash. Variable section contributes to **monthly in-hand (incl. variable)** and annual variable totals. **Single source of truth:** all summary fields are derived from the current `components` array via `deriveBreakdownSummaries` (`calculate-salary.ts`).
 
 ---
 
@@ -40,22 +45,27 @@ Rows are **sparse**: only components with a non-zero value in the current run ar
 
 | Group ID | UI title | Typical contents |
 |----------|----------|------------------|
-| `earnings` | Earnings & salary components | Basic, DA (if any), HRA, special allowance, LTA, conveyance, medical, meal, telecom, variable pay (when split), bonuses (when modeled), reimbursements. |
-| `employer_contributions` | Employer contributions (CTC) | Employer PF (and pension split explained in tooltip), gratuity accrual, employer ESI, group insurance (when modeled). |
-| `deductions` | Deductions | Employee PF, professional tax, income tax (TDS), employee ESI, LWF, other recoveries (when modeled). |
+| `earnings` + `fixed_core` | Fixed salary components | Basic, HRA, DA (0 until edited). |
+| `earnings` + `allowance` | Allowances | Meal, telecom (optional/removable), special allowance (residual to CTC), custom `allow_*` rows. |
+| `earnings` + `variable_pay` | Variable pay | `variable_pay` when split; custom `var_*` rows (joining, retention, etc.). |
+| `employer_contributions` | Employer contributions (CTC) | Employer PF, gratuity accrual, … |
+| `deductions` | Deductions | Employee PF, professional tax, income tax (TDS), … |
 
 ---
 
 ## 4. Tooltip copy approach
 
-- **Source of truth:** `salary-component-catalog.ts` keyed by `id`.
+- **Source of truth:** `salary-component-catalog.ts` keyed by `id`; unknown ids fall back to row `description`. **Custom rows:** `allow_*` and `var_*` use shared template tooltips in `getSalaryComponentTooltip`.
 - **Trigger:** Small **Info** icon next to each component name (hover + focus for accessibility).
 - **Content blocks (concise):**  
   1. Plain-language **what it is**.  
-  2. **Classification** (earning / employer contribution / deduction / reimbursement; recurring vs one-time where relevant).  
-  3. **Cash & CTC impact** (affects monthly in-hand, CTC only, reduces in-hand, tax relevance).  
-  4. **Calculation** (how this app estimated it — **illustrative** wording).  
-  5. **Applicability** (many employers omit or rename heads; not legal advice).
+  2. **Fixed vs variable** (variable section excluded from ex-variable in-hand).  
+  3. **Classification** (earning / employer contribution / deduction / reimbursement; recurring vs one-time where relevant).  
+  4. **Monthly in-hand** (included in ex-variable path or not; employer-only; deduction).  
+  5. **Cash & CTC impact**.  
+  6. **Calculation** (illustrative model).  
+  7. **Source** (estimated / parsed / user-edited).  
+  8. **Applicability**.
 
 Tone: helpful for salaried employees; **no** guarantees of legal/tax outcomes.
 
@@ -67,7 +77,7 @@ Tone: helpful for salaried employees; **no** guarantees of legal/tax outcomes.
 - **Employer PF / gratuity:** Shown under employer group; excluded from monthly cash inflow in totals.
 - **Employee PF:** Linked to PF wage ceiling in engine; tooltip states eligible wages vary by company.
 - **Tax (TDS):** Estimated from regime + gross proxy (CTC less employer-only CTC slices used in engine); tooltip says actual TDS depends on declarations and payroll.
-- **Variable pay:** When user enters fixed + variable split, variable appears as an earning line; may be tagged `conditional` / `one_time` depending on product copy.
+- **Variable pay:** Shown under **Variable pay** section; excluded from **monthly in-hand (excl. variable)**. Split from salary page creates `variable_pay`; user can add **`var_*`** lines. **Special allowance** is residual to stated CTC after fixed core, allowances (incl. custom), variable block, and employer slices — unless user overrides that line.
 - **Parsed vs estimated:** `lineSource` + **Parsed** / **Estimated** badge; after cell edit, that row → **Edited**.
 
 ---
@@ -90,11 +100,10 @@ Type column keeps **EARNING** / **DEDUCTION** / **TAX FREE** / **EMPLOYER (CTC)*
 
 ## 7. UX structure (breakdown table)
 
-- **Monthly / Annual** toggle: primary numeric column follows selection; secondary column shows the other in smaller, muted text.
-- **Grouped sections:** Subheader row per group (no spreadsheet gridlines; calm spacing).
-- **Columns:** Component (name + info icon + optional badges), primary amount, secondary amount, type badge.
+- **Sections:** Subheader rows for fixed core, allowances, variable pay, then employer + deductions.
+- **Columns:** Component (info icon, optional remove on `removable`, custom name field for `isCustom`), **monthly** and **annual** editable inputs for **earnings** (either field drives the other via store `patchBreakdownComponent` + recalc); employer/deductions keep **monthly** edit with annual as display ×12.
+- **Add rows:** Ghost **+ Add allowance** / **+ Add variable / bonus line** (compact, not spreadsheet-dense).
 - **Alignment:** Labels left, amounts right (`tabular-nums`).
-- **Editing:** Monthly cell remains editable where shown; annual follows ×12 (existing store behavior).
 
 ---
 
