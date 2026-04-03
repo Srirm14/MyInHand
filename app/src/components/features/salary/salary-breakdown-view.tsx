@@ -9,6 +9,10 @@ import {
   startTransition,
   type ReactNode,
 } from "react";
+import {
+  clearSalaryBreakdownScrollSave,
+  useSalaryBreakdownScrollRestoration,
+} from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -105,8 +109,13 @@ export function SalaryBreakdownView() {
   );
 
   const fileRef = useRef<HTMLInputElement>(null);
+  const skipBreakdownScrollPersistRef = useRef(false);
   const [docBusy, setDocBusy] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
+
+  useSalaryBreakdownScrollRestoration(!!breakdown, {
+    skipNextPersistRef: skipBreakdownScrollPersistRef,
+  });
 
   useEffect(() => {
     if (!breakdown && input.annualCTC >= 100_000) {
@@ -116,6 +125,8 @@ export function SalaryBreakdownView() {
 
   useEffect(() => {
     if (!breakdown && input.annualCTC < 100_000) {
+      skipBreakdownScrollPersistRef.current = true;
+      clearSalaryBreakdownScrollSave();
       router.replace("/salary");
     }
   }, [breakdown, input.annualCTC, router]);
@@ -260,6 +271,10 @@ export function SalaryBreakdownView() {
     <PageShell className="py-8 md:py-10">
       <Link
         href="/salary"
+        onClick={() => {
+          skipBreakdownScrollPersistRef.current = true;
+          clearSalaryBreakdownScrollSave();
+        }}
         className={cn(
           buttonVariants({ variant: "ghost" }),
           "group -ml-1.5 mb-1 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"

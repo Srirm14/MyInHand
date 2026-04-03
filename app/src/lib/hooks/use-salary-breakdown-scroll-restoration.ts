@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 const SCROLL_KEY = "inhand.salaryBreakdown.scrollY";
 
@@ -46,9 +46,15 @@ function writeSavedScroll(y: number): void {
  * after Next.js has already moved to the next route (which would be ~0).
  *
  * @param enabled — pass `true` only when the full breakdown UI is mounted (not the loading shell).
+ * @param options.skipNextPersistRef — set to `true` before navigating away when scroll should not
+ *   be saved (e.g. “Back to salary inputs”). Cleanup clears the flag and skips `writeSavedScroll`.
  */
-export function useSalaryBreakdownScrollRestoration(enabled: boolean): void {
+export function useSalaryBreakdownScrollRestoration(
+  enabled: boolean,
+  options?: { skipNextPersistRef?: RefObject<boolean> }
+): void {
   const scrollYRef = useRef(0);
+  const skipRef = options?.skipNextPersistRef;
 
   useEffect(() => {
     if (!enabled) return;
@@ -73,7 +79,11 @@ export function useSalaryBreakdownScrollRestoration(enabled: boolean): void {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
+      if (skipRef?.current) {
+        skipRef.current = false;
+        return;
+      }
       writeSavedScroll(scrollYRef.current);
     };
-  }, [enabled]);
+  }, [enabled, skipRef]);
 }
