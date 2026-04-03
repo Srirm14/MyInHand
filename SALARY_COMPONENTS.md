@@ -14,7 +14,7 @@ Product reference for the **Salary Breakdown** screen: information architecture,
    - **Variable pay** — `section: variable_pay` — standard **variable_pay** line when fixed+variable split is set, plus **user-added** lines (`id` prefix `var_`). **Add variable / bonus line** appends a row. Kept **out** of “monthly in-hand excluding variable.”  
    - **Employer contributions (CTC)** — Same group as before (`employer_contributions`).  
    - **Deductions** — Unchanged (`deductions`).
-4. **Net in-hand summary** — Fixed monthly cash (excl. variable), optional variable ÷12 line, deductions, **est. monthly in-hand (excl. variable)**, illustrative incl.-variable monthly, annual take-home ×12 for both.
+4. **Net in-hand summary** — Fixed monthly cash (excl. variable), optional variable ÷12 line, deductions, **est. monthly in-hand (excl. variable)**, illustrative incl.-variable monthly, annual take-home ×12 for both. The **cash path** rows are displayed as paired label+value units (hover-highlight band) to make the “fixed → deductions → in-hand” flow easy to read.
 5. **Downstream CTAs** — Lifestyle, tax tools (unchanged).
 
 Rows: engine always emits core lines for the estimated template; **optional** allowance rows (meal, telecom) can be **removed**; **custom** allowance/variable rows are **added in the UI** and flow through `recalculateBreakdownFromComponents`.
@@ -105,6 +105,7 @@ Type column keeps **EARNING** / **DEDUCTION** / **TAX FREE** / **EMPLOYER (CTC)*
 - **Columns:** Component (info icon; **allowance + variable**: editable name for every row), **monthly** and **annual** on earnings; employer/deductions: monthly edit, annual read-only.
 - **INR inputs (`InrMoneyInput`, `components/ui/inr-money-input.tsx`):** ₹ prefix, **en-IN** grouping, **`.00`** on blur; while focused, digits-only draft; commits **integer rupees** to `patchBreakdownComponent`; debounced updates keep paired monthly/annual in sync via `recalculateBreakdownFromComponents`.
 - **Alignment:** Labels left, amounts right (`tabular-nums`).
+- **Cash path pairing:** each cash path line is wrapped as one visual unit; on hover, the label and value row share a subtle teal highlight (also used in Offer Comparison expanded panels).
 
 ---
 

@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Calculator, ChevronDown, Plus, Trash2, Upload } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SectionHeader } from "@/components/shared/section-header";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
@@ -14,13 +14,19 @@ import { CITY_TIERS, type CityTier } from "@/lib/constants/city-tiers";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
 import type { OfferDraft } from "@/lib/types/offer.types";
+import type { SalaryBreakdown, SalaryComponent } from "@/lib/types/salary.types";
 import { mockParseOfferDocument } from "@/lib/mocks/parse-offer-document.mock";
 import { CompensationCtcSectionControlled } from "@/components/features/salary/compensation-ctc-section";
-import { calculateSalaryBreakdown } from "@/lib/utils/calculate-salary";
+import {
+  calculateSalaryBreakdown,
+  recalculateBreakdownFromComponents,
+} from "@/lib/utils/calculate-salary";
+import { buildOfferBreakdownRecalcContext } from "@/lib/utils/offer-breakdown-recalc-context";
 import { isSplitBalanced } from "@/lib/utils/compensation-split";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SalaryBreakdownEditablePanel } from "@/components/shared/salary-breakdown-editable-panel";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -56,8 +62,37 @@ function normalizeOfferDraft(raw: OfferDraft): OfferDraft {
 
 type OfferEntryMode = "manual" | "upload";
 
+/** Subtle teal / emerald tints so expanded accordions are orienting, not loud. */
+const OFFER_PANEL_TINTS = [
+  "from-teal-50/[0.42] via-white to-teal-50/15",
+  "from-emerald-50/[0.38] via-white to-teal-50/22",
+  "from-teal-100/[0.18] via-white to-emerald-50/[0.28]",
+] as const;
+
+function makeOfferInputKey(o: OfferDraft): string {
+  return [
+    o.annualCTC,
+    o.cityTier,
+    o.taxRegime,
+    o.compensationMode,
+    o.fixedAnnual ?? 0,
+    o.variableAnnual ?? 0,
+    o.documentFileName ?? "",
+  ].join("|");
+}
+
+function sumEmployerContributionsAnnual(bd: SalaryBreakdown): number {
+  return bd.components
+    .filter((c) => c.group === "employer_contributions")
+    .reduce((s, c) => s + c.annualValue, 0);
+}
+
 export function OfferComparisonView() {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [expandedOfferId, setExpandedOfferId] = useState<string | null>(null);
+  const [offerBreakdownEdits, setOfferBreakdownEdits] = useState<
+    Record<string, { breakdown: SalaryBreakdown; inputKey: string }>
+  >({});
   const [entryMode, setEntryMode] = useState<OfferEntryMode>("manual");
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -89,26 +124,38 @@ export function OfferComparisonView() {
       }
       const variableAnnual =
         o.compensationMode === "fixed_variable" ? o.variableAnnual : 0;
-      const bd = calculateSalaryBreakdown(
-        o.annualCTC,
-        o.cityTier,
-        o.taxRegime,
-        undefined,
-        { variableAnnual }
-      );
+      const inputKey = makeOfferInputKey(o);
+      const edited = offerBreakdownEdits[o.id];
+      const meta = o.documentFileName
+        ? {
+            resultSource: "document_parsed" as const,
+            documentFileName: o.documentFileName,
+          }
+        : undefined;
+      const bd =
+        edited?.inputKey === inputKey
+          ? edited.breakdown
+          : calculateSalaryBreakdown(
+              o.annualCTC,
+              o.cityTier,
+              o.taxRegime,
+              meta,
+              { variableAnnual }
+            );
       const liquidBonus = o.joiningBonus;
       const esopLiquid = o.esopValue * 0.25;
       const firstYearValue = bd.monthlyInHand * 12 + liquidBonus + esopLiquid;
       return {
         id: o.id,
         companyName: o.companyName.trim(),
+        taxRegime: o.taxRegime,
         monthlyInHand: bd.monthlyInHand,
         annualTax: bd.annualIncomeTax,
         firstYearValue,
         breakdown: bd,
       };
     });
-  }, [offers]);
+  }, [offers, offerBreakdownEdits]);
 
   const valid = comparisons.filter(Boolean) as NonNullable<
     (typeof comparisons)[number]
@@ -119,6 +166,46 @@ export function OfferComparisonView() {
       : null;
   const bestValue =
     valid.length > 0 ? Math.max(...valid.map((v) => v.firstYearValue)) : null;
+
+  const peerMaxVariableCashAnnual = useMemo(() => {
+    const list = comparisons.filter(Boolean) as NonNullable<
+      (typeof comparisons)[number]
+    >[];
+    if (list.length === 0) return 0;
+    return Math.max(...list.map((v) => v.breakdown.annualVariableCashTotal));
+  }, [comparisons]);
+
+  const peerMaxEmployerAnnual = useMemo(() => {
+    const list = comparisons.filter(Boolean) as NonNullable<
+      (typeof comparisons)[number]
+    >[];
+    if (list.length === 0) return 0;
+    return Math.max(
+      ...list.map((v) => sumEmployerContributionsAnnual(v.breakdown))
+    );
+  }, [comparisons]);
+
+  useEffect(() => {
+    if (!expandedOfferId) return;
+    if (!valid.some((v) => v.id === expandedOfferId)) {
+      setExpandedOfferId(null);
+    }
+  }, [valid, expandedOfferId]);
+
+  useEffect(() => {
+    const ids = new Set(offers.map((o) => o.id));
+    setOfferBreakdownEdits((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k of Object.keys(next)) {
+        if (!ids.has(k)) {
+          delete next[k];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [offers]);
 
   const offersFingerprint = useMemo(
     () => JSON.stringify(offers),
@@ -157,6 +244,125 @@ export function OfferComparisonView() {
     setOffers((prev) =>
       prev.map((o) => (o.id === id ? { ...o, ...patch } : o))
     );
+  };
+
+  const applyOfferBreakdownEdit = (
+    offerId: string,
+    mutate: (base: SalaryBreakdown) => SalaryComponent[]
+  ) => {
+    const o = offers.find((x) => x.id === offerId);
+    if (!o) return;
+    const inputKey = makeOfferInputKey(o);
+    setOfferBreakdownEdits((prev) => {
+      const variableAnnual =
+        o.compensationMode === "fixed_variable" ? o.variableAnnual : 0;
+      const meta = o.documentFileName
+        ? {
+            resultSource: "document_parsed" as const,
+            documentFileName: o.documentFileName,
+          }
+        : undefined;
+      const fresh = () =>
+        calculateSalaryBreakdown(
+          o.annualCTC,
+          o.cityTier,
+          o.taxRegime,
+          meta,
+          { variableAnnual }
+        );
+      const base =
+        prev[offerId]?.inputKey === inputKey
+          ? prev[offerId]!.breakdown
+          : fresh();
+      const nextComponents = mutate(base);
+      const ctx = buildOfferBreakdownRecalcContext(o);
+      const nextBd = recalculateBreakdownFromComponents(nextComponents, ctx);
+      return { ...prev, [offerId]: { breakdown: nextBd, inputKey } };
+    });
+  };
+
+  const patchOfferComponent = (
+    offerId: string,
+    componentId: string,
+    patch: {
+      monthlyValue?: number;
+      annualValue?: number;
+      name?: string;
+    }
+  ) => {
+    applyOfferBreakdownEdit(offerId, (base) =>
+      base.components.map((c) => {
+        if (c.id !== componentId) return c;
+        let monthly = c.monthlyValue;
+        let annual = c.annualValue;
+        if (patch.monthlyValue !== undefined) {
+          monthly = Math.max(0, Math.round(patch.monthlyValue));
+          annual = monthly * 12;
+        } else if (patch.annualValue !== undefined) {
+          annual = Math.max(0, Math.round(patch.annualValue));
+          monthly = Math.round(annual / 12);
+        }
+        const name =
+          patch.name !== undefined ? patch.name.trim() || c.name : c.name;
+        return {
+          ...c,
+          name,
+          monthlyValue: monthly,
+          annualValue: annual,
+          lineSource: "user_edited" as const,
+        };
+      })
+    );
+  };
+
+  const addOfferAllowance = (offerId: string) => {
+    applyOfferBreakdownEdit(offerId, (base) => {
+      const id = `allow_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
+      const row: SalaryComponent = {
+        id,
+        name: "Custom allowance",
+        description: "Rename to match your payslip (e.g. vehicle, washing)",
+        monthlyValue: 0,
+        annualValue: 0,
+        type: "earning",
+        group: "earnings",
+        section: "allowance",
+        lineSource: "user_edited",
+        isCustom: true,
+        removable: true,
+        tags: ["recurring", "tax_sensitive"],
+      };
+      return [...base.components, row];
+    });
+  };
+
+  const addOfferVariableRow = (offerId: string) => {
+    applyOfferBreakdownEdit(offerId, (base) => {
+      const id = `var_${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
+      const row: SalaryComponent = {
+        id,
+        name: "Variable / bonus line",
+        description: "Joining bonus, retention, profit share, etc.",
+        monthlyValue: 0,
+        annualValue: 0,
+        type: "earning",
+        group: "earnings",
+        section: "variable_pay",
+        lineSource: "user_edited",
+        isCustom: true,
+        removable: true,
+        tags: ["conditional", "one_time"],
+      };
+      return [...base.components, row];
+    });
+  };
+
+  const removeOfferBreakdownRow = (offerId: string, componentId: string) => {
+    applyOfferBreakdownEdit(offerId, (base) => {
+      const row = base.components.find((c) => c.id === componentId);
+      if (!row?.removable) return base.components;
+      return base.components.filter((c) => c.id !== componentId);
+    });
   };
 
   const addOffer = () => {
@@ -203,7 +409,7 @@ export function OfferComparisonView() {
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <SectionHeader
           title="Offer comparison"
-          subtitle="Manual entry for up to three offers, or upload multiple documents for a deeper mock parse (verify CTC and regime in each card)."
+          subtitle="Same engine as Salary Breakdown. Compare offers in the summary table, then open the right control on any row to inspect and edit line items — totals and verdict stay in sync per offer. Up to three offers; mock document upload available (verify each card)."
         />
         <div className="flex flex-wrap gap-2 shrink-0">
           <div className="inline-flex rounded-xl border border-navy-200 bg-navy-50/40 p-1">
@@ -432,67 +638,243 @@ export function OfferComparisonView() {
       )}
 
       {valid.length > 0 && (
-        <div className="mt-12 overflow-x-auto rounded-2xl border border-navy-200/50 bg-white shadow-sm">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-b border-navy-100 text-left text-label text-navy-400">
-                <th className="px-4 py-3 font-semibold">Company</th>
-                <th className="px-4 py-3 font-semibold">Monthly in-hand</th>
-                <th className="px-4 py-3 font-semibold">Annual tax</th>
-                <th className="px-4 py-3 font-semibold">1st year value*</th>
-                <th className="px-4 py-3 font-semibold">Verdict</th>
-              </tr>
-            </thead>
-            <tbody>
-              {valid.map((v) => {
-                const topHand = v.monthlyInHand === bestInHand;
-                const topVal = v.firstYearValue === bestValue;
-                return (
-                  <tr
-                    key={v.id}
-                    className={cn(
-                      "border-b border-navy-50",
-                      topHand && "bg-teal-50/40"
-                    )}
+        <div className="mt-12 space-y-3">
+          <div>
+            <h2 className="text-h3 text-navy-800">Decision summary</h2>
+            <p className="mt-1 text-xs text-navy-500 max-w-2xl leading-relaxed">
+              Scan columns for a fast read. Use the right control to open the
+              full breakdown — edit line items there; the summary row and verdict
+              refresh from the same Salary Breakdown engine.
+            </p>
+          </div>
+          <div className="overflow-x-auto rounded-2xl border border-navy-200/50 bg-white shadow-sm">
+            <table className="w-full min-w-[780px] text-sm">
+              <thead>
+                <tr className="border-b border-navy-100 text-left text-label text-navy-400">
+                  <th className="px-4 py-3 font-semibold" scope="col">
+                    Company
+                  </th>
+                  <th className="px-4 py-3 font-semibold" scope="col">
+                    Monthly in-hand
+                  </th>
+                  <th className="px-4 py-3 font-semibold" scope="col">
+                    Annual tax
+                  </th>
+                  <th className="px-4 py-3 font-semibold" scope="col">
+                    1st year value*
+                  </th>
+                  <th className="px-4 py-3 font-semibold" scope="col">
+                    Verdict
+                  </th>
+                  <th
+                    className="w-[4.75rem] px-2 py-3 font-semibold text-right"
+                    scope="col"
                   >
-                    <td className="px-4 py-3 font-semibold text-navy-800">
-                      {v.companyName}
-                    </td>
-                    <td className="px-4 py-3">
-                      <CurrencyDisplay
-                        amount={v.monthlyInHand}
+                    <span className="sr-only">Breakdown and edit</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {valid.map((v, offerIndex) => {
+                  const topHand = v.monthlyInHand === bestInHand;
+                  const topVal = v.firstYearValue === bestValue;
+                  const open = expandedOfferId === v.id;
+                  const panelTint =
+                    OFFER_PANEL_TINTS[offerIndex % OFFER_PANEL_TINTS.length];
+                  return (
+                    <Fragment key={v.id}>
+                      <tr
+                        tabIndex={0}
                         className={cn(
-                          "font-bold tabular-nums",
-                          topHand && "text-teal-700"
+                          "border-b border-navy-50 transition-colors outline-none",
+                          "cursor-pointer focus-visible:bg-navy-50/40 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-200/80",
+                          open && "bg-navy-50/30",
+                          topHand && "bg-teal-50/40",
+                          open && topHand && "bg-teal-50/35",
+                          open && "shadow-[inset_3px_0_0_0_rgba(13,148,136,0.35)]"
                         )}
-                      />
-                    </td>
-                    <td className="px-4 py-3 tabular-nums text-navy-600">
-                      {formatCurrency(v.annualTax)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <CurrencyDisplay
-                        amount={v.firstYearValue}
-                        className={cn(
-                          "font-semibold tabular-nums",
-                          topVal && "text-emerald-700"
-                        )}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-navy-600">
-                      {topHand && topVal && "Best on both"}
-                      {topHand && !topVal && "Highest in-hand"}
-                      {!topHand && topVal && "Highest 1Y value"}
-                      {!topHand && !topVal && "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          <p className="px-4 py-2 text-xs text-navy-400 border-t border-navy-100">
-            * In-hand × 12 + joining bonus + 25% of stated ESOP value.
-          </p>
+                        onClick={() =>
+                          setExpandedOfferId((id) =>
+                            id === v.id ? null : v.id
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setExpandedOfferId((id) =>
+                              id === v.id ? null : v.id
+                            );
+                          }
+                        }}
+                      >
+                        <td className="px-4 py-3 font-semibold text-navy-800 select-none">
+                          {v.companyName}
+                        </td>
+                        <td className="px-4 py-3 select-none">
+                          <CurrencyDisplay
+                            amount={v.monthlyInHand}
+                            className={cn(
+                              "font-bold tabular-nums",
+                              topHand && "text-teal-700"
+                            )}
+                          />
+                        </td>
+                        <td className="px-4 py-3 tabular-nums text-navy-600 select-none">
+                          {formatCurrency(v.annualTax)}
+                        </td>
+                        <td className="px-4 py-3 select-none">
+                          <CurrencyDisplay
+                            amount={v.firstYearValue}
+                            className={cn(
+                              "font-semibold tabular-nums",
+                              topVal && "text-emerald-700"
+                            )}
+                          />
+                        </td>
+                        <td className="px-4 py-3 text-navy-600 select-none text-[13px] leading-snug">
+                          {topHand && topVal && (
+                            <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-800 ring-1 ring-teal-100">
+                              Best on both
+                            </span>
+                          )}
+                          {topHand && !topVal && (
+                            <span className="inline-flex items-center rounded-full bg-teal-50/80 px-2.5 py-0.5 text-xs font-semibold text-teal-800 ring-1 ring-teal-100/80">
+                              Highest in-hand
+                            </span>
+                          )}
+                          {!topHand && topVal && (
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                              Highest 1Y value
+                            </span>
+                          )}
+                          {!topHand && !topVal && (
+                            <span className="text-navy-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2 align-middle text-right">
+                          <button
+                            type="button"
+                            className={cn(
+                              "ml-auto flex flex-col items-center justify-center gap-0.5 rounded-xl px-2.5 py-2 min-w-[3.35rem]",
+                              "bg-teal-50/80 ring-1 ring-teal-100/90 text-teal-900 shadow-sm",
+                              "transition-all duration-200 hover:bg-teal-50 hover:ring-teal-200/90",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-1",
+                              open &&
+                                "bg-teal-100/45 ring-teal-300/60 shadow-md"
+                            )}
+                            aria-expanded={open}
+                            aria-controls={`offer-detail-${v.id}`}
+                            id={`offer-expand-${v.id}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedOfferId((id) =>
+                                id === v.id ? null : v.id
+                              );
+                            }}
+                          >
+                            <Calculator
+                              className="size-4 text-teal-700/90"
+                              strokeWidth={2}
+                              aria-hidden
+                            />
+                            <ChevronDown
+                              className={cn(
+                                "size-4 text-teal-800 transition-transform duration-200 -mt-0.5",
+                                open && "rotate-180"
+                              )}
+                              aria-hidden
+                            />
+                            <span className="sr-only">
+                              {open
+                                ? `Collapse ${v.companyName} breakdown and editing`
+                                : `Expand ${v.companyName} for breakdown and line edits`}
+                            </span>
+                          </button>
+                        </td>
+                      </tr>
+                      {open && (
+                        <tr
+                          className={cn(
+                            "border-b border-navy-100 transition-colors duration-200",
+                            "bg-gradient-to-r from-white via-white to-teal-50/25"
+                          )}
+                        >
+                          <td colSpan={6} className="p-0 align-top">
+                            <section
+                              id={`offer-detail-${v.id}`}
+                              aria-labelledby={`offer-expand-${v.id}`}
+                              className="border-t border-teal-100/70 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+                            >
+                              <div className="px-3 py-4 md:px-5 md:py-5">
+                                <SalaryBreakdownEditablePanel
+                                  breakdown={v.breakdown}
+                                  taxRegime={v.taxRegime}
+                                  companyLabel={v.companyName}
+                                  comparisonInsights={{
+                                    leadMonthlyInHand:
+                                      topHand && bestInHand !== null,
+                                    leadFirstYearValue:
+                                      topVal && bestValue !== null,
+                                    deltaMonthlyVsBest:
+                                      bestInHand !== null
+                                        ? v.monthlyInHand - bestInHand
+                                        : undefined,
+                                    deltaFirstYearVsBest:
+                                      bestValue !== null
+                                        ? v.firstYearValue - bestValue
+                                        : undefined,
+                                    annualVariableCashTotal:
+                                      v.breakdown.annualVariableCashTotal,
+                                    peerMaxVariableCashAnnual,
+                                    employerContributionsAnnual:
+                                      sumEmployerContributionsAnnual(
+                                        v.breakdown
+                                      ),
+                                    peerMaxEmployerAnnual,
+                                  }}
+                                  panelClassName={panelTint}
+                                  onPatchComponent={(cid, patch) =>
+                                    patchOfferComponent(v.id, cid, patch)
+                                  }
+                                  onAddAllowance={() =>
+                                    addOfferAllowance(v.id)
+                                  }
+                                  onAddVariable={() =>
+                                    addOfferVariableRow(v.id)
+                                  }
+                                  onRemoveComponent={(cid) =>
+                                    removeOfferBreakdownRow(v.id, cid)
+                                  }
+                                />
+                              </div>
+                            </section>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+            <div className="space-y-1.5 px-4 py-3 text-xs text-navy-400 border-t border-navy-100 leading-relaxed">
+              <p>
+                <span className="font-medium text-navy-600">*</span> First-year
+                value = monthly in-hand × 12 + joining bonus + 25% of stated
+                ESOP (same engine as Salary Breakdown; variable pay excluded from
+                monthly in-hand). Editing rows below updates in-hand and this
+                score for that offer only.
+              </p>
+              <p>
+                <span className="font-medium text-navy-600">Verdict</span>{" "}
+                compares valid offers only.{" "}
+                <span className="text-navy-500">
+                  “Highest in-hand” uses fixed-path monthly in-hand; “Highest 1Y
+                  value” uses the footnoted first-year score. “Best on both” means
+                  this offer is top on both metrics (ties can share the lead).
+                </span>
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

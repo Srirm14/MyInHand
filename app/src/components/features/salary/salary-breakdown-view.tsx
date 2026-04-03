@@ -41,6 +41,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { CashPathInteractiveRow } from "@/components/shared/cash-path-interactive-row";
 import { SaveProgressCta } from "@/components/shared/save-progress-cta";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
@@ -659,60 +660,66 @@ export function SalaryBreakdownView() {
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-500">
             Cash path (this model)
           </p>
-          <div className="space-y-2 tabular-nums text-right sm:text-left">
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline">
-              <span className="text-xs text-navy-500 text-left">
+          <div className="space-y-1 tabular-nums text-right sm:text-left">
+            <CashPathInteractiveRow>
+              <span className="text-xs text-navy-500 text-left sm:max-w-[65%]">
                 Fixed gross / month · excl. variable
               </span>
               <span className="font-medium text-navy-800">
                 {formatCurrency(fixedCashMonthly)}
               </span>
-            </div>
+            </CashPathInteractiveRow>
             {variableCashMonthly > 0 && (
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline">
-                <span className="text-xs text-navy-500 text-left">
+              <CashPathInteractiveRow>
+                <span className="text-xs text-navy-500 text-left sm:max-w-[65%]">
                   Variable / month (÷12 for display)
                 </span>
                 <span className="font-medium text-navy-700">
                   {formatCurrency(variableCashMonthly)}
                 </span>
-              </div>
+              </CashPathInteractiveRow>
             )}
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline">
-              <span className="text-xs text-navy-500 text-left">Deductions / month</span>
+            <CashPathInteractiveRow>
+              <span className="text-xs text-navy-500 text-left sm:max-w-[65%]">
+                Deductions / month
+              </span>
               <span className="font-medium text-danger-600">
                 −{formatCurrency(deductionsMonthly)}
               </span>
-            </div>
+            </CashPathInteractiveRow>
             <div className="my-2 border-t border-teal-100/80" />
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1.5 sm:items-baseline rounded-lg bg-white/70 px-3 py-2.5 ring-1 ring-teal-100/60">
-              <span className="text-sm font-semibold text-navy-800 text-left">
+            <CashPathInteractiveRow highlight className="gap-1.5">
+              <span className="text-sm font-semibold text-navy-800 text-left sm:max-w-[65%]">
                 Est. in-hand / month · excl. variable
               </span>
               <span className="text-lg font-bold text-teal-800 tabular-nums">
                 {formatCurrency(breakdown.monthlyInHandExcludingVariable)}
               </span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline">
-              <span className="text-xs text-navy-500 text-left">
+            </CashPathInteractiveRow>
+            <CashPathInteractiveRow>
+              <span className="text-xs text-navy-500 text-left sm:max-w-[65%]">
                 In-hand / month · incl. variable (÷12)
               </span>
               <span className="font-semibold text-navy-800">
                 {formatCurrency(breakdown.monthlyInHandIncludingVariable)}
               </span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline text-xs">
-              <span className="text-navy-500 text-left">Annual in-hand · excl. variable</span>
+            </CashPathInteractiveRow>
+            <CashPathInteractiveRow className="text-xs">
+              <span className="text-navy-500 text-left sm:max-w-[65%]">
+                Annual in-hand · excl. variable
+              </span>
               <span className="font-semibold text-navy-800 tabular-nums">
                 {formatCurrency(annualInHandExclVar)}
               </span>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline text-xs">
-              <span className="text-navy-500 text-left">Annual in-hand · incl. variable</span>
+            </CashPathInteractiveRow>
+            <CashPathInteractiveRow className="text-xs">
+              <span className="text-navy-500 text-left sm:max-w-[65%]">
+                Annual in-hand · incl. variable
+              </span>
               <span className="font-semibold text-navy-800 tabular-nums">
                 {formatCurrency(annualInHandInclVar)}
               </span>
-            </div>
+            </CashPathInteractiveRow>
             <p className="text-[11px] text-navy-400 pt-2 leading-relaxed text-left">
               Employer CTC lines sit outside this path but still count toward
               package value. Real variable pay rarely arrives in twelve equal
