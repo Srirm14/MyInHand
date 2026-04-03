@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CashPathInteractiveRow } from "@/components/shared/cash-path-interactive-row";
 import { SaveProgressCta } from "@/components/shared/save-progress-cta";
+import { ExportDropdown } from "@/components/shared/export/export-dropdown";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
@@ -557,13 +558,7 @@ export function SalaryBreakdownView() {
             </div>
           </div>
           <div className="shrink-0 lg:pt-1">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-9 w-full rounded-full border-navy-200 px-5 sm:w-auto"
-            >
-              Download PDF
-            </Button>
+            <ExportDropdown breakdown={breakdown} input={input} />
           </div>
         </div>
 
