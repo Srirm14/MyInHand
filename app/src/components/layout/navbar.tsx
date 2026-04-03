@@ -112,14 +112,15 @@ function NavbarInner() {
               href="/premium"
               className={cn(
                 buttonVariants({ variant: "default", size: "sm" }),
-                "rounded-full bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-800 gap-1.5 shadow-sm"
+                "inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-teal-800 hover:border-white/20"
               )}
             >
               <Crown
-                className="size-3.5 shrink-0 text-amber-300"
-                strokeWidth={2.25}
+                className="size-3.5 shrink-0 text-white"
+                strokeWidth={2}
+                aria-hidden
               />
-              Premium
+              <span>Premium</span>
             </Link>
           )}
           {showHistory ? <RecentHistoryNavButton /> : null}
