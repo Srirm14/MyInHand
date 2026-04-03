@@ -8,12 +8,12 @@
 - **Flow:** Landing → CTC → free breakdown → lifestyle check → surplus/deficit.
 - **Save nudge:** After breakdown and on lifestyle, **Save your activity** card → `login?from=…` / `signup?from=…`.
 - **Premium CTAs** (in copy, footer, feature cards): resolve to **sign-in first**, then paywall or tool depending on tier (`useTieredPremiumLinks`).
-- **History:** not available (no navbar control; salary runs are not pushed to History until signed in).
+- **History:** not available (premium-only feature).
 
 ### Logged in — free tier
 
-- **Header:** **Salary** only + **History** (right sheet, last 5 items) + **Profile**. No Premium crown, no deep premium nav links.
-- **Flow:** same free salary + lifestyle path; History records salary submissions from CTC submit.
+- **Header:** **Salary** only + **Profile**. No History, no Premium crown, no deep premium nav links.
+- **Flow:** same free salary + lifestyle path; CTC runs are **not** written to History.
 - **Premium intent:** links go to **`/paywall`** (and deep `?tool=` where relevant).
 
 ### Logged in — premium tier (`NEXT_PUBLIC_ACCESS_MODE=premium` or dev default)
@@ -25,10 +25,10 @@
 ```
 Anonymous
   Landing → Salary → Breakdown → Lifestyle → Surplus/Deficit
-    └→ (optional) Log in / Sign up to save & History
+    └→ (optional) Log in / Sign up for profile & continue
 
 Signed-in (free env)
-  Same core flow + History + Profile
+  Same core flow + Profile (no History)
     └→ Paywall for upgrade
 
 Signed-in (premium env)

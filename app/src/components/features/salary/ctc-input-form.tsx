@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CITY_TIERS } from "@/lib/constants/city-tiers";
 import { ctcInputSchema, type CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
+import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
@@ -79,7 +80,7 @@ export function CtcInputForm() {
     });
     calculateBreakdown();
     const { input: nextInput, breakdown } = useSalaryStore.getState();
-    if (breakdown && useAuthStore.getState().user) {
+    if (breakdown && useAuthStore.getState().user && PREMIUM_UNLOCKED) {
       useHistoryStore
         .getState()
         .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);

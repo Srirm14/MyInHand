@@ -61,7 +61,8 @@ function NavbarInner() {
 
   const showProductChrome = !onAuthPath;
   const showPremiumHeader = authReady && Boolean(user) && PREMIUM_UNLOCKED;
-  const showHistory = showProductChrome && authReady && Boolean(user);
+  /** History is a premium-only utility; free signed-in users do not see it. */
+  const showHistory = showProductChrome && showPremiumHeader;
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white border-b border-navy-200/60 shadow-sm">

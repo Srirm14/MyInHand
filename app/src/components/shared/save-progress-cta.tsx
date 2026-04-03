@@ -5,7 +5,7 @@ import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Shown after the free salary/lifestyle flow for anonymous users — nudges account + History. */
+/** Shown after the free salary/lifestyle flow for anonymous users — nudges account (History is premium-only). */
 export function SaveProgressCta({
   returnTo,
   className,
@@ -29,8 +29,8 @@ export function SaveProgressCta({
         Save your activity and continue anytime
       </p>
       <p className="mt-1.5 text-xs text-navy-600 leading-relaxed max-w-xl">
-        Create a free account to keep recent salary runs in History on this
-        device and pick up where you left off.
+        Create a free account to keep your profile and pick up this workspace
+        on your next visit. Recent activity history is available on Premium.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
