@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /Users/sriram.v/Desktop/Inhand/*.md)",
+      "Bash(wc -l /Users/sriram.v/Desktop/Inhand/*.md)",
+      "Bash(npx create-next-app@latest app --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack --use-npm)",
+      "Bash(npm -v)",
+      "Bash(export PATH=\"/usr/local/bin:$PATH\")",
+      "Bash(npx create-next-app@latest app --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm)",
+      "Bash(npm install:*)",
+      "Bash(npx shadcn@latest init -d)",
+      "Bash(npx shadcn@latest add card input label form slider table badge separator tabs tooltip sheet dialog -y)"
+    ]
+  }
+}
