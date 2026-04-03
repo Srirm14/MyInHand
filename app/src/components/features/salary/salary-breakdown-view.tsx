@@ -54,7 +54,7 @@ import { formatCurrency } from "@/lib/utils/format-currency";
 import { cn } from "@/lib/utils";
 import {
   InrMoneyInput,
-  formatInrTwoDecimals,
+  splitInrFormattedParts,
 } from "@/components/ui/inr-money-input";
 
 const GROUP_TITLES: Record<SalaryComponentGroup, string> = {
@@ -189,6 +189,38 @@ export function SalaryBreakdownView() {
     ? breakdown.monthlyInHandIncludingVariable * 12
     : 0;
 
+  const totalsSignature = useMemo(() => {
+    if (!breakdown) return "";
+    return [
+      breakdown.monthlyInHandExcludingVariable,
+      breakdown.monthlyInHandIncludingVariable,
+      breakdown.annualFixedCashTotal,
+      breakdown.annualVariableCashTotal,
+      breakdown.annualCashCompensation,
+      breakdown.statedAnnualCTC,
+      breakdown.totalMonthlyDeductions,
+      breakdown.annualIncomeTax,
+      breakdown.takeHomePercent,
+    ].join("|");
+  }, [breakdown]);
+
+  const [totalsJustUpdated, setTotalsJustUpdated] = useState(false);
+  const totalsPrimedRef = useRef(false);
+  useEffect(() => {
+    if (!totalsSignature) return;
+    if (!totalsPrimedRef.current) {
+      totalsPrimedRef.current = true;
+      return;
+    }
+    setTotalsJustUpdated(true);
+    const t = window.setTimeout(() => setTotalsJustUpdated(false), 720);
+    return () => window.clearTimeout(t);
+  }, [totalsSignature]);
+
+  const totalsPulseClass = totalsJustUpdated
+    ? "bg-teal-50/[0.35] shadow-[inset_0_0_0_1px_rgba(13,148,136,0.12)]"
+    : "";
+
   const onStructureUpload = async (list: FileList | null) => {
     const file = list?.[0];
     if (!file) return;
@@ -267,41 +299,41 @@ export function SalaryBreakdownView() {
       <div className="mb-6 space-y-3">
         {isDocument ? (
           <div className="rounded-xl border border-teal-200 bg-teal-50/90 px-4 py-3 text-sm text-navy-800">
-            <span className="font-semibold text-teal-800">Document-based results</span>
+            <span className="font-semibold text-teal-800">From your document</span>
             {breakdown.meta?.documentFileName && (
               <span className="text-navy-600">
                 {" "}
-                — parsed from{" "}
+                —{" "}
                 <cite className="not-italic font-medium">
                   {breakdown.meta.documentFileName}
                 </cite>
               </span>
             )}
-            . Figures use the same tax engine with extracted CTC hints; confirm
-            components against your letter before deciding.
+            . Same tax engine as manual entry; cross-check line items on your
+            original before relying on numbers.
           </div>
         ) : (
           <div className="rounded-xl border border-navy-200 bg-navy-50/80 px-4 py-3 text-sm text-navy-700">
-            <span className="font-semibold text-navy-800">Estimated breakdown</span>{" "}
-            — illustrative Indian payroll structure only. CTC includes
-            employer contributions and accruals that are{" "}
-            <strong className="font-semibold text-navy-800">not</strong> paid as
-            monthly bank salary. Compare with your payslip for accuracy.
+            <span className="font-semibold text-navy-800">Estimated structure</span>{" "}
+            — typical private-sector style split. Part of CTC is employer-side or
+            accruals,{" "}
+            <strong className="font-semibold text-navy-800">not</strong> monthly
+            bank pay. Tune rows to mirror your offer.
           </div>
         )}
         {breakdown.meta?.componentsAdjusted && (
           <div
             className={cn(
-              "rounded-lg border px-3 py-2 text-xs leading-relaxed",
+              "rounded-lg border px-3 py-2.5 text-xs leading-relaxed",
               editBasis === "user_edited_after_parse"
                 ? "border-teal-200 bg-teal-50/80 text-teal-900"
-                : "border-amber-200 bg-amber-50/80 text-amber-950"
+                : "border-amber-200/90 bg-amber-50/70 text-amber-950"
             )}
           >
-            <span className="font-semibold">Edited values applied</span>
+            <span className="font-semibold">Table drives the model</span>
             {editBasis === "user_edited_after_parse"
-              ? " — started from your uploaded document; summaries and tax estimates now follow the table (formulas refresh lines you didn’t override)."
-              : " — summaries, tax, PF-linked lines, and special allowance residual update live from your rows."}
+              ? " — Summaries and tax follow your edits; other lines still recompute where you haven’t overridden them."
+              : " — Totals, tax, PF-linked lines, and special allowance refresh from what you enter here."}
           </div>
         )}
       </div>
@@ -310,110 +342,137 @@ export function SalaryBreakdownView() {
         <div className="max-w-2xl">
           <SectionHeader
             title="Salary Breakdown"
-            subtitle="Fixed pay and allowances mirror common Indian CTC layouts — add or rename allowance lines to match your employer. Variable pay stays separate from predictable monthly in-hand. Info icons explain each row; not tax or legal advice."
+            subtitle="Match components to your offer or payslip. Variable pay stays separate from the monthly in-hand you can plan around. Row tooltips explain each line — guidance only, not tax advice."
           />
         </div>
         <div
-          key={breakdown.monthlyInHand}
-          className="rounded-2xl border border-navy-200/50 bg-white p-5 shadow-sm max-w-md lg:mt-4 transition-colors duration-200"
+          className={cn(
+            "rounded-2xl border border-navy-200/50 bg-white p-5 shadow-sm max-w-md lg:mt-4 transition-[background-color,box-shadow] duration-500 ease-out",
+            totalsJustUpdated && "bg-teal-50/25 shadow-md shadow-teal-900/[0.04]"
+          )}
         >
           <div className="flex gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
               <Sparkles className="size-5" />
             </div>
             <p className="text-sm text-navy-600 leading-relaxed">
-              You take home about{" "}
-              <span className="font-semibold text-navy-800">
+              About{" "}
+              <span className="font-semibold text-navy-800 tabular-nums">
                 {breakdown.takeHomePercent}%
               </span>{" "}
-              of stated CTC as estimated monthly in-hand{" "}
-              <span className="font-medium text-navy-700">excluding variable pay</span>
-              . Employer-only CTC lines and variable components are shown
-              separately so the monthly view stays practical.
+              of stated CTC is modeled as monthly in-hand,{" "}
+              <span className="font-medium text-navy-700">before variable pay</span>
+              . Employer-only CTC and variable lines are called out so the monthly
+              view stays grounded.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Est. monthly in-hand (excl. variable)"
-          amount={breakdown.monthlyInHandExcludingVariable}
-          sublabel={`~${formatCurrency(annualInHandExclVar)} / yr take-home`}
-          sentiment="positive"
-          icon={Banknote}
-        />
-        <StatCard
-          label="Monthly in-hand (incl. variable)"
-          amount={breakdown.monthlyInHandIncludingVariable}
-          sublabel="If variable were spread ÷12 — illustrative"
-          sentiment="positive"
-          icon={TrendingUp}
-        />
-        <StatCard
-          label="Annual Income Tax"
-          amount={breakdown.annualIncomeTax}
-          sublabel={regimeLabel}
-          sentiment="negative"
-          icon={PiggyBank}
-        />
-        <StatCard
-          label="Total Deductions"
-          amount={breakdown.totalMonthlyDeductions}
-          sublabel={`Employer CTC ~${formatCurrency(employerMonthly * 12)} / yr`}
-          sentiment="neutral"
-          icon={Receipt}
-        />
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-navy-200/60 bg-navy-50/40 px-5 py-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-navy-500 mb-3">
-          Annual cash &amp; CTC (from current rows)
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm tabular-nums">
-          <div>
-            <p className="text-navy-500 text-xs">Annual fixed salary (cash)</p>
-            <p className="font-semibold text-navy-800">
-              {formatCurrency(breakdown.annualFixedCashTotal)}
-            </p>
-          </div>
-          <div>
-            <p className="text-navy-500 text-xs">Annual variable pay (cash)</p>
-            <p className="font-semibold text-navy-800">
-              {formatCurrency(breakdown.annualVariableCashTotal)}
-            </p>
-          </div>
-          <div>
-            <p className="text-navy-500 text-xs">Total annual cash (fixed + variable)</p>
-            <p className="font-semibold text-navy-800">
-              {formatCurrency(breakdown.annualCashCompensation)}
-            </p>
-          </div>
-          <div>
-            <p className="text-navy-500 text-xs">Stated annual CTC (input)</p>
-            <p className="font-semibold text-teal-800">
-              {formatCurrency(breakdown.statedAnnualCTC)}
-            </p>
-          </div>
+      <div
+        className={cn(
+          "mt-10 space-y-6 rounded-2xl p-2 -mx-2 transition-[background-color,box-shadow] duration-500 ease-out md:-mx-0 md:p-0",
+          totalsPulseClass
+        )}
+      >
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <StatCard
+            label="Monthly in-hand · excl. variable"
+            amount={breakdown.monthlyInHandExcludingVariable}
+            sublabel={`~${formatCurrency(annualInHandExclVar)} / yr`}
+            sentiment="positive"
+            icon={Banknote}
+            className={cn(
+              "transition-shadow duration-500",
+              totalsJustUpdated && "shadow-md shadow-teal-900/[0.06]"
+            )}
+          />
+          <StatCard
+            label="Monthly in-hand · incl. variable"
+            amount={breakdown.monthlyInHandIncludingVariable}
+            sublabel="÷12 spread — illustrative only"
+            sentiment="positive"
+            icon={TrendingUp}
+            className="transition-shadow duration-500"
+          />
+          <StatCard
+            label="Est. income tax (TDS)"
+            amount={breakdown.annualIncomeTax}
+            sublabel={regimeLabel}
+            sentiment="negative"
+            icon={PiggyBank}
+            className="transition-shadow duration-500"
+          />
+          <StatCard
+            label="Monthly deductions"
+            amount={breakdown.totalMonthlyDeductions}
+            sublabel={`Employer CTC ~${formatCurrency(employerMonthly * 12)} / yr`}
+            sentiment="neutral"
+            icon={Receipt}
+            className="transition-shadow duration-500"
+          />
         </div>
-        <p className="text-[11px] text-navy-400 mt-3 leading-relaxed">
-          Modeled package (earnings + employer lines):{" "}
-          <span className="font-medium text-navy-600">
-            {formatCurrency(breakdown.modeledAnnualPackage)}
-          </span>
-          . Edit rows above to align with your offer; summaries recalculate automatically.
-        </p>
+
+        <div className="rounded-2xl border border-navy-200/50 bg-white px-5 py-4 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-400 mb-1">
+            Annual picture
+          </p>
+          <p className="text-xs text-navy-500 mb-4 max-w-3xl leading-relaxed">
+            Fixed vs variable cash, then how it compares to your stated CTC. Figures
+            follow the table — change a row and totals refresh together.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+            <div className="rounded-lg bg-navy-50/50 px-3 py-2.5 ring-1 ring-navy-100/80">
+              <p className="text-[11px] font-medium text-navy-500">
+                Annual fixed (cash)
+              </p>
+              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
+                {formatCurrency(breakdown.annualFixedCashTotal)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-navy-50/50 px-3 py-2.5 ring-1 ring-navy-100/80">
+              <p className="text-[11px] font-medium text-navy-500">
+                Annual variable (cash)
+              </p>
+              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
+                {formatCurrency(breakdown.annualVariableCashTotal)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-teal-50/40 px-3 py-2.5 ring-1 ring-teal-100/70">
+              <p className="text-[11px] font-medium text-teal-800/90">
+                Total cash (fixed + variable)
+              </p>
+              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-900">
+                {formatCurrency(breakdown.annualCashCompensation)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-teal-200/60">
+              <p className="text-[11px] font-medium text-teal-700">
+                Stated CTC (your input)
+              </p>
+              <p className="mt-0.5 text-base font-semibold tabular-nums text-teal-800">
+                {formatCurrency(breakdown.statedAnnualCTC)}
+              </p>
+            </div>
+          </div>
+          <p className="text-[11px] text-navy-400 mt-3 leading-relaxed">
+            Full modeled package (cash + employer lines):{" "}
+            <span className="font-medium text-navy-600 tabular-nums">
+              {formatCurrency(breakdown.modeledAnnualPackage)}
+            </span>
+          </p>
+        </div>
       </div>
 
       <div className="mt-10 rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h2 className="text-h3 text-navy-800">Component breakup</h2>
-            <p className="text-xs text-navy-400 mt-1 max-w-2xl leading-relaxed">
-              Amounts use ₹ with Indian grouping and two decimals (blur). Allowances
-              and variable pay: + in the section header to add rows; hover a row to
-              remove when allowed. Special allowance stays the CTC residual unless
-              overridden.
+            <p className="text-xs text-navy-500 mt-1.5 max-w-2xl leading-relaxed">
+              Blurred amounts show ₹ with Indian grouping and paise. Focus to type
+              plain digits. Use + beside Allowances or Variable pay to add a row;
+              remove appears lightly on rows that allow it. Special allowance fills
+              the gap to your stated CTC unless you lock your own figure.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -436,27 +495,28 @@ export function SalaryBreakdownView() {
           </div>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow className="border-navy-200 hover:bg-transparent">
-              <TableHead className="text-label text-navy-400 pl-4 w-[42%]">
-                Component
-              </TableHead>
-              <TableHead className="text-label text-navy-400 text-right tabular-nums text-navy-600">
-                Monthly (₹)
-              </TableHead>
-              <TableHead className="text-label text-navy-400 text-right tabular-nums">
-                Annual (₹)
-              </TableHead>
-              <TableHead className="text-label text-navy-400 pr-4">
-                Category
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <div className="overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
+          <Table className="text-[13px] leading-snug">
+            <TableHeader>
+              <TableRow className="border-b border-navy-200/70 bg-navy-50/50 hover:bg-navy-50/50">
+                <TableHead className="text-label text-navy-400 pl-5 py-3 w-[42%] h-auto align-bottom font-semibold">
+                  Component
+                </TableHead>
+                <TableHead className="text-label text-navy-400 text-right tabular-nums text-navy-500 py-3 h-auto align-bottom font-semibold">
+                  Monthly
+                </TableHead>
+                <TableHead className="text-label text-navy-400 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
+                  Annual
+                </TableHead>
+                <TableHead className="text-label text-navy-400 pr-5 py-3 h-auto align-bottom font-semibold">
+                  Type
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="[&_tr]:border-navy-100/70 [&_tr:last-child]:border-b-0">
             <SectionTableHeaderRow
               title="Fixed salary components"
-              subtitle="Basic, HRA, DA — recurring fixed heads before flexible allowances."
+              subtitle="Basic, HRA, DA — the stable core before allowances."
             />
             {earningsBySection.fixed_core.map((row) => (
               <EditableEarningRow
@@ -473,11 +533,11 @@ export function SalaryBreakdownView() {
 
             <SectionTableHeaderRow
               title="Allowances"
-              subtitle="Rename or tune amounts to match your payslip. Hover a row to remove optional lines. Add employer-specific heads with +."
+              subtitle="Align names and amounts with your payslip. Optional rows can be removed; add your own heads with +."
               actions={
                 <SectionAddControl
                   ariaLabel="Add allowance row"
-                  tooltip="Add allowance"
+                  tooltip="Add allowance row"
                   onClick={addBreakdownAllowanceRow}
                 />
               }
@@ -500,25 +560,25 @@ export function SalaryBreakdownView() {
 
             <SectionTableHeaderRow
               title="Variable pay"
-              subtitle="Bonus, variable CTC, joining / retention — not part of est. monthly in-hand (excl. variable)."
+              subtitle="Bonuses and variable CTC — excluded from the monthly in-hand figure above."
               actions={
                 <SectionAddControl
                   ariaLabel="Add variable or bonus row"
-                  tooltip="Add variable / bonus"
+                  tooltip="Add variable or bonus row"
                   onClick={addBreakdownVariableRow}
                 />
               }
             />
             {earningsBySection.variable_pay.length === 0 ? (
-              <TableRow className="border-navy-100">
+              <TableRow className="border-navy-100/70 hover:bg-navy-50/30">
                 <TableCell
                   colSpan={4}
-                  className="pl-4 py-3 text-xs text-navy-500 leading-relaxed"
+                  className="pl-5 py-4 text-xs text-navy-500 leading-relaxed"
                 >
-                  No variable lines yet. Use the{" "}
-                  <span className="font-medium text-navy-700">+</span> beside
-                  the section title, or enter a fixed + variable split on the
-                  salary page.
+                  No variable lines yet. Tap{" "}
+                  <span className="font-medium text-navy-700">+</span> in the
+                  header, or use <span className="font-medium text-navy-700">Fixed + variable</span>{" "}
+                  on the salary page.
                 </TableCell>
               </TableRow>
             ) : (
@@ -545,8 +605,8 @@ export function SalaryBreakdownView() {
                   title={GROUP_TITLES[group]}
                   subtitle={
                     group === "employer_contributions"
-                      ? "In CTC — not modeled as monthly bank salary."
-                      : "Statutory and payroll deductions from fixed monthly cash."
+                      ? "Package value, not paid as monthly salary in this view."
+                      : "Taken from fixed monthly cash in this model."
                   }
                 />
                 {rows.map((row) => (
@@ -563,72 +623,75 @@ export function SalaryBreakdownView() {
             ))}
           </TableBody>
         </Table>
+        </div>
 
-        <div className="mt-6 rounded-xl border border-teal-100 bg-teal-50/40 px-4 py-4 text-sm text-navy-700">
-          <p className="font-semibold text-navy-800 text-xs uppercase tracking-wide mb-2">
-            Net in-hand (this model)
+        <div
+          className={cn(
+            "mt-6 rounded-xl border border-teal-100/90 bg-gradient-to-b from-teal-50/50 to-white px-4 py-4 text-sm text-navy-700 transition-[background-color,box-shadow] duration-500 ease-out",
+            totalsJustUpdated && "shadow-sm shadow-teal-900/[0.06] ring-1 ring-teal-200/40"
+          )}
+        >
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-500">
+            Cash path (this model)
           </p>
-          <div className="space-y-1.5 tabular-nums text-right sm:text-left">
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-              <span className="text-navy-500">
-                Fixed monthly cash (excl. variable pay)
+          <div className="space-y-2 tabular-nums text-right sm:text-left">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline">
+              <span className="text-xs text-navy-500 text-left">
+                Fixed gross / month · excl. variable
               </span>
-              <span className="font-semibold text-navy-800">
+              <span className="font-medium text-navy-800">
                 {formatCurrency(fixedCashMonthly)}
               </span>
             </div>
             {variableCashMonthly > 0 && (
-              <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                <span className="text-navy-500">
-                  Variable pay (÷12 display only)
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline">
+                <span className="text-xs text-navy-500 text-left">
+                  Variable / month (÷12 for display)
                 </span>
-                <span className="font-semibold text-navy-700">
+                <span className="font-medium text-navy-700">
                   {formatCurrency(variableCashMonthly)}
                 </span>
               </div>
             )}
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-              <span className="text-navy-500">Less deductions</span>
-              <span className="font-semibold text-danger-600">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline">
+              <span className="text-xs text-navy-500 text-left">Deductions / month</span>
+              <span className="font-medium text-danger-600">
                 −{formatCurrency(deductionsMonthly)}
               </span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 pt-2 border-t border-teal-100">
-              <span className="font-semibold text-navy-800">
-                Est. monthly in-hand (excl. variable)
+            <div className="my-2 border-t border-teal-100/80" />
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-1.5 sm:items-baseline rounded-lg bg-white/70 px-3 py-2.5 ring-1 ring-teal-100/60">
+              <span className="text-sm font-semibold text-navy-800 text-left">
+                Est. in-hand / month · excl. variable
               </span>
-              <span className="font-bold text-teal-800 text-base">
+              <span className="text-lg font-bold text-teal-800 tabular-nums">
                 {formatCurrency(breakdown.monthlyInHandExcludingVariable)}
               </span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-              <span className="text-navy-500">
-                Monthly in-hand if variable ÷12 (illustrative)
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline">
+              <span className="text-xs text-navy-500 text-left">
+                In-hand / month · incl. variable (÷12)
               </span>
               <span className="font-semibold text-navy-800">
                 {formatCurrency(breakdown.monthlyInHandIncludingVariable)}
               </span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-              <span className="text-navy-500">
-                Annual take-home excl. variable (×12)
-              </span>
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline text-xs">
+              <span className="text-navy-500 text-left">Annual in-hand · excl. variable</span>
               <span className="font-semibold text-navy-800 tabular-nums">
                 {formatCurrency(annualInHandExclVar)}
               </span>
             </div>
-            <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-              <span className="text-navy-500">
-                Annual take-home incl. variable (×12)
-              </span>
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-1 sm:items-baseline text-xs">
+              <span className="text-navy-500 text-left">Annual in-hand · incl. variable</span>
               <span className="font-semibold text-navy-800 tabular-nums">
                 {formatCurrency(annualInHandInclVar)}
               </span>
             </div>
             <p className="text-[11px] text-navy-400 pt-2 leading-relaxed text-left">
-              Employer contributions are excluded from this cash path — they
-              still count toward CTC. Variable pay is uneven in real life; ÷12 is
-              only for comparison.
+              Employer CTC lines sit outside this path but still count toward
+              package value. Real variable pay rarely arrives in twelve equal
+              slices — the ÷12 view is for comparison only.
             </p>
           </div>
         </div>
@@ -721,6 +784,38 @@ export function SalaryBreakdownView() {
   );
 }
 
+function InrStaticAmount({
+  amount,
+  emphasis = "md",
+  variant = "default",
+}: {
+  amount: number;
+  emphasis?: "md" | "lg";
+  variant?: "default" | "danger";
+}) {
+  const { whole, decimals } = splitInrFormattedParts(amount);
+  const sym = variant === "danger" ? "text-danger-400" : "text-navy-400";
+  const main =
+    variant === "danger"
+      ? emphasis === "lg"
+        ? "text-base font-bold text-danger-700"
+        : "text-sm font-bold text-danger-700"
+      : emphasis === "lg"
+        ? "text-base font-bold text-navy-800"
+        : "text-sm font-bold text-navy-800";
+  const dec =
+    variant === "danger"
+      ? "text-[11px] font-medium text-danger-400"
+      : "text-[11px] font-medium text-navy-400";
+  return (
+    <span className="tabular-nums tracking-tight">
+      <span className={cn("text-[11px] font-semibold", sym)}>₹</span>
+      <span className={main}>{whole}</span>
+      <span className={dec}>{decimals}</span>
+    </span>
+  );
+}
+
 function GroupSubtotalRow({
   rows,
   label = "Subtotal",
@@ -731,17 +826,17 @@ function GroupSubtotalRow({
   const monthly = rows.reduce((s, r) => s + r.monthlyValue, 0);
   const annual = rows.reduce((s, r) => s + r.annualValue, 0);
   return (
-    <TableRow className="border-navy-100 bg-navy-50/40 hover:bg-navy-50/40">
-      <TableCell className="pl-4 py-2 text-xs font-semibold text-navy-600">
+    <TableRow className="border-b border-navy-100/60 bg-navy-50/45 hover:bg-navy-50/55">
+      <TableCell className="pl-5 py-2.5 text-xs font-semibold tracking-wide text-navy-500">
         {label}
       </TableCell>
-      <TableCell className="text-right py-2 text-sm font-bold tabular-nums text-navy-800">
-        ₹{formatInrTwoDecimals(monthly)}
+      <TableCell className="py-2.5 text-right">
+        <InrStaticAmount amount={monthly} emphasis="lg" />
       </TableCell>
-      <TableCell className="text-right py-2 text-sm font-bold tabular-nums text-navy-800">
-        ₹{formatInrTwoDecimals(annual)}
+      <TableCell className="py-2.5 text-right">
+        <InrStaticAmount amount={annual} emphasis="lg" />
       </TableCell>
-      <TableCell className="pr-4" />
+      <TableCell className="pr-5" />
     </TableRow>
   );
 }
@@ -761,12 +856,12 @@ function sectionInHandNote(row: SalaryComponent): string {
 
 function provenanceLine(row: SalaryComponent): string {
   if (row.lineSource === "user_edited") {
-    return "You edited this line; linked formula rows may refresh until you override them too.";
+    return "You set this figure; linked lines may still move until you adjust them too.";
   }
   if (row.lineSource === "parsed") {
-    return "Parsed from your upload — verify against the original document.";
+    return "Carried from your upload — spot-check against the file.";
   }
-  return "Model estimate — adjust to match your offer or payslip.";
+  return "Model default — align with your offer or payslip.";
 }
 
 function fixedOrVariableLabel(row: SalaryComponent): string {
@@ -837,15 +932,18 @@ function SectionTableHeaderRow({
   actions?: ReactNode;
 }) {
   return (
-    <TableRow className="border-navy-100 bg-navy-50/70 hover:bg-navy-50/70">
-      <TableCell colSpan={4} className="py-3 pl-4 pr-3">
+    <TableRow className="border-b border-navy-100/70 bg-gradient-to-r from-navy-50/85 via-navy-50/35 to-white hover:from-navy-50/85">
+      <TableCell
+        colSpan={4}
+        className="border-l-[3px] border-l-teal-500/25 py-3.5 pl-4 pr-3"
+      >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-[11px] uppercase tracking-wide text-navy-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-navy-500">
               {title}
             </p>
             {subtitle ? (
-              <p className="text-[11px] text-navy-400 mt-1 max-w-3xl leading-relaxed">
+              <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-navy-400">
                 {subtitle}
               </p>
             ) : null}
@@ -873,7 +971,7 @@ function SectionAddControl({
       <TooltipTrigger
         type="button"
         onClick={onClick}
-        className="inline-flex size-7 items-center justify-center rounded-lg border-0 bg-transparent p-0 text-navy-400 transition-colors hover:bg-teal-50 hover:text-teal-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
+        className="inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent p-0 text-navy-400 transition-all duration-200 hover:bg-teal-50/90 hover:text-teal-700 hover:ring-1 hover:ring-teal-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-1"
         aria-label={ariaLabel}
       >
         <Plus className="size-3.5" strokeWidth={2.5} />
@@ -923,8 +1021,8 @@ function EditableEarningRow({
 
   const sourceLabel = {
     estimated: "Estimated",
-    parsed: "Parsed",
-    user_edited: "Override",
+    parsed: "From doc",
+    user_edited: "Adjusted",
   }[row.lineSource];
 
   const [nameText, setNameText] = useState(row.name);
@@ -938,15 +1036,18 @@ function EditableEarningRow({
   const showRemove = Boolean(onRemove && row.removable);
   const inrFieldClass =
     row.type === "tax-free" ? "[&_input]:text-emerald-800" : undefined;
+  const userTouched = row.lineSource === "user_edited";
 
   return (
     <TableRow
       className={cn(
-        "group/erow border-navy-100 align-top transition-colors",
-        row.isCustom && "bg-teal-50/20"
+        "group/erow border-b border-navy-100/60 align-top transition-[background-color,box-shadow] duration-200",
+        "hover:bg-white/80",
+        userTouched && "shadow-[inset_3px_0_0_0_rgba(13,148,136,0.3)]",
+        row.isCustom && "bg-teal-50/[0.18]"
       )}
     >
-      <TableCell className="pl-4 py-3">
+      <TableCell className="pl-5 py-3.5">
         <div className="flex items-start gap-2">
           <div className="flex shrink-0 pt-0.5">
             <Tooltip>
@@ -989,12 +1090,12 @@ function EditableEarningRow({
                 {row.name}
               </span>
             )}
-            <p className="text-[11px] text-navy-500 leading-snug">
+            <p className="text-[11px] leading-snug text-navy-500/95">
               {row.description}
             </p>
             {row.isCustom ? (
               <p className="text-[10px] text-navy-400">
-                Custom line — rename to match your payslip.
+                Custom — rename to match your structure.
               </p>
             ) : null}
             <div className="flex flex-wrap gap-1 pt-1">
@@ -1027,10 +1128,10 @@ function EditableEarningRow({
                 <TooltipTrigger
                   type="button"
                   className={cn(
-                    "rounded-lg border-0 bg-transparent p-1.5 text-danger-500/80 transition-all",
-                    "opacity-0 hover:bg-danger-50 hover:text-danger-600",
+                    "rounded-md border-0 bg-transparent p-1.5 text-danger-500/70 transition-all duration-200",
+                    "opacity-[0.28] hover:bg-danger-50/90 hover:text-danger-600 hover:opacity-100",
                     "group-hover/erow:opacity-100 group-focus-within/erow:opacity-100",
-                    "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-200"
+                    "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger-200/80"
                   )}
                   aria-label={`Remove ${row.name}`}
                   onClick={() => onRemove!(row.id)}
@@ -1038,14 +1139,14 @@ function EditableEarningRow({
                   <Trash2 className="size-3.5" strokeWidth={2} />
                 </TooltipTrigger>
                 <TooltipContent side="left" className="text-xs">
-                  Remove row
+                  Remove this row
                 </TooltipContent>
               </Tooltip>
             </div>
           ) : null}
         </div>
       </TableCell>
-      <TableCell className="p-2 align-middle text-right bg-teal-50/15">
+      <TableCell className="bg-white/40 px-2 py-3 align-middle text-right transition-colors group-hover/erow:bg-white/70">
         <InrMoneyInput
           value={row.monthlyValue}
           onCommit={(n) => patchComponent(row.id, { monthlyValue: n })}
@@ -1054,7 +1155,7 @@ function EditableEarningRow({
           debounceMs={160}
         />
       </TableCell>
-      <TableCell className="p-2 align-middle text-right bg-teal-50/10">
+      <TableCell className="bg-white/30 px-2 py-3 align-middle text-right transition-colors group-hover/erow:bg-white/65">
         <InrMoneyInput
           value={row.annualValue}
           onCommit={(n) => patchComponent(row.id, { annualValue: n })}
@@ -1063,7 +1164,7 @@ function EditableEarningRow({
           debounceMs={160}
         />
       </TableCell>
-      <TableCell className="pr-4 align-middle">
+      <TableCell className="pr-5 align-middle">
         <Badge variant="secondary" className={cn("font-semibold text-[10px]", typeBadge)}>
           {typeLabel}
         </Badge>
@@ -1102,18 +1203,24 @@ function EditableSimpleComponentRow({
 
   const sourceLabel = {
     estimated: "Estimated",
-    parsed: "Parsed",
-    user_edited: "Override",
+    parsed: "From doc",
+    user_edited: "Adjusted",
   }[row.lineSource];
 
   return (
-    <TableRow className="border-navy-100 align-top">
-      <TableCell className="pl-4 py-3">
+    <TableRow
+      className={cn(
+        "group/srow border-b border-navy-100/60 align-top transition-[background-color,box-shadow] duration-200 hover:bg-white/70",
+        row.lineSource === "user_edited" &&
+          "shadow-[inset_3px_0_0_0_rgba(13,148,136,0.3)]"
+      )}
+    >
+      <TableCell className="pl-5 py-3.5">
         <div className="flex items-start gap-2">
           <Tooltip>
             <TooltipTrigger
               type="button"
-              className="mt-0.5 shrink-0 rounded-full p-0.5 text-navy-400 hover:text-teal-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+              className="mt-0.5 shrink-0 rounded-full p-0.5 text-navy-400 transition-colors hover:text-teal-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
               aria-label={`About ${row.name}`}
             >
               <Info className="size-4" strokeWidth={2} />
@@ -1130,7 +1237,7 @@ function EditableSimpleComponentRow({
             <span className="font-medium text-navy-800 leading-snug block">
               {row.name}
             </span>
-            <p className="text-[11px] text-navy-500 leading-snug">
+            <p className="text-[11px] leading-snug text-navy-500/95">
               {row.description}
             </p>
             <div className="flex flex-wrap gap-1 pt-1">
@@ -1154,7 +1261,7 @@ function EditableSimpleComponentRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className="p-2 align-middle text-right bg-teal-50/15">
+      <TableCell className="bg-white/40 px-2 py-3 align-middle text-right transition-colors group-hover/srow:bg-white/80">
         <InrMoneyInput
           value={row.monthlyValue}
           onCommit={(n) => onMonthlyChange(row.id, n)}
@@ -1167,17 +1274,16 @@ function EditableSimpleComponentRow({
           debounceMs={160}
         />
       </TableCell>
-      <TableCell className="p-2 align-middle text-right">
-        <span
-          className={cn(
-            "inline-block min-w-[7.5rem] text-sm font-semibold tabular-nums text-navy-700",
-            isDeduction && "text-danger-600"
-          )}
-        >
-          ₹{formatInrTwoDecimals(row.annualValue)}
+      <TableCell className="px-2 py-3 align-middle text-right">
+        <span className="inline-flex min-w-[7.5rem] justify-end">
+          <InrStaticAmount
+            amount={row.annualValue}
+            emphasis="md"
+            variant={isDeduction ? "danger" : "default"}
+          />
         </span>
       </TableCell>
-      <TableCell className="pr-4 align-middle">
+      <TableCell className="pr-5 align-middle">
         <Badge variant="secondary" className={cn("font-semibold text-[10px]", typeBadge)}>
           {typeLabel}
         </Badge>

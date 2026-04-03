@@ -17,6 +17,17 @@ export function formatInrTwoDecimals(rupees: number): string {
   }).format(Number.isFinite(rupees) ? rupees : 0);
 }
 
+/** Split formatted amount for calmer typography (whole vs .00). */
+export function splitInrFormattedParts(rupees: number): {
+  whole: string;
+  decimals: string;
+} {
+  const s = formatInrTwoDecimals(rupees);
+  const i = s.lastIndexOf(".");
+  if (i < 0) return { whole: s, decimals: "" };
+  return { whole: s.slice(0, i), decimals: s.slice(i) };
+}
+
 function digitsToRupeeInt(s: string): number {
   const d = s.replace(/\D/g, "");
   if (!d) return 0;
@@ -95,8 +106,8 @@ export function InrMoneyInput({
     >
       <span
         className={cn(
-          "pointer-events-none absolute left-2 text-sm font-medium tabular-nums",
-          deductionStyle ? "text-danger-500" : "text-navy-500"
+          "pointer-events-none absolute left-2.5 text-xs font-semibold tabular-nums",
+          deductionStyle ? "text-danger-400" : "text-navy-400"
         )}
         aria-hidden
       >
@@ -110,10 +121,12 @@ export function InrMoneyInput({
         aria-label={ariaLabel}
         value={shown}
         className={cn(
-          "w-full rounded-lg border border-navy-200 bg-white py-1.5 pr-2 pl-7 text-sm font-semibold tabular-nums outline-none transition-shadow",
-          "focus:ring-2 focus:ring-teal-200 text-right",
+          "w-full rounded-md border border-navy-200/90 bg-white/95 py-2 pr-2.5 pl-7 text-sm font-semibold tabular-nums outline-none",
+          "shadow-sm shadow-navy-900/[0.02] transition-[border-color,box-shadow,background-color] duration-200",
+          "hover:border-navy-300/90 hover:bg-white",
+          "focus:border-teal-400/80 focus:bg-white focus:shadow-md focus:shadow-teal-900/[0.04] focus:ring-2 focus:ring-teal-200/70",
           deductionStyle
-            ? "text-danger-600 border-danger-200/80"
+            ? "text-danger-600 border-danger-200/70 hover:border-danger-300/80"
             : "text-navy-800"
         )}
         onFocus={(e) => {
