@@ -42,7 +42,7 @@ src/
 │
 ├── components/
 │   ├── ui/                       # shadcn/ui primitives (button, input, card, etc.)
-│   ├── features/                 # landing, salary (ctc-input, breakdown, recents), lifestyle, premium
+│   ├── features/                 # landing, salary (ctc-input, compensation-ctc-section, breakdown, recents), lifestyle, premium
 │   ├── shared/                   # Composed reusable components
 │   │   ├── stat-card.tsx
 │   │   ├── feature-card.tsx
@@ -100,6 +100,8 @@ src/
 │       ├── format-currency.ts
 │       ├── calculate-tax.ts
 │       ├── calculate-salary.ts   # Breakdown + aggregateBreakdownTotals (editable rows)
+│       ├── compensation-split.ts # Total ↔ fixed ↔ variable sync (manual CTC + offers)
+│       ├── coerce-salary-snapshot.ts  # History restore: default compensation fields
 │       ├── calculate-emi.ts
 │       └── format-relative-time.ts
 │
@@ -132,7 +134,7 @@ Zod schema (lib/schemas/)
 
 | What | Where |
 |------|-------|
-| User input state (CTC, city, regime) | Zustand `use-salary-store` |
+| User input state (CTC, optional fixed/variable split, city, regime) | Zustand `use-salary-store` (`SalaryInput`) |
 | Salary / offer recents (last 5) | Zustand `use-history-store` (persisted) |
 | Calculated results | Derived from store + `calculate-salary` |
 | Server data (if/when API exists) | TanStack React Query |
