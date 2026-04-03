@@ -156,8 +156,9 @@ export function CtcInputForm() {
 
       <PageShell narrow className="relative py-10 md:py-14">
         <div className="text-center mb-8">
-          <h1 className="text-display text-navy-800 text-3xl md:text-5xl">
-            Your CTC, two ways
+          <h1 className="text-display text-3xl md:text-5xl">
+            <span className="text-primary">Your CTC</span>
+            <span className="text-navy-800">, two ways</span>
           </h1>
           <p className="mt-4 text-base md:text-lg text-navy-500 max-w-2xl mx-auto leading-relaxed">
             Enter your CTC for an{" "}

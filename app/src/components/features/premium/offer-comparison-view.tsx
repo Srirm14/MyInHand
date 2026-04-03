@@ -406,13 +406,18 @@ export function OfferComparisonView() {
 
   return (
     <PageShell className="py-8 md:py-10">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
         <SectionHeader
+          className="mb-0 min-w-0 flex-1"
           title="Offer comparison"
           subtitle="Same engine as Salary Breakdown. Compare offers in the summary table, then open the right control on any row to inspect and edit line items — totals and verdict stay in sync per offer. Up to three offers; mock document upload available (verify each card)."
         />
-        <div className="flex flex-wrap gap-2 shrink-0">
-          <div className="inline-flex rounded-xl border border-navy-200 bg-navy-50/40 p-1">
+        <div
+          className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:max-w-none lg:shrink-0 lg:justify-end"
+          role="toolbar"
+          aria-label="Offer entry and navigation"
+        >
+          <div className="inline-flex h-9 w-full rounded-xl border border-navy-200/90 bg-navy-50/50 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] sm:w-auto">
             <button
               type="button"
               onClick={() => {
@@ -420,10 +425,10 @@ export function OfferComparisonView() {
                 setUploadError(null);
               }}
               className={cn(
-                "rounded-lg px-3 py-2 text-xs font-semibold",
+                "inline-flex h-full flex-1 items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
                 entryMode === "manual"
-                  ? "bg-white text-navy-800 shadow-sm"
-                  : "text-navy-500"
+                  ? "bg-white text-navy-800 shadow-sm ring-1 ring-navy-200/40"
+                  : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
               )}
             >
               Manual
@@ -435,34 +440,37 @@ export function OfferComparisonView() {
                 setUploadError(null);
               }}
               className={cn(
-                "rounded-lg px-3 py-2 text-xs font-semibold",
+                "inline-flex h-full flex-1 items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
                 entryMode === "upload"
-                  ? "bg-white text-navy-800 shadow-sm"
-                  : "text-navy-500"
+                  ? "bg-white text-navy-800 shadow-sm ring-1 ring-navy-200/40"
+                  : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
               )}
             >
               Upload offers
             </button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full border-navy-200"
-            disabled={offers.length >= 3}
-            onClick={addOffer}
-          >
-            <Plus className="size-4 mr-1" />
-            Add offer
-          </Button>
-          <Link
-            href="/premium"
-            className={cn(
-              buttonVariants({ variant: "ghost" }),
-              "rounded-full text-teal-700"
-            )}
-          >
-            Hub
-          </Link>
+          <div className="flex w-full gap-2 sm:w-auto sm:items-center">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="h-9 flex-1 rounded-full border-navy-200 px-4 text-sm font-semibold text-navy-800 hover:bg-navy-50 sm:flex-initial"
+              disabled={offers.length >= 3}
+              onClick={addOffer}
+            >
+              <Plus className="size-4 shrink-0" data-icon="inline-start" />
+              Add offer
+            </Button>
+            <Link
+              href="/premium"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "lg" }),
+                "h-9 flex-1 items-center justify-center rounded-full border-navy-200 px-4 text-sm font-semibold text-teal-800 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-900 sm:inline-flex sm:w-auto sm:flex-initial"
+              )}
+            >
+              Hub
+            </Link>
+          </div>
         </div>
       </div>
 
