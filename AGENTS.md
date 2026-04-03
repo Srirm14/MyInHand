@@ -1,6 +1,6 @@
 # AGENTS.md — Working Guide for Claude Code & AI Agents
 
-## Project: The Fluid Ledger (Inhand)
+## Project: InHand (salary intelligence SaaS)
 
 Salary intelligence SaaS for Indian salaried employees. Desktop-first, light-mode, premium aesthetic.
 

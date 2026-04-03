@@ -18,7 +18,10 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/salary";
   const signup = useAuthStore((s) => s.signup);
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState(
+    () =>
+      globalThis.window !== undefined && useAuthStore.persist.hasHydrated()
+  );
 
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -26,9 +29,9 @@ function SignupForm() {
   });
 
   useEffect(() => {
-    const done = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
-    if (useAuthStore.persist.hasHydrated()) setHydrated(true);
-    return done;
+    return useAuthStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
   }, []);
 
   useEffect(() => {

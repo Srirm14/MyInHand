@@ -21,9 +21,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "The Fluid Ledger — Understand Your Salary, Down to the Last Rupee",
+  title: "InHand — Salary intelligence for Indian employees",
   description:
-    "Precision salary intelligence for Indian salaried professionals. CTC breakdown, tax optimization, lifestyle affordability, offer comparison, and wealth forecasting.",
+    "From CTC to in-hand clarity: breakups, deductions, tax impact, lifestyle affordability, offer comparison, and wealth scenarios—built for Indian payroll.",
 };
 
 export default function RootLayout({

@@ -186,7 +186,7 @@ CTA hover:       shadow-lg              — Lift effect on primary buttons
 ## Navigation Pattern
 
 - Fixed top nav, white background, shadow-sm
-- Logo left: "The Fluid Ledger" in primary-600 font-display font-bold
+- Logo left: "InHand" in primary-600 font-display font-bold (tracking-tight)
 - Center nav links: Salary, Offers, Forecast, EMI (14px, text-secondary-600)
 - Active link: underline decoration-2 underline-offset-8 decoration-primary-600
 - Right: Premium badge (bg-primary-600 text-white rounded-full px-4 py-1.5), Bell icon, User icon

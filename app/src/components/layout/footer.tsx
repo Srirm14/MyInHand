@@ -25,12 +25,12 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-between gap-8">
           {/* Brand */}
           <div className="max-w-sm">
-            <span className="font-display text-lg font-bold text-teal-600">
-              The Fluid Ledger
+            <span className="font-display text-lg font-bold text-teal-600 tracking-tight">
+              InHand
             </span>
             <p className="mt-2 text-sm text-navy-500 leading-relaxed">
-              The only salary management suite engineered for Indian
-              professionals. Secure, transparent, and precise.
+              Salary intelligence for Indian employees—in-hand clarity,
+              breakups, tax context, and decisions without the fluff.
             </p>
           </div>
 
@@ -83,8 +83,7 @@ export function Footer() {
             </span>
           </div>
           <p className="text-xs text-navy-400">
-            &copy; {new Date().getFullYear()} The Fluid Ledger. All rights
-            reserved. Precision financial tech from Bangalore.
+            &copy; {new Date().getFullYear()} InHand. All rights reserved.
           </p>
         </div>
       </div>

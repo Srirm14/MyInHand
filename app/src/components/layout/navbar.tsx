@@ -68,8 +68,8 @@ function NavbarInner() {
     <header className="sticky top-0 z-50 w-full bg-white border-b border-navy-200/60 shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         <Link href="/" className="flex items-center gap-2">
-          <span className="font-display text-xl font-bold text-teal-600">
-            The Fluid Ledger
+          <span className="font-display text-xl font-bold text-teal-600 tracking-tight">
+            InHand
           </span>
         </Link>
 

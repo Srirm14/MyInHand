@@ -16,7 +16,7 @@ export function AuthPageShell({
           href="/"
           className="font-display text-xl font-bold text-teal-600 hover:text-teal-700"
         >
-          The Fluid Ledger
+          InHand
         </Link>
       </div>
       <div className="w-full max-w-[400px] rounded-2xl border border-navy-200/60 bg-white p-8 shadow-sm">

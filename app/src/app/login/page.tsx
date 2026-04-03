@@ -22,7 +22,10 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/salary";
   const login = useAuthStore((s) => s.login);
-  const [hydrated, setHydrated] = useState(false);
+  const [hydrated, setHydrated] = useState(
+    () =>
+      globalThis.window !== undefined && useAuthStore.persist.hasHydrated()
+  );
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -30,9 +33,9 @@ function LoginForm() {
   });
 
   useEffect(() => {
-    const done = useAuthStore.persist.onFinishHydration(() => setHydrated(true));
-    if (useAuthStore.persist.hasHydrated()) setHydrated(true);
-    return done;
+    return useAuthStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
   }, []);
 
   useEffect(() => {
