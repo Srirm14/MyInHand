@@ -1,14 +1,23 @@
 /**
- * Access tier is controlled at build/runtime via NEXT_PUBLIC_ACCESS_MODE.
- * - "premium" — full Premium hub and tools (no paywall gate on /premium/*).
- * - "default" or unset — free tier; /premium/* redirects to paywall; nav sends users to /paywall.
+ * Access tier:
+ * - Env `NEXT_PUBLIC_ACCESS_MODE=premium` → full tools.
+ * - Env `NEXT_PUBLIC_ACCESS_MODE=default` → paywall (explicit).
+ * - Env unset: **development** defaults to premium (easy local testing);
+ *   **production** defaults to default (safe for deploy).
  */
 export type AccessMode = "default" | "premium";
 
 const raw = process.env.NEXT_PUBLIC_ACCESS_MODE?.toLowerCase().trim();
+const isDev = process.env.NODE_ENV === "development";
 
 export const ACCESS_MODE: AccessMode =
-  raw === "premium" ? "premium" : "default";
+  raw === "premium"
+    ? "premium"
+    : raw === "default"
+      ? "default"
+      : isDev
+        ? "premium"
+        : "default";
 
 export const PREMIUM_UNLOCKED = ACCESS_MODE === "premium";
 

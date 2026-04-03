@@ -27,6 +27,6 @@ cd app && npm install && npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). A root `package.json` forwards `npm run dev|build|lint|start` to `./app`.
 
-**Premium vs paywall:** copy `app/.env.example` to `app/.env.local` and set `NEXT_PUBLIC_ACCESS_MODE` to `default` (paywall) or `premium` (full tools). See `app/README.md`.
+**Premium vs paywall:** `npm run dev` unlocks premium by default (no env). Add `app/.env.local` with `NEXT_PUBLIC_ACCESS_MODE=default` to test the paywall locally. See `app/README.md`.
 
 Agent / contributor rules for the **Next.js app** live in `app/AGENTS.md` (pointer to root docs).

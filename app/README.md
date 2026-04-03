@@ -10,16 +10,18 @@ npm run dev
 npm run build
 ```
 
-## Access mode (env)
+## Access mode
 
-Copy `app/.env.example` → `app/.env.local`:
+Logic lives in `src/lib/config/access-mode.ts`.
 
-| `NEXT_PUBLIC_ACCESS_MODE` | Behavior |
-|---------------------------|----------|
-| `default` or unset | Free tier: `/premium/*` redirects to paywall; nav **Offers / Forecast / EMI / Premium** → paywall. |
-| `premium` | Full tools: `/premium/*` open; `/paywall` shows a short “already unlocked” notice. |
+| When | Behavior |
+|------|----------|
+| `npm run dev` and env **unset** | **Premium** (full `/premium/*` tools) — no `.env` needed to test. |
+| `npm run dev` + `NEXT_PUBLIC_ACCESS_MODE=default` in `.env.local` | Paywall; test free-tier UX. |
+| Production build, env unset | **Default** (paywall). |
+| Any env + `NEXT_PUBLIC_ACCESS_MODE=premium` | Full tools. |
 
-Restart the dev server after changing env.
+Restart the dev server after changing `.env.local`.
 
 ## Routes
 
