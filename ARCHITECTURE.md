@@ -20,7 +20,9 @@
 src/
 ├── app/                          # Next.js App Router
 │   ├── layout.tsx                # Root layout (fonts, providers, nav)
-│   ├── page.tsx                  # Landing page
+│   ├── page.tsx                  # Landing page (public)
+│   ├── login/, signup/, forgot-password/  # Auth (public)
+│   ├── profile/                  # Lightweight profile (protected)
 │   ├── salary/
 │   │   ├── page.tsx              # CTC Input form
 │   │   └── breakdown/
@@ -50,20 +52,25 @@ src/
 │   │   ├── section-header.tsx
 │   │   ├── segmented-selector.tsx
 │   │   └── donut-gauge.tsx
+│   ├── auth/                     # Auth page shell (shared card layout)
+│   ├── providers/                # Client providers (e.g. auth cookie sync)
 │   └── layout/
 │       ├── navbar.tsx
 │       ├── footer.tsx
 │       └── page-shell.tsx
 │
 ├── lib/
+│   ├── auth/                     # Client session cookie helpers (demo; use HttpOnly + API in prod)
 │   ├── schemas/                  # Zod schemas
+│   │   ├── auth.schema.ts
 │   │   ├── ctc-input.schema.ts
 │   │   ├── lifestyle.schema.ts
 │   │   └── offer.schema.ts
 │   ├── stores/                   # Zustand stores
 │   │   ├── use-salary-store.ts
 │   │   ├── use-lifestyle-store.ts
-│   │   └── use-premium-store.ts
+│   │   ├── use-premium-store.ts
+│   │   └── use-auth-store.ts     # Persisted demo auth (replace with real API)
 │   ├── hooks/                    # Custom React hooks
 │   │   ├── use-salary-calculation.ts
 │   │   ├── use-tax-calculation.ts
@@ -73,7 +80,8 @@ src/
 │   ├── types/                    # TypeScript type definitions
 │   │   ├── salary.types.ts
 │   │   ├── lifestyle.types.ts
-│   │   └── offer.types.ts
+│   │   ├── offer.types.ts
+│   │   └── user.types.ts
 │   ├── mocks/                    # Mock data
 │   │   ├── salary.mock.ts
 │   │   └── offers.mock.ts
@@ -136,16 +144,20 @@ Zod schema (lib/schemas/)
 | Route | Screen | Access |
 |-------|--------|--------|
 | `/` | Landing Page | Public |
-| `/salary` | CTC Input | Public |
-| `/salary/breakdown` | Free Salary Breakdown | Public |
-| `/lifestyle` | Basic Lifestyle Check | Public |
+| `/login`, `/signup`, `/forgot-password` | Auth | Public |
+| `/salary` | CTC Input | **Signed-in** (middleware + `fl_session_email`) |
+| `/salary/breakdown` | Free Salary Breakdown | **Signed-in** |
+| `/lifestyle` | Basic Lifestyle Check | **Signed-in** |
+| `/profile` | Profile | **Signed-in** |
 | `/paywall` | Premium Upgrade | Public |
-| `/premium` | Premium Dashboard | Premium |
-| `/premium/lifestyle-planner` | Affordability Planner | Premium |
-| `/premium/wealth-forecast` | Wealth Forecast | Premium |
-| `/premium/offer-comparison` | Offer Comparison | Premium |
-| `/premium/offer-score` | Side-by-Side Score | Premium |
-| `/premium/emi-analyzer` | EMI Analyzer | Premium |
+| `/premium` | Premium Dashboard | **Signed-in** + Premium |
+| `/premium/lifestyle-planner` | Affordability Planner | **Signed-in** + Premium |
+| `/premium/wealth-forecast` | Wealth Forecast | **Signed-in** + Premium |
+| `/premium/offer-comparison` | Offer Comparison | **Signed-in** + Premium |
+| `/premium/offer-score` | Side-by-Side Score | **Signed-in** + Premium |
+| `/premium/emi-analyzer` | EMI Analyzer | **Signed-in** + Premium |
+
+`middleware.ts` (Next root under `app/`) redirects unauthenticated users to `/login?from=…`. Demo auth is persisted in `use-auth-store` + a non-HttpOnly session cookie for the gate; replace with a real auth API for production.
 
 ### Mock-First Approach
 
@@ -153,7 +165,7 @@ All calculations run client-side with mock data until a backend exists. Every se
 
 ### Assumptions
 
-- No authentication system yet. Premium gate is client-side flag in Zustand.
+- Authentication is **demo-local** (Zustand persist + session cookie marker). Swap for OAuth/password API + HttpOnly cookies when backend exists. Premium gate remains client-side (`NEXT_PUBLIC_ACCESS_MODE` / store) on top of sign-in.
 - All tax calculations use FY 2025-26 slabs (configurable in constants).
 - No PDF upload parsing yet. Offer comparison uses manual input.
 - No payment integration. Paywall is UI-only for now.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthSync } from "@/components/providers/auth-sync";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import "./globals.css";
@@ -37,6 +38,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-neutral-bg">
         <TooltipProvider>
+          <AuthSync />
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
