@@ -19,7 +19,7 @@
 
 ### Signed-in — premium tier
 
-- **Header:** Salary (context-aware + **dropdown with last 5**) + Offers + Forecast + EMI + Premium (Crown pill) + History (sheet) + Profile.
+- **Header:** Salary (context-aware + **dropdown with last 5**) + Offers + Forecast + EMI + Premium (Crown pill) + **Recent activity** (sheet: resume or remove salaries and offer comparisons) + Profile.
 - **Flow:** All free routes + `/premium/*` routes.
 - **Salary nav:** Shows "Salary (25 LPA) ▼". Click opens dropdown with recent salary contexts. Selecting one switches the active salary across the entire app.
 
@@ -118,8 +118,9 @@ Signed-in (premium):
 ### 7. Offer Comparison (`/premium/offer-comparison`)
 
 **Purpose:** Compare 2–3 offers on real take-home.
-**Inputs:** CTC details per offer (manual or document), city, regime.
+**Inputs:** CTC details per offer (manual or document), city, regime. **New offers start with empty amounts** (CTC, fixed/variable when used, joining bonus, ESOP) and **`00,00,000`-style placeholders** until the user types; comparison table appears once each offer is named and CTC is at least ₹1L with a balanced split if applicable.
 **Outputs:** Side-by-side in-hand, component diff, first-year value, winner summary.
+**Recent activity:** A saved comparison row can be **removed** from the history sheet (trash + confirm); does not affect salary history.
 
 ---
 
@@ -145,7 +146,7 @@ Signed-in (premium):
 |-----------|-----------|---------------------|
 | No CTC entered | "Salary" | No |
 | CTC entered, anonymous/free | "Salary (25 LPA)" | No |
-| CTC entered, premium, breakdown loaded | "Salary (25 LPA) ▼" | Yes — **New in-hand check**, up to **5** recent saved rows (remove with confirm), link to `/salary/history`. Active CTC is **only** in the nav label—not duplicated in the menu. |
+| Premium + (saved salaries **or** active breakdown) | "Salary" or "Salary (25 LPA)" + chevron | **Whole label + chevron** toggles the menu (not chevron-only). Menu stays available after **New in-hand check** if history still has entries. **New in-hand check**, up to **5** recent rows, **Open current workspace** when applicable, `/salary/history` link. |
 
 **New in-hand check** resets the salary store to an empty CTC (`annualCTC` 0) and opens `/salary`. Up to **40** salaries are stored on device; the form is blocked with a calm banner when full until one is removed.
 

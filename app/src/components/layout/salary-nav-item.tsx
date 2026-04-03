@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  startTransition,
   type RefObject,
 } from "react";
 import Link from "next/link";
@@ -19,17 +20,10 @@ import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { isSalaryInputEquivalent } from "@/lib/utils/salary-context-match";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { RemoveSalaryEntryDialog } from "@/components/layout/remove-salary-entry-dialog";
+import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
-import type { SalaryInput } from "@/lib/types/salary.types";
 import { cn } from "@/lib/utils";
 
 const DROPDOWN_LIMIT = 5;
@@ -41,30 +35,35 @@ const MIN_CTC_FOR_LABEL = 100_000;
  * navigation without syncing state in an effect (avoids cascading render lint).
  */
 function SalaryNavHistoryDropdown({
+  open,
+  onOpenChange,
   recentSalaries,
-  input,
   isEntryActive,
   onSelectEntry,
   containerRef,
+  hasMeaningfulCtc,
+  breakdownExists,
+  salaryWorkspaceHref,
 }: Readonly<{
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   recentSalaries: SalaryHistoryEntry[];
-  input: SalaryInput;
   isEntryActive: (entry: SalaryHistoryEntry) => boolean;
   onSelectEntry: (entry: SalaryHistoryEntry) => void;
   containerRef: RefObject<HTMLDivElement | null>;
+  hasMeaningfulCtc: boolean;
+  breakdownExists: boolean;
+  salaryWorkspaceHref: string;
 }>) {
-  const [open, setOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<SalaryHistoryEntry | null>(
     null
   );
   const router = useRouter();
-  const removeSalaryContext = useHistoryStore((s) => s.removeSalaryContext);
   const resetSalary = useSalaryStore((s) => s.reset);
-  const setInput = useSalaryStore((s) => s.setInput);
-  const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
-  const activeSalaryHistoryId = useSalaryStore((s) => s.activeSalaryHistoryId);
-  const setActiveSalaryHistoryId = useSalaryStore(
-    (s) => s.setActiveSalaryHistoryId
+  const { applyRemove } = useSalaryHistoryDelete(
+    useCallback(() => {
+      onOpenChange(false);
+    }, [onOpenChange])
   );
 
   useEffect(() => {
@@ -74,94 +73,39 @@ function SalaryNavHistoryDropdown({
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
       ) {
-        setOpen(false);
+        onOpenChange(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [open, containerRef]);
+  }, [open, containerRef, onOpenChange]);
 
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") onOpenChange(false);
     }
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
-  }, [open]);
+  }, [open, onOpenChange]);
 
   const handleStartNew = useCallback(() => {
     resetSalary();
     clearSalaryBreakdownScrollSave();
-    setOpen(false);
+    onOpenChange(false);
     router.push("/salary");
-  }, [resetSalary, router]);
+  }, [resetSalary, router, onOpenChange]);
 
   const confirmRemoveEntry = useCallback(() => {
-    const entry = pendingDelete;
-    if (!entry) return;
-    const wasActive =
-      entry.id === activeSalaryHistoryId ||
-      (activeSalaryHistoryId == null &&
-        isSalaryInputEquivalent(entry.snapshot, input));
-
-    removeSalaryContext(entry.id);
-    setPendingDelete(null);
-    setOpen(false);
-
-    const remaining = useHistoryStore.getState().salaryContexts;
-    if (wasActive) {
-      const next = remaining[0];
-      if (next) {
-        setInput(coerceSalarySnapshot(next.snapshot));
-        calculateBreakdown();
-        setActiveSalaryHistoryId(next.id);
-        router.push("/salary/breakdown");
-      } else {
-        resetSalary();
-        clearSalaryBreakdownScrollSave();
-        router.push("/salary");
-      }
-    }
-  }, [
-    pendingDelete,
-    activeSalaryHistoryId,
-    input,
-    removeSalaryContext,
-    setInput,
-    calculateBreakdown,
-    setActiveSalaryHistoryId,
-    resetSalary,
-    router,
-  ]);
+    if (!pendingDelete) return;
+    applyRemove(pendingDelete);
+  }, [pendingDelete, applyRemove]);
 
   return (
     <>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          setOpen((v) => !v);
-        }}
-        className={cn(
-          "inline-flex cursor-pointer items-center justify-center rounded p-0.5 transition-colors",
-          "text-navy-500 hover:text-navy-800",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2"
-        )}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        aria-label="Salary entry menu"
-      >
-        <ChevronDown
-          className={cn(
-            "size-3.5 transition-transform duration-150",
-            open && "rotate-180"
-          )}
-        />
-      </button>
-
       {open ? (
         <div
+          id="salary-entry-menu"
           className={cn(
             "absolute left-0 top-full z-50 mt-3 w-[min(100vw-2rem,320px)]",
             "rounded-2xl border border-navy-200/60 bg-white py-2 shadow-lg",
@@ -194,16 +138,30 @@ function SalaryNavHistoryDropdown({
             </button>
           </div>
 
+          {breakdownExists && hasMeaningfulCtc ? (
+            <div className="px-3 pb-2">
+              <Link
+                href={salaryWorkspaceHref}
+                className="block rounded-lg px-3 py-2 text-xs font-semibold text-teal-700 transition-colors hover:bg-teal-50/80"
+                onClick={() => onOpenChange(false)}
+              >
+                Open current workspace →
+              </Link>
+            </div>
+          ) : null}
+
           <Separator className="my-1 bg-navy-100" />
 
           <p className="px-3 pt-2 text-[10px] font-semibold uppercase tracking-wide text-navy-400">
             Saved on this device
           </p>
           <p className="px-3 pb-1 text-[11px] text-navy-400 leading-snug">
-            Last five shown here (newest first). Your active salary stays in the
-            nav label above.
+            Last five shown here (newest first).
+            {hasMeaningfulCtc
+              ? " Your LPA in the nav is the run you’re on."
+              : " Pick a saved run below or keep entering a new CTC on this page."}
           </p>
-          <ul className="max-h-[min(50vh,280px)] overflow-y-auto py-1">
+          <ul className="max-h-[min(50vh,280px)] overflow-y-auto py-1 px-1">
             {recentSalaries.length === 0 ? (
               <li className="px-3 py-3 text-center text-xs text-navy-500 leading-relaxed">
                 No saved entries yet. Run another breakdown to add one—up to 40
@@ -213,15 +171,15 @@ function SalaryNavHistoryDropdown({
               recentSalaries.map((entry) => {
                 const current = isEntryActive(entry);
                 return (
-                  <li key={entry.id} className="px-1">
-                    <div className="flex items-stretch gap-0.5 rounded-lg hover:bg-navy-50/50">
+                  <li key={entry.id} className="px-0.5">
+                    <div className="flex items-stretch gap-1 rounded-lg pr-1 hover:bg-navy-50/50">
                       <button
                         type="button"
                         role="option"
                         aria-selected={current}
                         onClick={() => {
                           onSelectEntry(entry);
-                          setOpen(false);
+                          onOpenChange(false);
                         }}
                         className={cn(
                           "min-w-0 flex-1 px-2 py-2.5 text-left transition-colors rounded-lg",
@@ -291,7 +249,7 @@ function SalaryNavHistoryDropdown({
             <Link
               href="/salary/history"
               className="block py-2 text-xs font-semibold text-teal-700 transition-colors hover:text-teal-800"
-              onClick={() => setOpen(false)}
+              onClick={() => onOpenChange(false)}
             >
               Manage saved salaries
             </Link>
@@ -299,58 +257,15 @@ function SalaryNavHistoryDropdown({
         </div>
       ) : null}
 
-      <Dialog
+      <RemoveSalaryEntryDialog
+        entry={pendingDelete}
         open={pendingDelete != null}
         onOpenChange={(next) => {
           if (!next) setPendingDelete(null);
         }}
-      >
-        <DialogContent
-          showCloseButton
-          className="sm:max-w-[420px] gap-0 p-6 pt-7"
-        >
-          <DialogHeader className="space-y-3 text-left pr-10">
-            <DialogTitle className="text-base font-semibold text-navy-800 font-heading leading-snug">
-              Remove this saved salary?
-            </DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed text-navy-600">
-              {pendingDelete ? (
-                <>
-                  <span className="block">
-                    <span className="font-semibold text-navy-800 tabular-nums">
-                      {formatCTCAsLPA(pendingDelete.annualCTC)}
-                    </span>{" "}
-                    will be permanently removed from saved salaries on this
-                    device. This cannot be undone.
-                  </span>
-                  <span className="mt-3 block text-xs leading-relaxed text-navy-500">
-                    Your current workspace is unchanged until you pick another
-                    entry or start a new check.
-                  </span>
-                </>
-              ) : null}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-6 flex flex-col-reverse gap-2.5 border-t border-navy-100 pt-5 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 rounded-full px-5"
-              onClick={() => setPendingDelete(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="default"
-              className="h-10 rounded-full bg-danger-600 px-5 hover:bg-danger-700"
-              onClick={confirmRemoveEntry}
-            >
-              Remove saved salary
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        onConfirm={confirmRemoveEntry}
+        variant="nav"
+      />
     </>
   );
 }
@@ -359,7 +274,7 @@ function SalaryNavHistoryDropdown({
  * Context-aware Salary nav (primary item):
  * - Before a completed run: label `Salary`, link → `/salary`
  * - After breakdown exists: `Salary (25 LPA)` via formatCTCAsLPA, link → `/salary/breakdown`
- * - Premium + meaningful CTC: chevron opens entry menu (new check + up to 5 recent + delete)
+ * - Premium + saved contexts or active breakdown: label + chevron toggle menu (not chevron-only)
  */
 export function SalaryNavItem() {
   const pathname = usePathname();
@@ -388,13 +303,20 @@ export function SalaryNavItem() {
   const ctcLabel = hasMeaningfulCtc ? formatCTCAsLPA(annualCTC) : "";
 
   const recentSalaries = salaryContexts.slice(0, DROPDOWN_LIMIT);
-  const hasDropdown = premium && hasMeaningfulCtc;
+  const hasDropdown =
+    premium &&
+    (salaryContexts.length > 0 || hasMeaningfulCtc);
 
   const salaryHref = breakdown ? "/salary/breakdown" : "/salary";
 
-  /** Bumps when the Salary link is clicked so the dropdown remounts closed (same-route navigations). */
-  const [menuKey, setMenuKey] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    startTransition(() => {
+      setMenuOpen(false);
+    });
+  }, [pathname]);
 
   const isEntryActive = useCallback(
     (entry: SalaryHistoryEntry) => {
@@ -428,23 +350,48 @@ export function SalaryNavItem() {
   const labelText = ctcLabel ? `Salary (${ctcLabel})` : "Salary";
 
   return (
-    <div ref={containerRef} className="relative inline-flex items-center gap-0.5">
-      <Link
-        href={salaryHref}
-        className={linkClass}
-        onClick={() => setMenuKey((k) => k + 1)}
-      >
-        {labelText}
-      </Link>
+    <div ref={containerRef} className="relative inline-flex items-center">
+      {hasDropdown ? (
+        <button
+          type="button"
+          onClick={() => setMenuOpen((o) => !o)}
+          className={cn(
+            linkClass,
+            "inline-flex items-center gap-1 cursor-pointer border-0 bg-transparent p-0"
+          )}
+          aria-expanded={menuOpen}
+          aria-haspopup="listbox"
+          aria-controls="salary-entry-menu"
+          id="salary-nav-menu-trigger"
+        >
+          <span>{labelText}</span>
+          <ChevronDown
+            className={cn(
+              "size-3.5 shrink-0 text-navy-500 transition-transform duration-150",
+              menuOpen && "rotate-180",
+              isActive ? "text-navy-600" : "text-navy-400"
+            )}
+            aria-hidden
+          />
+        </button>
+      ) : (
+        <Link href={salaryHref} className={linkClass}>
+          {labelText}
+        </Link>
+      )}
 
       {hasDropdown ? (
         <SalaryNavHistoryDropdown
-          key={`${pathname}-${menuKey}`}
+          key={pathname}
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
           recentSalaries={recentSalaries}
-          input={input}
           isEntryActive={isEntryActive}
           onSelectEntry={handleSelectEntry}
           containerRef={containerRef}
+          hasMeaningfulCtc={hasMeaningfulCtc}
+          breakdownExists={breakdown != null}
+          salaryWorkspaceHref={salaryHref}
         />
       ) : null}
     </div>

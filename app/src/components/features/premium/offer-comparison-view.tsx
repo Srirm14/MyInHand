@@ -38,7 +38,7 @@ function emptyOffer(id: string): OfferDraft {
   return {
     id,
     companyName: "",
-    annualCTC: 1_800_000,
+    annualCTC: 0,
     compensationMode: "total_only",
     fixedAnnual: 0,
     variableAnnual: 0,
@@ -603,10 +603,12 @@ export function OfferComparisonView() {
                 <Label className="text-xs">Joining bonus (₹)</Label>
                 <Input
                   inputMode="numeric"
-                  className="rounded-xl text-sm"
-                  value={o.joiningBonus || ""}
+                  autoComplete="off"
+                  placeholder="00,00,000"
+                  className="rounded-xl text-sm placeholder:text-navy-300"
+                  value={o.joiningBonus > 0 ? String(o.joiningBonus) : ""}
                   onChange={(e) => {
-                    const raw = e.target.value.replace(/[^\d]/g, "");
+                    const raw = e.target.value.replace(/\D/g, "");
                     update(o.id, {
                       joiningBonus: raw ? Number(raw) : 0,
                     });
@@ -617,10 +619,12 @@ export function OfferComparisonView() {
                 <Label className="text-xs">ESOP value (₹)</Label>
                 <Input
                   inputMode="numeric"
-                  className="rounded-xl text-sm"
-                  value={o.esopValue || ""}
+                  autoComplete="off"
+                  placeholder="00,00,000"
+                  className="rounded-xl text-sm placeholder:text-navy-300"
+                  value={o.esopValue > 0 ? String(o.esopValue) : ""}
                   onChange={(e) => {
-                    const raw = e.target.value.replace(/[^\d]/g, "");
+                    const raw = e.target.value.replace(/\D/g, "");
                     update(o.id, { esopValue: raw ? Number(raw) : 0 });
                   }}
                 />

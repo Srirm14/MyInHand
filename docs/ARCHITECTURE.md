@@ -77,7 +77,9 @@ src/
 │   └── layout/
 │       ├── navbar.tsx                # Top nav with tiered chrome
 │       ├── salary-nav-item.tsx       # Context-aware "Salary (25 LPA)" + premium dropdown
-│       ├── recent-history-sheet.tsx   # Premium history drawer
+│       ├── recent-history-sheet.tsx   # Premium history drawer (delete salary + offer)
+│       ├── remove-salary-entry-dialog.tsx
+│       ├── remove-offer-comparison-entry-dialog.tsx
 │       ├── footer.tsx
 │       └── page-shell.tsx
 │
@@ -98,6 +100,7 @@ src/
 │   │   └── salary-breakdown-recalc-context.ts     # Helper: builds recalc params
 │   ├── hooks/
 │   │   ├── use-tiered-premium-links.ts  # anon→login, free→paywall, premium→tool
+│   │   ├── use-salary-history-delete.ts  # Shared remove + active salary reconciliation
 │   │   └── use-salary-breakdown-scroll-restoration.ts  # sessionStorage Y + layout restore; detour links use pointerdown + inbound `scroll={false}`
 │   ├── types/                        # TypeScript (5)
 │   │   ├── user.types.ts             # UserProfile, LocalAccountRecord
@@ -150,7 +153,7 @@ Dependencies flow downward only.
 | Salary breakdown (components, summaries) | `use-salary-store` (SalaryBreakdown) |
 | Lifestyle expenses + surplus | `use-lifestyle-store` |
 | Auth (demo local) | `use-auth-store` (persisted, cookie sync) |
-| Salary + offer recents (last 5) | `use-history-store` (persisted localStorage) |
+| Salary + offer recents (last 5 mixed) | `use-history-store` (persisted localStorage); `removeSalaryContext`, `removeOfferComparisonEntry` |
 | Offer restore from history | `use-offer-comparison-restore-store` (one-shot) |
 | Form transient state | React Hook Form (local) |
 | UI ephemeral state | React useState (local) |
@@ -178,14 +181,16 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 **SalaryNavItem** is the smart context-aware nav entry:
 - No CTC → "Salary"
 - CTC entered → "Salary (25 LPA)" via `formatCTCAsLPA()`
-- Premium + 2+ history entries → dropdown chevron, last 5 salary contexts, click to switch
-- Free → static label, no dropdown
+- Premium + (saved salaries **or** active breakdown) → label + chevron open the same menu (last 5 salary rows, New in-hand check, Open current workspace, Manage saved salaries)
+- Free / anonymous → static label, no dropdown
 
 Premium nav links (Offers, Forecast, EMI) only visible for premium signed-in users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
 
 **Salary breakdown scroll:** Leaving `/salary/breakdown` for Monthly plan / EMI / Forecast (etc.) saves `window` scroll Y in `sessionStorage` (`useSalaryBreakdownScrollRestoration` + `persistSalaryBreakdownScrollNow` on outbound pointerdown). Returning uses `useLayoutEffect` restore and `Link scroll={false}` on “Back to breakdown” so the App Router does not force the document to the top after restore. `clearSalaryBreakdownScrollSave()` on fresh CTC submit or “Back to salary inputs” resets the saved position.
 
-**Salary entry history (premium):** `use-history-store` keeps at most **`SALARY_HISTORY_MAX_ENTRIES` (40)** `salaryContexts` (newest first). The nav chevron lists the **five** most recent; `/salary/history` shows the full list. `removeSalaryContext(id)` drops one row from `salaryContexts` and the mixed `entries` list. **SalaryNavItem** chevron is an entry menu: **New in-hand check** (resets store + `/salary`, empty CTC), saved rows with trash (confirm dialog), and **Manage saved salaries**. New runs are blocked at 40 until the user removes an entry (banner on salary form + history page).
+**Salary entry history (premium):** `use-history-store` keeps at most **`SALARY_HISTORY_MAX_ENTRIES` (40)** `salaryContexts` (newest first). The nav chevron lists the **five** most recent; `/salary/history` shows the full list. `removeSalaryContext(id)` drops one row from `salaryContexts` and the mixed `entries` list. `removeOfferComparisonEntry(id)` removes only an `offer_comparison` row from mixed `entries` (no salary list change). **SalaryNavItem** entry menu (label + chevron toggle): **New in-hand check**, **Open current workspace** when a breakdown exists, saved rows with trash, **Manage saved salaries**; menu shows whenever the user is premium and has **any saved salary** *or* an active breakdown (so a fresh CTC page still exposes history). **`useSalaryHistoryDelete`** + **`RemoveSalaryEntryDialog`** reconcile the active salary after removal (nav menu, **recent-history-sheet**, `/salary/history`). **`RemoveOfferComparisonEntryDialog`** + trash on offer rows in **recent-history-sheet** for offer removal. New salary runs are blocked at 40 until the user removes an entry (banner on salary form + history page).
+
+**Offer comparison inputs:** New offer cards default **annual CTC 0** with **`00,00,000`-style placeholders** on total, fixed/variable split fields, joining bonus, and ESOP until the user enters amounts (`emptyOffer`, `CompensationCtcSectionControlled` / `CompensationCtcInputs`, offer view inputs).
 
 ## Mock-First Approach
 

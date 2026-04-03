@@ -139,7 +139,7 @@ export function CompensationCtcSectionControlled({
 
   const onModeChange = (next: CompensationMode) => {
     if (next === "fixed_variable") {
-      const init = initialSplitFromTotal(annualCTC || 1_800_000);
+      const init = initialSplitFromTotal(annualCTC);
       onPatch({
         compensationMode: next,
         fixedAnnual: init.fixedAnnual,
@@ -422,6 +422,7 @@ function SplitField({
   onChange,
   error,
   compact,
+  amountPlaceholder = "00,00,000",
 }: {
   id: string;
   label: string;
@@ -431,6 +432,7 @@ function SplitField({
   onChange: (n: number) => void;
   error?: string;
   compact?: boolean;
+  amountPlaceholder?: string;
 }) {
   return (
     <div className="space-y-1.5">
@@ -461,13 +463,16 @@ function SplitField({
           id={id}
           type="text"
           inputMode="numeric"
+          autoComplete="off"
+          placeholder={value > 0 ? undefined : amountPlaceholder}
+          aria-label={label}
           className={cn(
-            "min-w-0 flex-1 border-0 bg-transparent text-sm font-semibold tabular-nums outline-none",
+            "min-w-0 flex-1 border-0 bg-transparent text-sm font-semibold tabular-nums outline-none placeholder:text-navy-300 placeholder:font-semibold",
             compact ? "text-sm" : "text-base"
           )}
           value={value ? formatIndianNumber(value) : ""}
           onChange={(e) => {
-            const raw = e.target.value.replace(/[^\d]/g, "");
+            const raw = e.target.value.replace(/\D/g, "");
             onChange(raw ? Number(raw) : 0);
           }}
         />

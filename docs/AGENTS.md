@@ -69,10 +69,10 @@ Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode
 - **SalaryNavItem** (`components/layout/salary-nav-item.tsx`): Smart context-aware nav.
   - No CTC: shows "Salary"
   - CTC entered: shows "Salary (25 LPA)"
-  - Premium + 2+ history entries: dropdown chevron with last 5 salary contexts
-  - Free users: static label only
+  - Premium + saved salaries **or** active breakdown: label + chevron open menu (last 5 salary rows, New in-hand check, etc.)
+  - Free / anonymous: static label only
 - **Premium nav links** (Offers, Forecast, EMI): only visible for premium signed-in users.
-- **History sheet** (`recent-history-sheet.tsx`): premium-only right drawer, last 5 entries.
+- **History sheet** (`recent-history-sheet.tsx`): premium-only right drawer, last 5 mixed entries; trash removes salary (`RemoveSalaryEntryDialog`) or offer comparison (`RemoveOfferComparisonEntryDialog`).
 - **`useTieredPremiumLinks()`**: routes anon → login, free → paywall, premium → tool.
 
 ## Documentation Rules

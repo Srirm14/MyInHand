@@ -6,13 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Trash2 } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { RemoveSalaryEntryDialog } from "@/components/layout/remove-salary-entry-dialog";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import {
   useHistoryStore,
@@ -24,7 +18,7 @@ import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { formatCTCAsLPA, formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
-import { isSalaryInputEquivalent } from "@/lib/utils/salary-context-match";
+import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +28,6 @@ export default function SalaryHistoryPage() {
   const salaryContexts = useHistoryStore((s) => s.salaryContexts);
   const historyFull =
     salaryContexts.length >= SALARY_HISTORY_MAX_ENTRIES;
-  const removeSalaryContext = useHistoryStore((s) => s.removeSalaryContext);
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
   const setActiveSalaryHistoryId = useSalaryStore(
@@ -42,7 +35,7 @@ export default function SalaryHistoryPage() {
   );
   const resetSalary = useSalaryStore((s) => s.reset);
   const activeId = useSalaryStore((s) => s.activeSalaryHistoryId);
-  const input = useSalaryStore((s) => s.input);
+  const { applyRemove } = useSalaryHistoryDelete();
 
   const [pendingDelete, setPendingDelete] = useState<SalaryHistoryEntry | null>(
     null
@@ -63,40 +56,9 @@ export default function SalaryHistoryPage() {
   }, [resetSalary, router]);
 
   const confirmRemoveEntry = useCallback(() => {
-    const entry = pendingDelete;
-    if (!entry) return;
-    const wasActive =
-      entry.id === activeId ||
-      (activeId == null && isSalaryInputEquivalent(entry.snapshot, input));
-
-    removeSalaryContext(entry.id);
-    setPendingDelete(null);
-
-    const remaining = useHistoryStore.getState().salaryContexts;
-    if (wasActive) {
-      const next = remaining[0];
-      if (next) {
-        setInput(coerceSalarySnapshot(next.snapshot));
-        calculateBreakdown();
-        setActiveSalaryHistoryId(next.id);
-        router.push("/salary/breakdown");
-      } else {
-        resetSalary();
-        clearSalaryBreakdownScrollSave();
-        router.push("/salary");
-      }
-    }
-  }, [
-    pendingDelete,
-    activeId,
-    input,
-    removeSalaryContext,
-    setInput,
-    calculateBreakdown,
-    setActiveSalaryHistoryId,
-    resetSalary,
-    router,
-  ]);
+    if (!pendingDelete) return;
+    applyRemove(pendingDelete);
+  }, [pendingDelete, applyRemove]);
 
   if (!allowed) {
     return (
@@ -241,58 +203,15 @@ export default function SalaryHistoryPage() {
         </ul>
       )}
 
-      <Dialog
+      <RemoveSalaryEntryDialog
+        entry={pendingDelete}
         open={pendingDelete != null}
         onOpenChange={(next) => {
           if (!next) setPendingDelete(null);
         }}
-      >
-        <DialogContent
-          showCloseButton
-          className="sm:max-w-[420px] gap-0 p-6 pt-7"
-        >
-          <DialogHeader className="space-y-3 text-left pr-10">
-            <DialogTitle className="text-base font-semibold text-navy-800 font-heading leading-snug">
-              Remove this saved salary?
-            </DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed text-navy-600">
-              {pendingDelete ? (
-                <>
-                  <span className="block">
-                    <span className="font-semibold text-navy-800 tabular-nums">
-                      {formatCTCAsLPA(pendingDelete.annualCTC)}
-                    </span>{" "}
-                    will be permanently removed from this device. This cannot be
-                    undone.
-                  </span>
-                  <span className="mt-3 block text-xs leading-relaxed text-navy-500">
-                    If this was your active salary, we&apos;ll load the next saved
-                    entry or take you to a clean salary form.
-                  </span>
-                </>
-              ) : null}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-6 flex flex-col-reverse gap-2.5 border-t border-navy-100 pt-5 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-10 rounded-full px-5"
-              onClick={() => setPendingDelete(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="default"
-              className="h-10 rounded-full bg-danger-600 px-5 hover:bg-danger-700"
-              onClick={confirmRemoveEntry}
-            >
-              Remove saved salary
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+        onConfirm={confirmRemoveEntry}
+        variant="sheet"
+      />
     </PageShell>
   );
 }
