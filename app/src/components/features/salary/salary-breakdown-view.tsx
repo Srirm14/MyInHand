@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Banknote,
+  ChevronLeft,
   Info,
   PiggyBank,
   Plus,
@@ -24,7 +25,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
-import { SectionHeader } from "@/components/shared/section-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -253,7 +253,7 @@ export function SalaryBreakdownView() {
 
   return (
     <PageShell className="py-8 md:py-10">
-      <div className="mb-6 rounded-2xl border border-navy-200/60 bg-white p-4 shadow-sm">
+      <div className="mb-5 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
@@ -261,12 +261,11 @@ export function SalaryBreakdownView() {
             </div>
             <div>
               <p className="text-sm font-semibold text-navy-800">
-                Upload salary structure
+                Replace from file
               </p>
-              <p className="text-xs text-navy-500 mt-0.5 max-w-xl leading-relaxed">
-                Replace this breakdown with a mock parse from your offer letter
-                or payslip (same engine as the salary page). Verify numbers after
-                upload.
+              <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-navy-500">
+                Mock-parse a PDF or image (same flow as the salary page). Spot-check
+                amounts after upload.
               </p>
             </div>
           </div>
@@ -296,77 +295,103 @@ export function SalaryBreakdownView() {
         </div>
       </div>
 
-      <div className="mb-6 space-y-3">
+      <div
+        className={cn(
+          "mb-6 rounded-xl border px-4 py-2.5 text-[13px] leading-snug",
+          isDocument
+            ? "border-teal-200/60 bg-teal-50/35 text-navy-800"
+            : "border-navy-200/70 bg-navy-50/30 text-navy-700",
+          breakdown.meta?.componentsAdjusted &&
+            "border-l-[3px] border-l-teal-500/35 pl-[13px]"
+        )}
+      >
         {isDocument ? (
-          <div className="rounded-xl border border-teal-200 bg-teal-50/90 px-4 py-3 text-sm text-navy-800">
-            <span className="font-semibold text-teal-800">From your document</span>
-            {breakdown.meta?.documentFileName && (
-              <span className="text-navy-600">
+          <>
+            <span className="font-semibold text-teal-900">Document-based</span>
+            {breakdown.meta?.documentFileName ? (
+              <span className="text-navy-700">
                 {" "}
-                —{" "}
-                <cite className="not-italic font-medium">
+                ·{" "}
+                <cite className="not-italic font-medium text-navy-800">
                   {breakdown.meta.documentFileName}
                 </cite>
               </span>
-            )}
-            . Same tax engine as manual entry; cross-check line items on your
-            original before relying on numbers.
-          </div>
+            ) : null}
+            <span className="text-navy-600">
+              {" "}
+              Verify line items on your original. Same tax engine as manual entry.
+            </span>
+          </>
         ) : (
-          <div className="rounded-xl border border-navy-200 bg-navy-50/80 px-4 py-3 text-sm text-navy-700">
-            <span className="font-semibold text-navy-800">Estimated structure</span>{" "}
-            — typical private-sector style split. Part of CTC is employer-side or
-            accruals,{" "}
-            <strong className="font-semibold text-navy-800">not</strong> monthly
-            bank pay. Tune rows to mirror your offer.
-          </div>
+          <>
+            <span className="font-semibold text-navy-800">Estimated</span>
+            <span className="text-navy-600">
+              {" "}
+              — Typical private-sector split. Employer and accrual slices are{" "}
+              <strong className="font-semibold text-navy-800">not</strong> monthly
+              bank pay.
+            </span>
+          </>
         )}
-        {breakdown.meta?.componentsAdjusted && (
-          <div
+        {breakdown.meta?.componentsAdjusted ? (
+          <span
             className={cn(
-              "rounded-lg border px-3 py-2.5 text-xs leading-relaxed",
-              editBasis === "user_edited_after_parse"
-                ? "border-teal-200 bg-teal-50/80 text-teal-900"
-                : "border-amber-200/90 bg-amber-50/70 text-amber-950"
+              "mt-1.5 block text-[12px] leading-snug",
+              isDocument ? "text-teal-900/90" : "text-navy-600"
             )}
           >
-            <span className="font-semibold">Table drives the model</span>
             {editBasis === "user_edited_after_parse"
-              ? " — Summaries and tax follow your edits; other lines still recompute where you haven’t overridden them."
-              : " — Totals, tax, PF-linked lines, and special allowance refresh from what you enter here."}
-          </div>
-        )}
+              ? "Summaries and tax follow this table; other lines still auto-fill where you haven’t overridden them."
+              : "Summaries and tax follow this table — edit any row to steer the model."}
+          </span>
+        ) : null}
       </div>
 
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-2xl">
-          <SectionHeader
-            title="Salary Breakdown"
-            subtitle="Match components to your offer or payslip. Variable pay stays separate from the monthly in-hand you can plan around. Row tooltips explain each line — guidance only, not tax advice."
-          />
-        </div>
-        <div
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+        <header className="min-w-0 max-w-2xl">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+            <h1 className="text-h1 text-navy-800">Salary Breakdown</h1>
+            <Link
+              href="/salary"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "group -mx-1.5 inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+              )}
+            >
+              <ChevronLeft
+                className="size-3.5 opacity-70 transition-transform group-hover:-translate-x-0.5"
+                strokeWidth={2}
+                aria-hidden
+              />
+              Edit salary inputs
+            </Link>
+          </div>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-navy-500">
+            Tune rows to your offer. Variable pay is kept apart from the monthly
+            figure you plan around. Row tooltips add context — not tax advice.
+          </p>
+        </header>
+        <aside
           className={cn(
-            "rounded-2xl border border-navy-200/50 bg-white p-5 shadow-sm max-w-md lg:mt-4 transition-[background-color,box-shadow] duration-500 ease-out",
-            totalsJustUpdated && "bg-teal-50/25 shadow-md shadow-teal-900/[0.04]"
+            "max-w-sm shrink-0 rounded-xl border border-navy-200/60 bg-white p-4 shadow-sm transition-[background-color,box-shadow] duration-500 ease-out lg:mt-1",
+            totalsJustUpdated && "bg-teal-50/20 shadow-md shadow-teal-900/[0.04]"
           )}
+          aria-label="Take-home snapshot"
         >
-          <div className="flex gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
-              <Sparkles className="size-5" />
+          <div className="flex gap-2.5">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+              <Sparkles className="size-4" strokeWidth={2} />
             </div>
-            <p className="text-sm text-navy-600 leading-relaxed">
-              About{" "}
-              <span className="font-semibold text-navy-800 tabular-nums">
+            <p className="text-[13px] leading-snug text-navy-600">
+              <span className="font-semibold tabular-nums text-navy-800">
                 {breakdown.takeHomePercent}%
               </span>{" "}
-              of stated CTC is modeled as monthly in-hand,{" "}
-              <span className="font-medium text-navy-700">before variable pay</span>
-              . Employer-only CTC and variable lines are called out so the monthly
-              view stays grounded.
+              of stated CTC as est. monthly in-hand,{" "}
+              <span className="font-medium text-navy-700">before variable</span>.
+              Employer-only and variable lines are broken out below.
             </p>
           </div>
-        </div>
+        </aside>
       </div>
 
       <div

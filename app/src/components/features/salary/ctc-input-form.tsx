@@ -157,13 +157,14 @@ export function CtcInputForm() {
       <PageShell narrow className="relative py-10 md:py-14">
         <div className="text-center mb-8">
           <h1 className="text-display text-navy-800 text-3xl md:text-5xl">
-            Salary input
+            Your CTC, two ways
           </h1>
           <p className="mt-4 text-base md:text-lg text-navy-500 max-w-2xl mx-auto leading-relaxed">
-            Enter your CTC for <strong className="font-semibold text-navy-700">estimated</strong>{" "}
-            in-hand and breakup, or upload an offer letter / salary structure for a{" "}
-            <strong className="font-semibold text-navy-700">document-based</strong> pass (mock
-            parse today — verify numbers on the next screen).
+            Enter your CTC for an{" "}
+            <strong className="font-semibold text-navy-700">estimated</strong> in-hand and
+            breakup, or upload an offer or salary structure for a{" "}
+            <strong className="font-semibold text-navy-700">document-assisted</strong> draft.
+            Extracted fields are a starting point—review and adjust on the next screen.
           </p>
         </div>
 
