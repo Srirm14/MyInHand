@@ -169,6 +169,12 @@ CTA hover:       shadow-lg              — Lift effect on primary buttons
 - Unselected: white background, secondary-200 border, secondary-600 text
 - Sub-label below main label (e.g., "Metro", "Urban")
 
+### Compensation CTC block (Salary input + Offer cards)
+- **Primary row:** Large ₹ + Indian-grouped annual total, **INR / Year** pill (teal-50 / teal-700), rounded-xl border, focus ring teal — matches standard CTC input styling.
+- **Mode toggle:** Compact **segmented control** beside or above (Total only | Fixed + variable): `rounded-lg` container, `border-navy-200`, selected tab white + shadow; unselected muted navy text. Keeps the block light, not spreadsheet-like.
+- **Optional split panel:** When Fixed + variable: subtle nested card (`border-navy-100`, `bg-navy-50/40`), two columns on desktop — Fixed (annual) / Variable (annual). Small **uppercase chips**: **Auto** (muted) vs **You edit** (teal tint) to show which side is driving vs following at a glance.
+- **Helper:** One line of calm body-sm / caption (navy-400–500) under the title, e.g. optional split for a better estimate; avoid dense tables or grid lines.
+
 ### Primary Button
 - bg-primary-600, text-white, rounded-full, px-8 py-3
 - Hover: bg-primary-700, shadow-lg

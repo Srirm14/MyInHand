@@ -66,8 +66,18 @@ Signed-in (premium env)
 **Purpose:** Start a breakdown from **manual CTC** (estimated) or **uploaded document** (document-labeled mock parse).
 
 **Modes (tabs):**
-- **Manual CTC:** Full Name, Email, Annual CTC, City Tier, Tax Regime → **estimated** breakdown (`SalaryResultSource.manual_estimated`).
-- **Upload document:** PDF or image (offer letter / salary structure). **Mock parser** (`parse-salary-document.mock.ts`) infers CTC from filename patterns (e.g. `24L`, 6–9 digit number); labels result **`document_parsed`** until a real OCR/API ships.
+- **Manual CTC:** Full Name, Email, **Annual CTC block**, City Tier, Tax Regime → **estimated** breakdown (`SalaryResultSource.manual_estimated`).
+- **Upload document:** PDF or image (offer letter / salary structure). **Mock parser** (`parse-salary-document.mock.ts`) infers CTC from filename patterns (e.g. `24L`, 6–9 digit number); labels result **`document_parsed`** until a real OCR/API ships. Parsed input uses **`compensationMode: total_only`** (no fixed/variable split from mock).
+
+**Annual CTC block (manual only)** — shared component pattern (`compensation-ctc-section.tsx`):
+- **Segmented control:** **Total only** (default) vs **Fixed + variable**.
+- **Total only:** User enters annual CTC only; breakdown uses existing **estimated** component logic (`calculateSalaryBreakdown(annualCTC, …)`).
+- **Fixed + variable:** User enters **Total CTC**, **Fixed (annual)**, **Variable (annual)** with **Total = Fixed + Variable** enforced in the UI (`compensation-split.ts`): changing total+fixed derives variable; total+variable derives fixed; editing fixed or variable derives the other. Chips mark **Auto** vs **You edit** for clarity. Optional helper copy; not spreadsheet-dense.
+- **Validation (Zod, `ctc-input.schema.ts`):** In split mode, fixed and variable must be ≥ 0, neither may exceed total, and **fixed + variable** must equal total (±₹1 rounding). Conflicts surface on the relevant fields.
+- **Store (`SalaryInput`):** Persists `compensationMode`, `fixedAnnual`, `variableAnnual` with manual submit; document path sets split fields to **total_only** / zeros.
+- **Note:** The tax/breakdown **engine** still keys off **`annualCTC`** only; split improves input realism and future UX, not a second payroll model yet.
+
+**History restore:** Older saved salary snapshots without split fields are **coerced** (`coerce-salary-snapshot.ts`) to `total_only` + zeros so the form does not inherit stale compensation state.
 
 **Core outputs:** Navigate to `/salary/breakdown` with store populated; push entry to **persisted** `useHistoryStore` for recents.
 
@@ -76,7 +86,7 @@ Signed-in (premium env)
 - **Last compared offers** — restore offers → offer comparison (`useTieredPremiumLinks`).
 
 **Primary CTA (manual):** "Show estimated breakdown"
-**Validation (Zod):** manual path only — CTC min ₹1,00,000, city tier, regime.
+**Validation (Zod):** manual path — CTC min ₹1,00,000, city tier, regime; split rules as above when **Fixed + variable** is selected.
 
 **Bottom:** same three feature trust cards as before.
 
@@ -220,10 +230,14 @@ Signed-in (premium env)
 **Purpose:** Compare 2–3 offers on in-hand and a simple first-year value score.
 
 **Entry modes (toggle):**
-- **Manual:** Up to three offer cards — company, CTC, tier, regime, joining bonus, ESOP (same engine as salary breakdown).
-- **Upload offers:** Pick 2–3 PDFs/images; **mock parser** (`parse-offer-document.mock.ts`) fills drafts from filename heuristics. User verifies each card. Banner when any row has `documentFileName`.
+- **Manual:** Up to three offer cards — company, **same Annual CTC block as salary input** (Total only vs Fixed + variable, same sync rules), city tier, regime, joining bonus, ESOP. **`OfferDraft`** stores `compensationMode`, `fixedAnnual`, `variableAnnual` per row.
+- **Upload offers:** Pick 2–3 PDFs/images; **mock parser** (`parse-offer-document.mock.ts`) fills drafts from filename heuristics with **`total_only`** split defaults. User verifies each card. Banner when any row has `documentFileName`.
 
-**Core outputs:** Comparison table, winner hints; debounced push to `useHistoryStore` for salary-page **Last compared offers**.
+**Comparison validity:** A row counts toward the table only if company name is set, CTC ≥ ₹1,00,000, and — when **Fixed + variable** is on — **fixed + variable** matches **annual CTC** (same tolerance as Zod). Otherwise the row is excluded and an inline hint may appear on the card.
+
+**Core outputs:** Comparison table uses **`annualCTC`** with `calculateSalaryBreakdown` (same as salary page); winner hints; debounced push to `useHistoryStore` for salary-page **Last compared offers**.
+
+**Restore:** Queued/historical offer snapshots without split fields are **normalized** when the screen loads (`normalizeOfferDraft` in `offer-comparison-view.tsx`) so types stay consistent.
 
 **Edge cases:** Fewer than two valid offers → empty table message; minimum two offers for upload flow.
 

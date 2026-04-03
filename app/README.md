@@ -26,11 +26,11 @@ Restart the dev server after changing `.env.local`.
 ## Routes
 
 - `/` — Marketing landing  
-- `/salary` — Salary input: **manual CTC** or **document upload** (mock parse); **Last tracked salaries / Last compared offers**  
+- `/salary` — Salary input: **manual CTC** (total-only or optional **fixed + variable** split) or **document upload** (mock parse); **Last tracked salaries / Last compared offers**  
 - `/salary/breakdown` — Breakdown KPIs; **editable** monthly components; estimated vs document banners  
 - `/lifestyle` — Lifestyle sliders & surplus gauge  
 - `/premium` — Hub for planning tools  
-- `/premium/offer-comparison` — **Manual** or **upload** 2–3 offer documents (mock parse)  
+- `/premium/offer-comparison` — **Manual** or **upload** 2–3 offers; same CTC split pattern as `/salary` per card (mock parse)  
 - `/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  
 - `/premium/emi-analyzer` — EMI + DTI vs in-hand & lifestyle  
 - `/paywall` — Upgrade / waitlist copy (links into Premium hub)
