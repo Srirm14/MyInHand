@@ -15,6 +15,7 @@ import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { HistoryEntry } from "@/lib/types/history.types";
+import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { cn } from "@/lib/utils";
@@ -58,7 +59,7 @@ function RecentHistorySheet({
   const handleSelect = useCallback(
     (entry: HistoryEntry) => {
       if (entry.kind === "salary") {
-        setInput(entry.snapshot);
+        setInput(coerceSalarySnapshot(entry.snapshot));
         calculateBreakdown();
         router.push("/salary/breakdown");
       } else {

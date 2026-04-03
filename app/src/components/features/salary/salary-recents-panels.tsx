@@ -7,6 +7,7 @@ import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-compariso
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { cn } from "@/lib/utils";
@@ -60,11 +61,13 @@ export function SalaryRecentsPanels() {
                 <button
                   type="button"
                   onClick={() => {
-                    setInput({
-                      ...e.snapshot,
-                      resultSource: e.snapshot.resultSource,
-                      documentFileName: e.snapshot.documentFileName,
-                    });
+                    setInput(
+                      coerceSalarySnapshot({
+                        ...e.snapshot,
+                        resultSource: e.snapshot.resultSource,
+                        documentFileName: e.snapshot.documentFileName,
+                      })
+                    );
                     calculateBreakdown();
                     router.push("/salary/breakdown");
                   }}

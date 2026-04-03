@@ -32,8 +32,8 @@ import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { TaxRegime } from "@/lib/types/salary.types";
-import { formatIndianNumber } from "@/lib/utils/format-currency";
 import { cn } from "@/lib/utils";
+import { CompensationCtcSectionForm } from "@/components/features/salary/compensation-ctc-section";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -64,6 +64,9 @@ export function CtcInputForm() {
       fullName: input.fullName ?? "",
       email: input.email ?? "",
       annualCTC: input.annualCTC || 1_200_000,
+      compensationMode: input.compensationMode ?? "total_only",
+      fixedAnnual: input.fixedAnnual ?? 0,
+      variableAnnual: input.variableAnnual ?? 0,
       cityTier: input.cityTier,
       taxRegime: input.taxRegime,
     },
@@ -74,11 +77,23 @@ export function CtcInputForm() {
       fullName: input.fullName ?? "",
       email: input.email ?? "",
       annualCTC: input.annualCTC || 1_200_000,
+      compensationMode: input.compensationMode ?? "total_only",
+      fixedAnnual: input.fixedAnnual ?? 0,
+      variableAnnual: input.variableAnnual ?? 0,
       cityTier: input.cityTier,
       taxRegime: input.taxRegime,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync store → form when returning to this screen
-  }, [input.fullName, input.email, input.annualCTC, input.cityTier, input.taxRegime]);
+  }, [
+    input.fullName,
+    input.email,
+    input.annualCTC,
+    input.compensationMode,
+    input.fixedAnnual,
+    input.variableAnnual,
+    input.cityTier,
+    input.taxRegime,
+  ]);
 
   const pushSalaryHistory = () => {
     const { input: nextInput, breakdown } = useSalaryStore.getState();
@@ -94,6 +109,11 @@ export function CtcInputForm() {
       fullName: data.fullName,
       email: data.email,
       annualCTC: data.annualCTC,
+      compensationMode: data.compensationMode,
+      fixedAnnual:
+        data.compensationMode === "fixed_variable" ? data.fixedAnnual : 0,
+      variableAnnual:
+        data.compensationMode === "fixed_variable" ? data.variableAnnual : 0,
       cityTier: data.cityTier,
       taxRegime: data.taxRegime,
       resultSource: "manual_estimated",
@@ -250,42 +270,12 @@ export function CtcInputForm() {
               </div>
             </div>
 
-            <div className="mt-8 space-y-2">
-              <Label htmlFor="annualCTC" className="text-navy-800">
-                Annual CTC
-              </Label>
-              <div className="flex items-stretch gap-3 rounded-xl border border-navy-200 bg-white px-4 py-3 focus-within:ring-2 focus-within:ring-teal-200 focus-within:border-teal-400">
-                <span className="flex items-center text-xl font-semibold text-navy-600">
-                  ₹
-                </span>
-                <Controller
-                  name="annualCTC"
-                  control={form.control}
-                  render={({ field }) => (
-                    <input
-                      id="annualCTC"
-                      type="text"
-                      inputMode="numeric"
-                      className="min-w-0 flex-1 border-0 bg-transparent text-2xl font-bold text-navy-800 outline-none md:text-3xl"
-                      value={
-                        field.value ? formatIndianNumber(field.value) : ""
-                      }
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/[^\d]/g, "");
-                        field.onChange(raw ? Number(raw) : 0);
-                      }}
-                    />
-                  )}
-                />
-                <span className="flex items-center rounded-full bg-teal-50 px-3 text-xs font-semibold text-teal-700">
-                  INR / Year
-                </span>
-              </div>
-              {form.formState.errors.annualCTC && (
-                <p className="text-xs text-danger-500">
-                  {form.formState.errors.annualCTC.message}
-                </p>
-              )}
+            <div className="mt-8">
+              <CompensationCtcSectionForm
+                control={form.control}
+                setValue={form.setValue}
+                errors={form.formState.errors}
+              />
             </div>
 
             <div className="mt-8">

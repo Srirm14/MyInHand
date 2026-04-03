@@ -1,11 +1,14 @@
 import type { CityTier } from "@/lib/constants/city-tiers";
-import type { TaxRegime } from "./salary.types";
+import type { CompensationMode, TaxRegime } from "./salary.types";
 
 /** Editable row in the offer comparison tool (also stored in recent history). */
 export interface OfferDraft {
   id: string;
   companyName: string;
   annualCTC: number;
+  compensationMode: CompensationMode;
+  fixedAnnual: number;
+  variableAnnual: number;
   cityTier: CityTier;
   taxRegime: TaxRegime;
   joiningBonus: number;

@@ -15,11 +15,10 @@ import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import { mockParseOfferDocument } from "@/lib/mocks/parse-offer-document.mock";
+import { CompensationCtcSectionControlled } from "@/components/features/salary/compensation-ctc-section";
 import { calculateSalaryBreakdown } from "@/lib/utils/calculate-salary";
-import {
-  formatCurrency,
-  formatIndianNumber,
-} from "@/lib/utils/format-currency";
+import { isSplitBalanced } from "@/lib/utils/compensation-split";
+import { formatCurrency } from "@/lib/utils/format-currency";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -34,10 +33,24 @@ function emptyOffer(id: string): OfferDraft {
     id,
     companyName: "",
     annualCTC: 1_800_000,
+    compensationMode: "total_only",
+    fixedAnnual: 0,
+    variableAnnual: 0,
     cityTier: "tier1",
     taxRegime: "old",
     joiningBonus: 0,
     esopValue: 0,
+  };
+}
+
+function normalizeOfferDraft(raw: OfferDraft): OfferDraft {
+  const base = emptyOffer(raw.id);
+  return {
+    ...base,
+    ...raw,
+    compensationMode: raw.compensationMode ?? base.compensationMode,
+    fixedAnnual: raw.fixedAnnual ?? base.fixedAnnual,
+    variableAnnual: raw.variableAnnual ?? base.variableAnnual,
   };
 }
 
@@ -53,8 +66,9 @@ export function OfferComparisonView() {
     const pending =
       useOfferComparisonRestoreStore.getState().takeRestore();
     if (pending?.length) {
-      if (pending.length >= 2) return pending;
-      return [pending[0], emptyOffer(crypto.randomUUID())];
+      const norm = pending.map(normalizeOfferDraft);
+      if (norm.length >= 2) return norm;
+      return [norm[0], emptyOffer(crypto.randomUUID())];
     }
     return [emptyOffer("a"), emptyOffer("b")];
   });
@@ -62,6 +76,17 @@ export function OfferComparisonView() {
   const comparisons = useMemo(() => {
     return offers.map((o) => {
       if (!o.companyName.trim() || o.annualCTC < 100_000) return null;
+      if (
+        o.compensationMode === "fixed_variable" &&
+        !isSplitBalanced(
+          o.compensationMode,
+          o.annualCTC,
+          o.fixedAnnual,
+          o.variableAnnual
+        )
+      ) {
+        return null;
+      }
       const bd = calculateSalaryBreakdown(
         o.annualCTC,
         o.cityTier,
@@ -308,20 +333,23 @@ export function OfferComparisonView() {
                 className="rounded-xl"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Annual CTC (₹)</Label>
-              <Input
-                inputMode="numeric"
-                value={o.annualCTC ? formatIndianNumber(o.annualCTC) : ""}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/[^\d]/g, "");
-                  update(o.id, {
-                    annualCTC: raw ? Number(raw) : 0,
-                  });
-                }}
-                className="rounded-xl tabular-nums"
-              />
-            </div>
+            <CompensationCtcSectionControlled
+              offer={o}
+              onPatch={(patch) => update(o.id, patch)}
+              compact
+            />
+            {o.compensationMode === "fixed_variable" &&
+              !isSplitBalanced(
+                o.compensationMode,
+                o.annualCTC,
+                o.fixedAnnual,
+                o.variableAnnual
+              ) && (
+                <p className="text-xs text-danger-600 leading-snug">
+                  Fixed + variable should match total CTC. Adjust total or one
+                  component — values sync as you type.
+                </p>
+              )}
             <div>
               <p className="text-sm font-semibold text-navy-800 mb-2">City tier</p>
               <SegmentedSelector

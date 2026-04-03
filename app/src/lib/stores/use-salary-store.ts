@@ -24,6 +24,9 @@ const defaultInput: SalaryInput = {
   fullName: "",
   email: "",
   annualCTC: 1_200_000,
+  compensationMode: "total_only",
+  fixedAnnual: 0,
+  variableAnnual: 0,
   cityTier: "tier1" as CityTier,
   taxRegime: "old" as TaxRegime,
 };
