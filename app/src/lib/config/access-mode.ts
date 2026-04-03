@@ -10,14 +10,16 @@ export type AccessMode = "default" | "premium";
 const raw = process.env.NEXT_PUBLIC_ACCESS_MODE?.toLowerCase().trim();
 const isDev = process.env.NODE_ENV === "development";
 
-export const ACCESS_MODE: AccessMode =
-  raw === "premium"
-    ? "premium"
-    : raw === "default"
-      ? "default"
-      : isDev
-        ? "premium"
-        : "default";
+/** Use in middleware / server — same rules as client `PREMIUM_UNLOCKED`. */
+export function getPremiumUnlockedFromEnv(): boolean {
+  if (raw === "premium") return true;
+  if (raw === "default") return false;
+  return isDev;
+}
+
+export const ACCESS_MODE: AccessMode = getPremiumUnlockedFromEnv()
+  ? "premium"
+  : "default";
 
 export const PREMIUM_UNLOCKED = ACCESS_MODE === "premium";
 

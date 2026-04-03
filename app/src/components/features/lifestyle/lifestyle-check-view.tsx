@@ -18,10 +18,12 @@ import { SliderCard } from "@/components/shared/slider-card";
 import { buttonVariants } from "@/components/ui/button";
 import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
-import { premiumHubHref, premiumToolHref } from "@/lib/config/access-mode";
+import { SaveProgressCta } from "@/components/shared/save-progress-cta";
+import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { cn } from "@/lib/utils";
 
 export function LifestyleCheckView() {
+  const { toolHref, hubHref, premium } = useTieredPremiumLinks();
   const breakdown = useSalaryStore((s) => s.breakdown);
   const monthlyInHand = breakdown?.monthlyInHand ?? 0;
   const hasBreakdown = Boolean(breakdown);
@@ -120,7 +122,7 @@ export function LifestyleCheckView() {
                 Upgrade to Premium for deep predictive analytics.
               </p>
               <Link
-                href={premiumToolHref("forecast")}
+                href={toolHref("forecast")}
                 className={cn(
                   buttonVariants({ variant: "secondary" }),
                   "rounded-full bg-white text-teal-700 hover:bg-teal-50 font-semibold shrink-0"
@@ -204,20 +206,24 @@ export function LifestyleCheckView() {
                 </p>
               </div>
             </div>
+
+            <SaveProgressCta returnTo="/lifestyle" className="mt-2" />
           </aside>
         </div>
       </PageShell>
 
-      <Link
-        href={premiumHubHref()}
-        className={cn(
-          buttonVariants({ size: "icon" }),
-          "fixed bottom-8 right-6 z-40 size-12 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 md:size-14"
-        )}
-        aria-label="Open Premium hub"
-      >
-        <LineChart className="size-5 md:size-6" />
-      </Link>
+      {premium && (
+        <Link
+          href={hubHref()}
+          className={cn(
+            buttonVariants({ size: "icon" }),
+            "fixed bottom-8 right-6 z-40 size-12 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 md:size-14"
+          )}
+          aria-label="Open Premium hub"
+        >
+          <LineChart className="size-5 md:size-6" />
+        </Link>
+      )}
     </div>
   );
 }

@@ -11,10 +11,12 @@ import {
 import { PageShell } from "@/components/layout/page-shell";
 import { FeatureCard } from "@/components/shared/feature-card";
 import { buttonVariants } from "@/components/ui/button";
-import { premiumToolHref } from "@/lib/config/access-mode";
+import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { cn } from "@/lib/utils";
 
 export function MarketingLanding() {
+  const { toolHref } = useTieredPremiumLinks();
+
   return (
     <div className="relative overflow-hidden">
       <div
@@ -99,21 +101,21 @@ export function MarketingLanding() {
               title="Offer comparison"
               description="Compare two or three offers with consistent assumptions — premium feature."
               cta="Open tool"
-              href={premiumToolHref("offers")}
+              href={toolHref("offers")}
             />
             <FeatureCard
               icon={TrendingUp}
               title="Wealth forecast"
               description="Project where today&apos;s savings could land in 5, 10, or 20 years."
               cta="Open tool"
-              href={premiumToolHref("forecast")}
+              href={toolHref("forecast")}
             />
             <FeatureCard
               icon={PiggyBank}
               title="EMI analyzer"
               description="Stress-test loans against your real in-hand after statutory deductions."
               cta="Open tool"
-              href={premiumToolHref("emi")}
+              href={toolHref("emi")}
             />
           </div>
         </section>

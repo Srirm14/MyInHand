@@ -72,6 +72,7 @@ src/
 │   │   ├── use-premium-store.ts
 │   │   └── use-auth-store.ts     # Persisted demo auth (replace with real API)
 │   ├── hooks/                    # Custom React hooks
+│   │   ├── use-tiered-premium-links.ts
 │   │   ├── use-salary-calculation.ts
 │   │   ├── use-tax-calculation.ts
 │   │   └── use-currency-format.ts
@@ -145,19 +146,19 @@ Zod schema (lib/schemas/)
 |-------|--------|--------|
 | `/` | Landing Page | Public |
 | `/login`, `/signup`, `/forgot-password` | Auth | Public |
-| `/salary` | CTC Input | **Signed-in** (middleware + `fl_session_email`) |
-| `/salary/breakdown` | Free Salary Breakdown | **Signed-in** |
-| `/lifestyle` | Basic Lifestyle Check | **Signed-in** |
+| `/salary` | CTC Input | Public (anonymous OK) |
+| `/salary/breakdown` | Free Salary Breakdown | Public |
+| `/lifestyle` | Basic Lifestyle Check | Public |
 | `/profile` | Profile | **Signed-in** |
 | `/paywall` | Premium Upgrade | Public |
-| `/premium` | Premium Dashboard | **Signed-in** + Premium |
+| `/premium` | Premium Dashboard | **Signed-in** + env `premium` tier |
 | `/premium/lifestyle-planner` | Affordability Planner | **Signed-in** + Premium |
 | `/premium/wealth-forecast` | Wealth Forecast | **Signed-in** + Premium |
 | `/premium/offer-comparison` | Offer Comparison | **Signed-in** + Premium |
 | `/premium/offer-score` | Side-by-Side Score | **Signed-in** + Premium |
 | `/premium/emi-analyzer` | EMI Analyzer | **Signed-in** + Premium |
 
-`middleware.ts` (Next root under `app/`) redirects unauthenticated users to `/login?from=…`. Demo auth is persisted in `use-auth-store` + a non-HttpOnly session cookie for the gate; replace with a real auth API for production.
+`middleware.ts` gates **`/profile`** (session) and **`/premium/*`** (session + env premium). Free salary/lifestyle routes stay public. Demo auth uses `use-auth-store` + `fl_session_email` cookie; replace with a real auth API for production.
 
 ### Mock-First Approach
 

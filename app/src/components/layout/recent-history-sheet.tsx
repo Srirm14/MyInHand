@@ -10,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { premiumToolHref } from "@/lib/config/access-mode";
+import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
@@ -47,6 +47,7 @@ function RecentHistorySheet({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const { toolHref } = useTieredPremiumLinks();
   const entries = useHistoryStore((s) => s.entries);
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
@@ -62,7 +63,7 @@ function RecentHistorySheet({
         router.push("/salary/breakdown");
       } else {
         queueOfferRestore(entry.offersSnapshot);
-        router.push(premiumToolHref("offers"));
+        router.push(toolHref("offers"));
       }
       onOpenChange(false);
     },
@@ -72,6 +73,7 @@ function RecentHistorySheet({
       queueOfferRestore,
       router,
       setInput,
+      toolHref,
     ]
   );
 
@@ -87,8 +89,7 @@ function RecentHistorySheet({
             Recent activity
           </SheetTitle>
           <SheetDescription className="text-xs text-navy-500">
-            Quick return to recent salary runs and offer comparisons. Stays on
-            this session only.
+            Your last five salary runs and offer comparisons on this device.
           </SheetDescription>
         </SheetHeader>
 

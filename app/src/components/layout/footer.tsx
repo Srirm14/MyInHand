@@ -1,12 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Shield, Award, Lock } from "lucide-react";
-import { premiumToolHref } from "@/lib/config/access-mode";
-
-const productLinks = [
-  { href: "/salary", label: "Calculator" },
-  { href: premiumToolHref("forecast"), label: "Forecast" },
-  { href: premiumToolHref("offers"), label: "Compare" },
-];
+import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 
 const legalLinks = [
   { href: "#", label: "Privacy" },
@@ -15,6 +11,14 @@ const legalLinks = [
 ];
 
 export function Footer() {
+  const { toolHref } = useTieredPremiumLinks();
+
+  const productLinks = [
+    { href: "/salary", label: "Calculator" },
+    { href: toolHref("forecast"), label: "Forecast" },
+    { href: toolHref("offers"), label: "Compare" },
+  ];
+
   return (
     <footer className="border-t border-navy-200/60 bg-white">
       <div className="mx-auto max-w-7xl px-6 py-12">

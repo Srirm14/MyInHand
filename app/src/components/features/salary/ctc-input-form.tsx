@@ -26,11 +26,12 @@ import {
 } from "@/components/ui/tooltip";
 import { CITY_TIERS } from "@/lib/constants/city-tiers";
 import { ctcInputSchema, type CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
+import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { TaxRegime } from "@/lib/types/salary.types";
 import { formatIndianNumber } from "@/lib/utils/format-currency";
-import { premiumHubHref } from "@/lib/config/access-mode";
 import { cn } from "@/lib/utils";
 
 const tierOptions = CITY_TIERS.map((t) => ({
@@ -41,6 +42,7 @@ const tierOptions = CITY_TIERS.map((t) => ({
 
 export function CtcInputForm() {
   const router = useRouter();
+  const { premium, hubHref } = useTieredPremiumLinks();
   const input = useSalaryStore((s) => s.input);
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
@@ -77,7 +79,7 @@ export function CtcInputForm() {
     });
     calculateBreakdown();
     const { input: nextInput, breakdown } = useSalaryStore.getState();
-    if (breakdown) {
+    if (breakdown && useAuthStore.getState().user) {
       useHistoryStore
         .getState()
         .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);
@@ -256,16 +258,18 @@ export function CtcInputForm() {
         </div>
       </PageShell>
 
-      <Link
-        href={premiumHubHref()}
-        className={cn(
-          buttonVariants({ size: "icon" }),
-          "fixed bottom-8 right-6 z-40 size-12 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 md:size-14"
-        )}
-        aria-label="Open Premium hub"
-      >
-        <LineChart className="size-5 md:size-6" />
-      </Link>
+      {premium && (
+        <Link
+          href={hubHref()}
+          className={cn(
+            buttonVariants({ size: "icon" }),
+            "fixed bottom-8 right-6 z-40 size-12 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 md:size-14"
+          )}
+          aria-label="Open Premium hub"
+        >
+          <LineChart className="size-5 md:size-6" />
+        </Link>
+      )}
     </div>
   );
 }

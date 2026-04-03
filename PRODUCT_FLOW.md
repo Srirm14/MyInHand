@@ -1,26 +1,39 @@
 # PRODUCT_FLOW.md — The Fluid Ledger
 
-## Journey Overview
+## Journey Overview (tiered)
+
+### Logged out — base product only
+
+- **Header:** brand, **Salary** only (no Offers / Forecast / EMI, no Premium chip, no History). **Log in** / **Sign up** on the right.
+- **Flow:** Landing → CTC → free breakdown → lifestyle check → surplus/deficit.
+- **Save nudge:** After breakdown and on lifestyle, **Save your activity** card → `login?from=…` / `signup?from=…`.
+- **Premium CTAs** (in copy, footer, feature cards): resolve to **sign-in first**, then paywall or tool depending on tier (`useTieredPremiumLinks`).
+- **History:** not available (no navbar control; salary runs are not pushed to History until signed in).
+
+### Logged in — free tier
+
+- **Header:** **Salary** only + **History** (right sheet, last 5 items) + **Profile**. No Premium crown, no deep premium nav links.
+- **Flow:** same free salary + lifestyle path; History records salary submissions from CTC submit.
+- **Premium intent:** links go to **`/paywall`** (and deep `?tool=` where relevant).
+
+### Logged in — premium tier (`NEXT_PUBLIC_ACCESS_MODE=premium` or dev default)
+
+- **Header:** **Salary** + **Offers** / **Forecast** / **EMI** + **Premium** (teal pill, **crown** icon) + **History** + **Profile**.
+- **Flow:** paywall optional as marketing; **`/premium/*`** routes allowed (middleware: session + env premium).
+- **FAB** (CTC / lifestyle): quick jump to Premium hub for this tier only.
 
 ```
-Landing Page
-  → CTC Input (City Tier + Tax Regime)
-    → Free Salary Breakdown (In-hand, Tax, PF, Deductions)
-      → "Want more insights?"
-        ├── Free Path:
-        │     → Basic Lifestyle Check (Rent / Food / Transport)
-        │       → Surplus / Deficit Indicator
-        │         → Upgrade Hook
-        │
-        └── Premium Path:
-              → Premium Paywall
-                → Premium Dashboard
-                  ├── Lifestyle Affordability Planner
-                  ├── Detailed Salary Components
-                  ├── Wealth Forecast (5/10/20yr)
-                  ├── Offer Comparison (upload 2-3 offers)
-                  ├── Side-by-Side Offer Score
-                  └── EMI Analyzer
+Anonymous
+  Landing → Salary → Breakdown → Lifestyle → Surplus/Deficit
+    └→ (optional) Log in / Sign up to save & History
+
+Signed-in (free env)
+  Same core flow + History + Profile
+    └→ Paywall for upgrade
+
+Signed-in (premium env)
+  Above + header deep links + Premium hub
+    → Dashboard → Offer comparison, Wealth forecast, EMI analyzer, …
 ```
 
 ---

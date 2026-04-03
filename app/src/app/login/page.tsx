@@ -10,6 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { setSessionEmailCookie } from "@/lib/auth/session-cookie";
+import {
+  DEMO_LOGIN_EMAIL,
+  DEMO_LOGIN_PASSWORD,
+} from "@/lib/mocks/auth.demo";
 import { loginSchema, type LoginFormData } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 
@@ -118,6 +122,11 @@ function LoginForm() {
         >
           Sign in
         </Button>
+        {process.env.NODE_ENV === "development" && (
+          <p className="text-center text-xs text-navy-400 pt-2">
+            Demo: {DEMO_LOGIN_EMAIL} / {DEMO_LOGIN_PASSWORD}
+          </p>
+        )}
       </form>
     </AuthPageShell>
   );

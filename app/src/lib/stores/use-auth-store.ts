@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { clearSessionCookie, setSessionEmailCookie } from "@/lib/auth/session-cookie";
+import { getDemoSeedAccounts } from "@/lib/mocks/auth.demo";
 import type { LocalAccountRecord, UserProfile } from "@/lib/types/user.types";
 
 interface AuthState {
@@ -31,7 +32,7 @@ export const useAuthStore = create<AuthState>()(
       login: (email, password) => {
         const key = normalizeEmail(email);
         const row = get().accounts[key];
-        if (!row || row.password !== password) {
+        if (row?.password !== password) {
           return { ok: false, error: "Invalid email or password." };
         }
         set({ user: { ...row.profile, email: row.profile.email } });
@@ -92,6 +93,17 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "fluid-ledger-auth",
       partialize: (s) => ({ accounts: s.accounts, user: s.user }),
+      merge: (persistedState, currentState) => {
+        const p = persistedState as Partial<Pick<AuthState, "user" | "accounts">> | undefined;
+        return {
+          ...currentState,
+          user: p?.user ?? currentState.user,
+          accounts: {
+            ...getDemoSeedAccounts(),
+            ...p?.accounts,
+          },
+        };
+      },
     }
   )
 );

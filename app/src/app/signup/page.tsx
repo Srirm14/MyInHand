@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AuthPageShell } from "@/components/auth/auth-page-shell";
@@ -13,8 +13,10 @@ import { setSessionEmailCookie } from "@/lib/auth/session-cookie";
 import { signupSchema, type SignupFormData } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get("from") || "/salary";
   const signup = useAuthStore((s) => s.signup);
   const [hydrated, setHydrated] = useState(false);
 
@@ -34,9 +36,14 @@ export default function SignupPage() {
     const user = useAuthStore.getState().user;
     if (user?.email) {
       setSessionEmailCookie(user.email);
-      router.replace("/salary");
+      router.replace(from.startsWith("/") ? from : "/salary");
     }
-  }, [hydrated, router]);
+  }, [hydrated, from, router]);
+
+  const loginHref =
+    from && from !== "/salary"
+      ? `/login?from=${encodeURIComponent(from)}`
+      : "/login";
 
   const onSubmit = (data: SignupFormData) => {
     const result = signup(data.email, data.password, data.displayName);
@@ -44,7 +51,7 @@ export default function SignupPage() {
       form.setError("root", { message: result.error });
       return;
     }
-    router.replace("/salary");
+    router.replace(from.startsWith("/") ? from : "/salary");
     router.refresh();
   };
 
@@ -53,7 +60,7 @@ export default function SignupPage() {
       footer={
         <>
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-teal-600 hover:underline">
+          <Link href={loginHref} className="font-semibold text-teal-600 hover:underline">
             Sign in
           </Link>
         </>
@@ -125,5 +132,27 @@ export default function SignupPage() {
         </Button>
       </form>
     </AuthPageShell>
+  );
+}
+
+function SignupFallback() {
+  return (
+    <AuthPageShell>
+      <div className="h-8 w-48 mx-auto rounded-lg bg-navy-100 animate-pulse mb-8" />
+      <div className="space-y-5">
+        <div className="h-10 w-full rounded-xl bg-navy-100 animate-pulse" />
+        <div className="h-10 w-full rounded-xl bg-navy-100 animate-pulse" />
+        <div className="h-10 w-full rounded-xl bg-navy-100 animate-pulse" />
+        <div className="h-11 w-full rounded-full bg-navy-100 animate-pulse" />
+      </div>
+    </AuthPageShell>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<SignupFallback />}>
+      <SignupForm />
+    </Suspense>
   );
 }

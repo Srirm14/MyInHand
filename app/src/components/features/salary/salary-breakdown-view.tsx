@@ -26,7 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { premiumToolHref } from "@/lib/config/access-mode";
+import { SaveProgressCta } from "@/components/shared/save-progress-cta";
+import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { SalaryComponent } from "@/lib/types/salary.types";
 import { formatCurrency } from "@/lib/utils/format-currency";
@@ -34,6 +35,7 @@ import { cn } from "@/lib/utils";
 
 export function SalaryBreakdownView() {
   const router = useRouter();
+  const { toolHref } = useTieredPremiumLinks();
   const input = useSalaryStore((s) => s.input);
   const breakdown = useSalaryStore((s) => s.breakdown);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
@@ -174,7 +176,7 @@ export function SalaryBreakdownView() {
             </div>
           </div>
           <Link
-            href={premiumToolHref("forecast")}
+            href={toolHref("forecast")}
             className={cn(
               buttonVariants({ variant: "outline" }),
               "rounded-full border-teal-600 text-teal-700 hover:bg-teal-50 shrink-0"
@@ -234,13 +236,15 @@ export function SalaryBreakdownView() {
             in 80CCD(1B).
           </p>
           <Link
-            href={premiumToolHref("forecast")}
+            href={toolHref("forecast")}
             className="mt-4 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700"
           >
             Explore scenario →
           </Link>
         </div>
       </div>
+
+      <SaveProgressCta returnTo="/salary/breakdown" className="mt-12" />
     </PageShell>
   );
 }

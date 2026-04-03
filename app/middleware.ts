@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getPremiumUnlockedFromEnv } from "@/lib/config/access-mode";
 
 const SESSION_COOKIE = "fl_session_email";
 
@@ -11,10 +12,12 @@ const PUBLIC_EXACT = new Set([
   "/paywall",
 ]);
 
-function isProtected(pathname: string) {
-  if (PUBLIC_EXACT.has(pathname)) return false;
-  const prefixes = ["/salary", "/lifestyle", "/premium", "/profile"];
-  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+function isPremiumPath(pathname: string) {
+  return pathname === "/premium" || pathname.startsWith("/premium/");
+}
+
+function isProtectedProfile(pathname: string) {
+  return pathname === "/profile" || pathname.startsWith("/profile/");
 }
 
 export function middleware(request: NextRequest) {
@@ -29,8 +32,22 @@ export function middleware(request: NextRequest) {
   }
 
   const session = request.cookies.get(SESSION_COOKIE)?.value;
+  const premiumEnv = getPremiumUnlockedFromEnv();
 
-  if (isProtected(pathname) && !session) {
+  if (isPremiumPath(pathname)) {
+    if (!session) {
+      const login = new URL("/login", request.url);
+      login.searchParams.set("from", pathname);
+      return NextResponse.redirect(login);
+    }
+    if (!premiumEnv) {
+      const paywall = new URL("/paywall", request.url);
+      paywall.searchParams.set("from", "premium");
+      return NextResponse.redirect(paywall);
+    }
+  }
+
+  if (isProtectedProfile(pathname) && !session) {
     const login = new URL("/login", request.url);
     login.searchParams.set("from", pathname);
     return NextResponse.redirect(login);
@@ -38,6 +55,10 @@ export function middleware(request: NextRequest) {
 
   if (session && (pathname === "/login" || pathname === "/signup")) {
     return NextResponse.redirect(new URL("/salary", request.url));
+  }
+
+  if (PUBLIC_EXACT.has(pathname)) {
+    return NextResponse.next();
   }
 
   return NextResponse.next();
