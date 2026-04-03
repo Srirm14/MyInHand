@@ -46,7 +46,7 @@ src/
 │
 ├── components/
 │   ├── ui/                       # shadcn/ui primitives (button, input, card, etc.)
-│   ├── features/                 # landing, salary (…), lifestyle (monthly-plan-view), premium
+│   ├── features/                 # landing, salary (breakdown: component table + planning handoff UI), lifestyle (monthly-plan-view), premium
 │   ├── shared/                   # Composed reusable components
 │   │   ├── stat-card.tsx
 │   │   ├── feature-card.tsx

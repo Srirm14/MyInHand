@@ -94,9 +94,13 @@ Signed-in (premium env)
 
 ### 3. Salary breakdown (`/salary/breakdown`)
 
-**Purpose:** Show **fixed vs variable** pay clearly; **flexible allowances** (add / rename / remove optional rows); **dual summaries** (monthly in-hand excluding variable vs package including variable); distinguish **estimated** vs **document-based** copy; explain CTC vs cash truthfully.
+**Purpose:** Show **fixed vs variable** pay clearly; **flexible allowances** (add / rename / remove optional rows); **dual summaries** (monthly in-hand excluding variable vs package including variable); distinguish **estimated** vs **document-based** copy; explain CTC vs cash truthfully. Surface **next planning steps** (Monthly plan, EMI planner, Wealth forecast) without leaving the salary journey.
 
 **Core inputs:** `useSalaryStore` (input + breakdown).
+
+**Page chrome:**
+- **Back:** Ghost link **Back to salary inputs** → `/salary` (first element in shell, consistent with Monthly plan / Wealth forecast).
+- **Replace from file** card (mock parse) + **estimated / document** banner (unchanged).
 
 **Banners:**
 - **Estimated breakdown** — manual path; CTC ≠ in-hand; employer lines are illustrative (see `SALARY_COMPONENTS.md`).
@@ -123,24 +127,30 @@ Signed-in (premium env)
 
 **Breakdown page UX:** Upload salary structure at top (same mock parser as `/salary`); debounced numeric commits (~140ms) + blur flush; **+** add-row controls; **remove** on `removable` rows.
 
-**Primary CTA:** "Open monthly plan" / "View wealth forecast"
-**Secondary CTA:** "Download PDF" (placeholder)
+**Component breakup (white card):**
+- **Header row:** Title **Component breakup**, short instructional body copy, **Download PDF** (outline, top-right on desktop).
+- **Quick links** (compact pill buttons under copy, icons from Lucide): **Monthly plan** → `/lifestyle`; **EMI planner** → `useTieredPremiumLinks` `emi`; **Wealth forecast** → `useTieredPremiumLinks` `forecast`.
+- **Table** + **Cash path (this model)** strip (unchanged).
 
-**Key UI elements:** stat cards, grouped editable table + tooltips, net summary, benchmarks / scenario cards (no hardcoded savings rupees in copy), `SaveProgressCta` for anonymous users.
+**Below the main breakup card (same page):**
+1. **Allocation benchmarks** — narrow card (`max-w-lg`); illustrative 50/30/20-style bars; copy points users to planning cards next.
+2. **Plan from this breakdown** — three **compact destination cards** (full title + one-line description + CTA arrow): same three flows as quick links (monthly plan, EMI, forecast). Reinforces hierarchy: surplus → debt → long-term view.
 
-**Upgrade hooks:** Tax / forecast links use `useTieredPremiumLinks`.
+**Key UI elements:** Stat KPI row, grouped editable table + tooltips, annual picture strip, cash path, benchmarks + planning cards, `SaveProgressCta` for anonymous users.
+
+**Tiered destinations:** EMI and Wealth forecast quick links / cards use **`useTieredPremiumLinks`** (premium route vs paywall vs login).
 
 ---
 
-### 4. "Want More Insights?" (Decision Point)
+### 4. Breakdown → planning handoff (in-page)
 
-**Purpose:** Fork the user into free monthly plan or premium upgrade.
+**Purpose:** After the user understands components and in-hand, nudge **Monthly plan**, **EMI & debt planner**, and **Wealth forecast** without a separate marketing fork.
 
-**Implementation:** Inline section at bottom of Salary Breakdown page (not a separate route).
+**Implementation:** Quick pills inside the Component breakup card + **Plan from this breakdown** cards after **Allocation benchmarks** on `/salary/breakdown` (not a separate route).
 
-**Options:**
-- "Open monthly plan" → `/lifestyle` (free)
-- "Unlock Premium Insights" → `/paywall` (premium)
+**Destinations:**
+- Monthly plan → `/lifestyle` (free).
+- EMI planner / Wealth forecast → tiered (`/premium/…` or paywall / login).
 
 ---
 
@@ -265,10 +275,14 @@ Signed-in (premium env)
 
 ---
 
-### 14. EMI Analyzer (`/premium/emi-analyzer`)
+### 14. EMI & debt planner (`/premium/emi-analyzer`)
 
-**Purpose:** Understand how EMIs (home loan, car, personal) impact disposable income.
+**Purpose:** Scenario-style **fixed-rate EMI** modelling for **one or two loans** vs **estimated in-hand** and **Monthly plan** living expenses (`useLifestyleStore`); debt-to-income and post-EMI buffer.
 
-**Core inputs:** Loan amount, tenure, interest rate, existing EMIs.
-**Core outputs:** Post-EMI disposable income, debt-to-income ratio, affordability verdict.
-**Edge cases:** Multiple EMIs stacking, EMI exceeding surplus (red warning).
+**Core inputs:** Principal (`InrMoneyInput`), rate and tenure **sliders** per loan; optional **second loan** via **Add another loan** (not a bare checkbox). Loan-type **chips** (Home / Car / Personal / Education) are labels only.
+
+**Core outputs:** Per-loan EMI + lifetime interest + total repaid; **combined obligation** card; **affordability** (in-hand, after EMIs, DTI, buffer after Monthly plan); **advisory panel** (state + next-step links or bullets).
+
+**UX:** Back to breakdown; two-column layout on large screens (scenario builder left, sticky decision column right).
+
+**Edge cases:** EMI > in-hand; high DTI; buffer negative after Monthly plan; no salary data (neutral advisory).

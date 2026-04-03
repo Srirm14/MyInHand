@@ -12,6 +12,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  ArrowRight,
   Banknote,
   CalendarDays,
   ChevronLeft,
@@ -22,6 +23,7 @@ import {
   Sparkles,
   Trash2,
   LineChart,
+  Scale,
   TrendingUp,
   Upload,
 } from "lucide-react";
@@ -47,6 +49,7 @@ import { SaveProgressCta } from "@/components/shared/save-progress-cta";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
+import type { LucideIcon } from "lucide-react";
 import type {
   SalaryBreakdownSection,
   SalaryComponent,
@@ -492,58 +495,60 @@ export function SalaryBreakdownView() {
       </div>
 
       <div className="mt-10 rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm">
-        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
           <div className="min-w-0 flex-1 max-w-2xl">
             <h2 className="text-h3 text-navy-800">Component breakup</h2>
-            <p className="text-xs text-navy-500 mt-1.5 max-w-2xl leading-relaxed">
-              Blurred amounts show ₹ with Indian grouping and paise. Focus to type
-              plain digits. Use + beside Allowances or Variable pay to add a row;
-              remove appears lightly on rows that allow it. Special allowance fills
-              the gap to your stated CTC unless you lock your own figure.
+            <p className="mt-2 text-sm text-navy-500 leading-relaxed max-w-xl">
+              Earnings, deductions, and employer lines—edit to match your payslip.
+              Focus a cell to type digits; use + under Allowances or Variable pay to
+              add rows. Special allowance can bridge to your stated CTC until you
+              set your own figure.
             </p>
-          </div>
-          <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:w-auto lg:shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full rounded-full border-navy-200 sm:w-auto"
-            >
-              Download PDF
-            </Button>
-            <div className="flex min-w-0 w-full shrink-0 flex-nowrap gap-2 sm:w-auto sm:justify-end">
+            <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 href="/lifestyle"
                 className={cn(
-                  buttonVariants({ variant: "default" }),
-                  "inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full bg-teal-600 hover:bg-teal-700 whitespace-nowrap sm:min-h-9 sm:flex-initial"
+                  buttonVariants({ variant: "outline" }),
+                  "h-8 gap-1.5 cursor-pointer rounded-full border-navy-200/90 bg-white px-3 text-xs font-semibold text-teal-700 hover:border-teal-200 hover:bg-teal-50"
                 )}
               >
-                <CalendarDays
-                  className="size-4 shrink-0"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                Open monthly plan
+                <CalendarDays className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
+                Monthly plan
+              </Link>
+              <Link
+                href={toolHref("emi")}
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "h-8 gap-1.5 cursor-pointer rounded-full border-navy-200/90 bg-white px-3 text-xs font-semibold text-teal-700 hover:border-teal-200 hover:bg-teal-50"
+                )}
+              >
+                <Scale className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
+                EMI planner
               </Link>
               <Link
                 href={toolHref("forecast")}
                 className={cn(
                   buttonVariants({ variant: "outline" }),
-                  "inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-full border-teal-600 text-teal-700 hover:bg-teal-50 whitespace-nowrap sm:min-h-9 sm:flex-initial"
+                  "h-8 gap-1.5 cursor-pointer rounded-full border-navy-200/90 bg-white px-3 text-xs font-semibold text-teal-700 hover:border-teal-200 hover:bg-teal-50"
                 )}
               >
-                <LineChart
-                  className="size-4 shrink-0"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                View wealth forecast
+                <LineChart className="size-3.5 shrink-0" strokeWidth={2} aria-hidden />
+                Wealth forecast
               </Link>
             </div>
           </div>
+          <div className="shrink-0 lg:pt-1">
+            <Button
+              type="button"
+              variant="outline"
+              className="h-9 w-full rounded-full border-navy-200 px-5 sm:w-auto"
+            >
+              Download PDF
+            </Button>
+          </div>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
+        <div className="mt-8 overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
           <Table className="text-[13px] leading-snug">
             <TableHeader>
               <TableRow className="border-b border-navy-200/70 bg-navy-50/50 hover:bg-navy-50/50">
@@ -750,92 +755,111 @@ export function SalaryBreakdownView() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-4 rounded-xl border border-navy-100 bg-navy-50/50 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-full bg-teal-100 text-teal-700">
-              <LineChart className="size-5" strokeWidth={2} aria-hidden />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-navy-800">
-                Wealth forecast from this breakdown
-              </p>
-              <p className="text-xs text-navy-500">
-                Project how in-hand pay—and your monthly plan—translate into
-                net worth over time.
-              </p>
-            </div>
-          </div>
-          <Link
-            href={toolHref("forecast")}
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "rounded-full border-teal-600 text-teal-700 hover:bg-teal-50 shrink-0"
-            )}
-          >
-            View wealth forecast
-          </Link>
-        </div>
       </div>
 
-      <div className="mt-12 grid gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl bg-teal-600 p-6 text-white shadow-md">
-          <h3 className="text-h3 text-white mb-2">Check your surplus.</h3>
-          <p className="text-sm text-teal-50/90 leading-relaxed mb-6">
-            Add rent, food, transport, and more to see how much room you have
-            after fixed costs each month.
-          </p>
-          <Link
-            href="/lifestyle"
-            className={cn(
-              buttonVariants({ variant: "secondary" }),
-              "rounded-full bg-white text-teal-700 hover:bg-teal-50 font-semibold"
-            )}
-          >
-            Open monthly plan
-          </Link>
-        </div>
-
-        <div className="rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm">
-          <h3 className="text-h3 text-navy-800 mb-4">Allocation benchmarks</h3>
-          <div className="space-y-5">
-            <BenchmarkBar
-              label="Essential Needs"
-              fillPercent={48}
-              recommended="50% Recommended"
-            />
-            <BenchmarkBar
-              label="Wants & extras"
-              fillPercent={32}
-              recommended="30% Recommended"
-            />
-            <BenchmarkBar
-              label="Savings & Debt"
-              fillPercent={20}
-              recommended="20% Recommended"
-            />
+      <div className="mt-12 space-y-8">
+        <div className="max-w-lg">
+          <div className="rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm">
+            <h3 className="text-h3 text-navy-800 mb-1">Allocation benchmarks</h3>
+            <p className="text-xs text-navy-500 mb-5 leading-relaxed">
+              Illustrative 50/30/20-style split for sense-checking. For real
+              numbers, use the planning cards below.
+            </p>
+            <div className="space-y-5">
+              <BenchmarkBar
+                label="Essential Needs"
+                fillPercent={48}
+                recommended="50% Recommended"
+              />
+              <BenchmarkBar
+                label="Wants & extras"
+                fillPercent={32}
+                recommended="30% Recommended"
+              />
+              <BenchmarkBar
+                label="Savings & Debt"
+                fillPercent={20}
+                recommended="20% Recommended"
+              />
+            </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mb-4">
-            <TrendingUp className="size-6" />
-          </div>
-          <p className="text-h3 text-navy-800 mb-2">Explore scenarios</p>
-          <p className="mt-2 text-sm text-navy-500 leading-relaxed">
-            Compare regimes, savings, and growth assumptions in the wealth
-            forecast — numbers here are illustrative until you tune inputs.
+        <div className="max-w-5xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-navy-400">
+            Plan from this breakdown
           </p>
-          <Link
-            href={toolHref("forecast")}
-            className="mt-4 inline-block text-sm font-semibold text-teal-600 hover:text-teal-700"
-          >
-            Open forecast →
-          </Link>
+          <p className="mt-1 text-sm text-navy-500 max-w-2xl leading-relaxed">
+            Monthly surplus, loan stress, then a longer-range view—same flow as
+            the quick links at the top of this section.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <BreakdownNextStepCard
+              icon={CalendarDays}
+              title="Monthly plan"
+              description="Rent, food, transport, and more—see how much room you have after essentials each month."
+              cta="Open monthly plan"
+              href="/lifestyle"
+            />
+            <BreakdownNextStepCard
+              icon={Scale}
+              title="EMI & affordability"
+              description="Model home, car, or personal loans against in-hand pay and your Monthly plan."
+              cta="Open EMI planner"
+              href={toolHref("emi")}
+            />
+            <BreakdownNextStepCard
+              icon={LineChart}
+              title="Wealth forecast"
+              description="Project wealth over time from today’s model—not advice, just a clearer picture."
+              cta="View wealth forecast"
+              href={toolHref("forecast")}
+            />
+          </div>
         </div>
       </div>
 
       <SaveProgressCta returnTo="/salary/breakdown" className="mt-12" />
     </PageShell>
+  );
+}
+
+function BreakdownNextStepCard({
+  icon: Icon,
+  title,
+  description,
+  cta,
+  href,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  cta: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "group flex min-h-[8.5rem] cursor-pointer flex-col rounded-xl border border-navy-200/70 bg-gradient-to-b from-white to-navy-50/30 p-4 shadow-sm transition-all",
+        "hover:border-teal-200/90 hover:shadow-md hover:shadow-teal-900/[0.04]"
+      )}
+    >
+      <div className="flex size-9 items-center justify-center rounded-lg bg-teal-50 text-teal-600 ring-1 ring-teal-100/80">
+        <Icon className="size-4" strokeWidth={2} aria-hidden />
+      </div>
+      <p className="mt-3 text-sm font-semibold text-navy-800">{title}</p>
+      <p className="mt-1 flex-1 text-xs leading-relaxed text-navy-500">
+        {description}
+      </p>
+      <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-teal-700">
+        {cta}
+        <ArrowRight
+          className="size-3.5 transition-transform group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      </span>
+    </Link>
   );
 }
 
@@ -1026,7 +1050,7 @@ function SectionAddControl({
       <TooltipTrigger
         type="button"
         onClick={onClick}
-        className="inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent p-0 text-navy-400 transition-all duration-200 hover:bg-teal-50/90 hover:text-teal-700 hover:ring-1 hover:ring-teal-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-1"
+        className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-navy-400 transition-all duration-200 hover:bg-teal-50/90 hover:text-teal-700 hover:ring-1 hover:ring-teal-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-1"
         aria-label={ariaLabel}
       >
         <Plus className="size-3.5" strokeWidth={2.5} />

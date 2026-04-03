@@ -78,10 +78,10 @@ export function WealthForecastView() {
               type="button"
               onClick={() => setHorizon(y)}
               className={cn(
-                "rounded-full px-4 py-2 text-sm font-semibold transition-all",
+                "cursor-pointer rounded-full px-4 py-2 text-sm font-semibold transition-all",
                 horizon === y
-                  ? "bg-teal-600 text-white shadow-sm"
-                  : "bg-white border border-navy-200 text-navy-600 hover:bg-navy-50"
+                  ? "border border-teal-600 bg-teal-100 text-teal-900 shadow-sm"
+                  : "border border-navy-200 bg-white text-navy-600 hover:bg-navy-50"
               )}
             >
               {y} yr

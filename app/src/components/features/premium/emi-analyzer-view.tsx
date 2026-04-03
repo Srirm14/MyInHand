@@ -252,7 +252,7 @@ export function EmiAnalyzerView() {
               type="button"
               onClick={() => setHasSecondLoan(true)}
               className={cn(
-                "group w-full rounded-2xl border-2 border-dashed border-navy-200/80 bg-gradient-to-b from-navy-50/40 to-white px-6 py-8 text-left transition-colors",
+                "group w-full cursor-pointer rounded-2xl border-2 border-dashed border-navy-200/80 bg-gradient-to-b from-navy-50/40 to-white px-6 py-8 text-left transition-colors",
                 "hover:border-teal-300/80 hover:bg-teal-50/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200"
               )}
             >
@@ -606,9 +606,9 @@ function LoanScenarioCard({
               type="button"
               onClick={() => onLoanKindChange(k.id)}
               className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
                 active
-                  ? "border-teal-500 bg-teal-50 text-teal-900"
+                  ? "border-teal-600 bg-teal-100 text-teal-900 shadow-sm"
                   : "border-navy-200/80 bg-white text-navy-600 hover:border-navy-300 hover:bg-navy-50/50"
               )}
             >

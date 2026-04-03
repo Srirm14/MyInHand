@@ -185,10 +185,10 @@ export function CtcInputForm() {
                   setDocError(null);
                 }}
                 className={cn(
-                  "rounded-lg px-5 py-2.5 text-sm font-semibold transition-all min-w-[140px]",
+                  "cursor-pointer rounded-lg px-5 py-2.5 text-sm font-semibold transition-all min-w-[140px]",
                   entryMode === tab.id
-                    ? "bg-white text-navy-800 shadow-sm"
-                    : "text-navy-500 hover:text-navy-700"
+                    ? "border border-teal-600/25 bg-teal-100 text-teal-900 shadow-sm"
+                    : "text-navy-500 hover:bg-white/70 hover:text-navy-700"
                 )}
               >
                 {tab.label}
@@ -395,10 +395,10 @@ function TaxRegimeToggle({
             type="button"
             onClick={() => onChange(opt.id)}
             className={cn(
-              "rounded-lg px-8 py-2.5 text-sm font-semibold transition-all min-w-[120px]",
+              "cursor-pointer rounded-lg px-8 py-2.5 text-sm font-semibold transition-all min-w-[120px]",
               active
-                ? "bg-teal-600 text-white shadow-sm"
-                : "text-navy-600 hover:text-navy-800"
+                ? "border border-teal-600 bg-teal-100 text-teal-900 shadow-sm"
+                : "text-navy-600 hover:bg-white/60 hover:text-navy-800"
             )}
           >
             {opt.label}

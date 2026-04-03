@@ -107,6 +107,12 @@ Type column keeps **EARNING** / **DEDUCTION** / **TAX FREE** / **EMPLOYER (CTC)*
 - **Alignment:** Labels left, amounts right (`tabular-nums`).
 - **Cash path pairing:** each cash path line is wrapped as one visual unit; on hover, the label and value row share a subtle teal highlight (also used in Offer Comparison expanded panels).
 
+### 7a. Component breakup header & planning handoff (`salary-breakdown-view.tsx`)
+
+- **Back:** **Back to salary inputs** → `/salary`.
+- **Component breakup card:** Title + short payslip-alignment copy; **Download PDF**; **quick-link** pills (icon + label): Monthly plan (`/lifestyle`), EMI planner, Wealth forecast (`useTieredPremiumLinks`).
+- **After the table + cash path:** **Allocation benchmarks** (illustrative bars); then **Plan from this breakdown** — three **link cards** (`BreakdownNextStepCard`) to the same three destinations with fuller copy. Keeps the table focused while still connecting to surplus, debt, and forecast flows.
+
 ---
 
 ## 8. Truthfulness

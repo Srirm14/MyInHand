@@ -259,7 +259,7 @@ function SectionAddControl({
       <TooltipTrigger
         type="button"
         onClick={onClick}
-        className="inline-flex size-7 items-center justify-center rounded-md border-0 bg-transparent p-0 text-navy-400 transition-all duration-200 hover:bg-teal-50/90 hover:text-teal-700 hover:ring-1 hover:ring-teal-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-1"
+        className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-navy-400 transition-all duration-200 hover:bg-teal-50/90 hover:text-teal-700 hover:ring-1 hover:ring-teal-200/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300 focus-visible:ring-offset-1"
         aria-label={ariaLabel}
       >
         <Plus className="size-3.5" strokeWidth={2.5} />

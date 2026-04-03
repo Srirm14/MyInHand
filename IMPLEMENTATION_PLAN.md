@@ -51,7 +51,7 @@
 **Deliverables:**
 - Landing Page (`/`) — full implementation matching screenshot
 - CTC Input Page (`/salary`) — form with RHF + Zod validation
-- Free Salary Breakdown (`/salary/breakdown`) — stat cards + component table
+- Free Salary Breakdown (`/salary/breakdown`) — stat cards; Component breakup (quick links, table, cash path); benchmarks + plan handoff cards; tiered links to EMI / forecast
 - Monthly plan (`/lifestyle`) — amount inputs + sliders + surplus gauge
 - Zustand stores: `use-salary-store.ts`, `use-lifestyle-store.ts`
 - Tax calculation utilities (old regime + new regime)

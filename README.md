@@ -1,6 +1,6 @@
 # InHand
 
-Salary intelligence for Indian employees — manual or document-based salary input, editable breakdown, lifestyle surplus, offer comparison (manual or upload mock), and premium modules. Product docs: `PRODUCT_FLOW.md`, `ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `AGENTS.md`.
+Salary intelligence for Indian employees — manual or document-based salary input, editable breakdown, **monthly plan** surplus, offer comparison (manual or upload mock), and premium modules (EMI planner, wealth forecast, etc.). Product docs: `PRODUCT_FLOW.md`, `ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `AGENTS.md`.
 
 ## Repository layout
 

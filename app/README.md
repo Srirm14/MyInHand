@@ -27,7 +27,7 @@ Restart the dev server after changing `.env.local`.
 
 - `/` — Marketing landing  
 - `/salary` — Salary input: **manual CTC** (total-only or optional **fixed + variable** split) or **document upload** (mock parse); **Last tracked salaries / Last compared offers**  
-- `/salary/breakdown` — Breakdown KPIs; **editable** monthly components; estimated vs document banners  
+- `/salary/breakdown` — KPI stat row; **Component breakup** (quick links + table + cash path); **Allocation benchmarks**; **Plan from this breakdown** cards (Monthly plan, EMI, forecast); estimated vs document banners  
 - `/lifestyle` — Monthly plan (spending + surplus gauge)  
 - `/premium` — Hub for planning tools  
 - `/premium/offer-comparison` — **Manual** or **upload** 2–3 offers; same CTC split pattern as `/salary` per card (mock parse)  

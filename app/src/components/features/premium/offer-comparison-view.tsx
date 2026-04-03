@@ -425,9 +425,9 @@ export function OfferComparisonView() {
                 setUploadError(null);
               }}
               className={cn(
-                "inline-flex h-full flex-1 items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
+                "inline-flex h-full flex-1 cursor-pointer items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
                 entryMode === "manual"
-                  ? "bg-white text-navy-800 shadow-sm ring-1 ring-navy-200/40"
+                  ? "border border-teal-600/25 bg-teal-100 text-teal-900 shadow-sm"
                   : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
               )}
             >
@@ -440,9 +440,9 @@ export function OfferComparisonView() {
                 setUploadError(null);
               }}
               className={cn(
-                "inline-flex h-full flex-1 items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
+                "inline-flex h-full flex-1 cursor-pointer items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
                 entryMode === "upload"
-                  ? "bg-white text-navy-800 shadow-sm ring-1 ring-navy-200/40"
+                  ? "border border-teal-600/25 bg-teal-100 text-teal-900 shadow-sm"
                   : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
               )}
             >
@@ -535,7 +535,7 @@ export function OfferComparisonView() {
                 <button
                   type="button"
                   onClick={() => removeOffer(o.id)}
-                  className="text-navy-400 hover:text-danger-600 p-1"
+                  className="cursor-pointer p-1 text-navy-400 hover:text-danger-600"
                   aria-label="Remove offer"
                 >
                   <Trash2 className="size-4" />
@@ -587,10 +587,10 @@ export function OfferComparisonView() {
                     type="button"
                     onClick={() => update(o.id, { taxRegime: reg })}
                     className={cn(
-                      "rounded-lg px-4 py-2 text-sm font-semibold min-w-[100px]",
+                      "cursor-pointer rounded-lg px-4 py-2 text-sm font-semibold min-w-[100px] transition-colors",
                       o.taxRegime === reg
-                        ? "bg-teal-600 text-white shadow-sm"
-                        : "text-navy-600"
+                        ? "border border-teal-600 bg-teal-100 text-teal-900 shadow-sm"
+                        : "text-navy-600 hover:bg-white/60 hover:text-navy-800"
                     )}
                   >
                     {reg === "old" ? "Old" : "New"}

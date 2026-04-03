@@ -262,10 +262,10 @@ function CompensationCtcInputs({
               type="button"
               onClick={() => onModeChange(tab.id)}
               className={cn(
-                "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
+                "cursor-pointer rounded-md px-3 py-1.5 text-xs font-semibold transition-colors",
                 mode === tab.id
-                  ? "bg-white text-navy-800 shadow-sm"
-                  : "text-navy-500 hover:text-navy-700"
+                  ? "border border-teal-600/30 bg-teal-100 text-teal-900 shadow-sm"
+                  : "text-navy-500 hover:bg-white/70 hover:text-navy-700"
               )}
             >
               {tab.label}

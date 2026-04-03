@@ -42,7 +42,7 @@ Building a production-quality desktop-first SaaS for Indian salary intelligence.
 | Concern | Solution | Why |
 |---------|----------|-----|
 | User inputs (CTC, city, regime) | Zustand `use-salary-store` | Persists across route navigation, shared by multiple screens |
-| Lifestyle expenses | Zustand `use-lifestyle-store` | Slider values needed by surplus calc + premium planner |
+| Monthly plan amounts | Zustand `use-lifestyle-store` | Surplus calc + EMI planner living expenses + premium depth |
 | Offer data | Zustand `use-offers-store` | Array of offers, shared across comparison + scoring |
 | Premium gate | Zustand `use-auth-store` | Simple boolean flag until real auth exists |
 | Derived calculations | Custom hooks (`use-salary-calculation`) | Compute from store values, memoized, testable |
@@ -127,5 +127,5 @@ Feature-based App Router wins because:
 3. [ ] Configure Tailwind with design tokens
 4. [ ] Build shared component library (Layer 2)
 5. [ ] Implement Zustand stores with typed schemas
-6. [ ] Build free flow (Landing → Input → Breakdown → Lifestyle)
+6. [ ] Build free flow (Landing → Input → Breakdown → Monthly plan)
 7. [ ] Build premium flow with client-side gate

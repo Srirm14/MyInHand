@@ -31,9 +31,9 @@ export function SegmentedSelector({
             type="button"
             onClick={() => onChange(option.value)}
             className={cn(
-              "flex flex-col items-center justify-center rounded-xl border-2 px-6 py-3 text-sm font-medium transition-all min-w-[100px]",
+              "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 px-6 py-3 text-sm font-medium transition-all min-w-[100px]",
               isSelected
-                ? "border-teal-600 bg-teal-50 text-teal-700"
+                ? "border-teal-600 bg-teal-100 text-teal-900 shadow-sm"
                 : "border-navy-200 bg-white text-navy-600 hover:border-navy-300 hover:bg-navy-50"
             )}
           >
@@ -44,7 +44,7 @@ export function SegmentedSelector({
               <span
                 className={cn(
                   "text-xs mt-0.5",
-                  isSelected ? "text-teal-600" : "text-navy-400"
+                  isSelected ? "text-teal-800" : "text-navy-400"
                 )}
               >
                 {option.sublabel}
