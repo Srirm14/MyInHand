@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CITY_TIERS, type CityTier } from "@/lib/constants/city-tiers";
-import type { TaxRegime } from "@/lib/types/salary.types";
+import { useHistoryStore } from "@/lib/stores/use-history-store";
+import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
+import type { OfferDraft } from "@/lib/types/offer.types";
 import { calculateSalaryBreakdown } from "@/lib/utils/calculate-salary";
 import {
   formatCurrency,
@@ -26,16 +28,6 @@ const tierOptions = CITY_TIERS.map((t) => ({
   sublabel: t.sublabel,
 }));
 
-export type OfferDraft = {
-  id: string;
-  companyName: string;
-  annualCTC: number;
-  cityTier: CityTier;
-  taxRegime: TaxRegime;
-  joiningBonus: number;
-  esopValue: number;
-};
-
 function emptyOffer(id: string): OfferDraft {
   return {
     id,
@@ -49,10 +41,15 @@ function emptyOffer(id: string): OfferDraft {
 }
 
 export function OfferComparisonView() {
-  const [offers, setOffers] = useState<OfferDraft[]>(() => [
-    emptyOffer("a"),
-    emptyOffer("b"),
-  ]);
+  const [offers, setOffers] = useState<OfferDraft[]>(() => {
+    const pending =
+      useOfferComparisonRestoreStore.getState().takeRestore();
+    if (pending?.length) {
+      if (pending.length >= 2) return pending;
+      return [pending[0], emptyOffer(crypto.randomUUID())];
+    }
+    return [emptyOffer("a"), emptyOffer("b")];
+  });
 
   const comparisons = useMemo(() => {
     return offers.map((o) => {
@@ -85,6 +82,39 @@ export function OfferComparisonView() {
       : null;
   const bestValue =
     valid.length > 0 ? Math.max(...valid.map((v) => v.firstYearValue)) : null;
+
+  const offersFingerprint = useMemo(
+    () => JSON.stringify(offers),
+    [offers]
+  );
+
+  const validSummaryKey = useMemo(
+    () =>
+      valid
+        .map(
+          (v) =>
+            `${v.companyName}:${v.monthlyInHand}:${v.firstYearValue}`
+        )
+        .join("|"),
+    [valid]
+  );
+
+  useEffect(() => {
+    if (valid.length < 2) return;
+    const offersSnap = offers;
+    const validSnap = valid;
+    const timer = window.setTimeout(() => {
+      useHistoryStore.getState().pushOfferComparison(
+        offersSnap,
+        validSnap.map((v) => ({
+          companyName: v.companyName,
+          monthlyInHand: v.monthlyInHand,
+          firstYearValue: v.firstYearValue,
+        }))
+      );
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [offersFingerprint, valid.length, validSummaryKey, offers, valid]);
 
   const update = (id: string, patch: Partial<OfferDraft>) => {
     setOffers((prev) =>

@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { CITY_TIERS } from "@/lib/constants/city-tiers";
 import { ctcInputSchema, type CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
+import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { TaxRegime } from "@/lib/types/salary.types";
 import { formatIndianNumber } from "@/lib/utils/format-currency";
@@ -75,6 +76,12 @@ export function CtcInputForm() {
       taxRegime: data.taxRegime,
     });
     calculateBreakdown();
+    const { input: nextInput, breakdown } = useSalaryStore.getState();
+    if (breakdown) {
+      useHistoryStore
+        .getState()
+        .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);
+    }
     router.push("/salary/breakdown");
   };
 

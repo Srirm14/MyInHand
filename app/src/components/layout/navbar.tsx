@@ -3,7 +3,8 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Bell, User } from "lucide-react";
+import { User } from "lucide-react";
+import { RecentHistoryNavButton } from "@/components/layout/recent-history-sheet";
 import { buttonVariants } from "@/components/ui/button";
 import {
   PREMIUM_UNLOCKED,
@@ -91,12 +92,7 @@ function NavbarInner() {
           >
             Premium
           </Link>
-          <button
-            type="button"
-            className="p-2 text-navy-400 hover:text-navy-600 transition-colors"
-          >
-            <Bell className="size-5" />
-          </button>
+          <RecentHistoryNavButton />
           <button
             type="button"
             className="p-2 text-navy-400 hover:text-navy-600 transition-colors"
