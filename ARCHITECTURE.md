@@ -14,6 +14,10 @@
 | Icons | Lucide React |
 | Fonts | Plus Jakarta Sans (display), Inter (body) via `next/font/google` |
 
+## Product docs (repo root)
+
+- **`SALARY_COMPONENTS.md`** — Salary breakdown IA, component model, tooltip/badge rules, grouping (earnings / employer CTC / deductions). Pairs with `lib/constants/salary-component-catalog.ts` and `salary-breakdown-view.tsx`.
+
 ## Folder Structure
 
 ```
@@ -95,11 +99,12 @@ src/
 │   ├── constants/                # App constants
 │   │   ├── tax-slabs.ts
 │   │   ├── city-tiers.ts
-│   │   └── salary-components.ts
+│   │   ├── salary-components.ts   # Legacy reference list
+│   │   └── salary-component-catalog.ts  # Breakdown tooltips + copy by component id
 │   └── utils/                    # Pure utility functions
 │       ├── format-currency.ts
 │       ├── calculate-tax.ts
-│       ├── calculate-salary.ts   # Breakdown + aggregateBreakdownTotals (editable rows)
+│       ├── calculate-salary.ts   # Initial breakdown, recalculateBreakdownFromComponents (formula+override), aggregateBreakdownTotals
 │       ├── compensation-split.ts # Total ↔ fixed ↔ variable sync (manual CTC + offers)
 │       ├── coerce-salary-snapshot.ts  # History restore: default compensation fields
 │       ├── calculate-emi.ts

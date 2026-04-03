@@ -3,8 +3,8 @@ import type { SalaryInput, SalaryBreakdown } from "@/lib/types/salary.types";
 import type { CityTier } from "@/lib/constants/city-tiers";
 import type { TaxRegime } from "@/lib/types/salary.types";
 import {
-  aggregateBreakdownTotals,
   calculateSalaryBreakdown,
+  recalculateBreakdownFromComponents,
 } from "@/lib/utils/calculate-salary";
 import { mockParseSalaryDocument } from "@/lib/mocks/parse-salary-document.mock";
 
@@ -45,6 +45,10 @@ export const useSalaryStore = create<SalaryState>((set, get) => ({
     if (input.annualCTC <= 0) return;
 
     const isDoc = input.resultSource === "document_parsed";
+    const variableAnnual =
+      input.compensationMode === "fixed_variable"
+        ? (input.variableAnnual ?? 0)
+        : 0;
     const breakdown = calculateSalaryBreakdown(
       input.annualCTC,
       input.cityTier,
@@ -53,7 +57,8 @@ export const useSalaryStore = create<SalaryState>((set, get) => ({
         resultSource: isDoc ? "document_parsed" : "manual_estimated",
         documentFileName: isDoc ? input.documentFileName : undefined,
         componentsAdjusted: false,
-      }
+      },
+      { variableAnnual }
     );
     set({ breakdown });
   },
@@ -70,30 +75,34 @@ export const useSalaryStore = create<SalaryState>((set, get) => ({
   updateBreakdownComponentMonthly: (id, monthlyValue) => {
     const { breakdown, input } = get();
     if (!breakdown) return;
-    const v = Math.max(0, monthlyValue);
-    const nextComponents = breakdown.components.map((c) =>
+    const v = Math.max(0, Math.round(monthlyValue));
+    const stamped = breakdown.components.map((c) =>
       c.id === id
         ? {
             ...c,
             monthlyValue: v,
-            annualValue: Math.round(v * 12),
+            annualValue: v * 12,
+            lineSource: "user_edited" as const,
           }
         : c
     );
-    const totals = aggregateBreakdownTotals(nextComponents, input.annualCTC);
-    set({
-      breakdown: {
-        ...breakdown,
-        components: nextComponents,
-        ...totals,
-        meta: {
-          ...breakdown.meta,
-          resultSource:
-            breakdown.meta?.resultSource ?? "manual_estimated",
-          componentsAdjusted: true,
-        },
-      },
+    const salaryResultSource = input.resultSource ?? "manual_estimated";
+    const baseLineSource =
+      salaryResultSource === "document_parsed" ? "parsed" : "estimated";
+    const variableAnnual =
+      input.compensationMode === "fixed_variable"
+        ? (input.variableAnnual ?? 0)
+        : 0;
+    const nextBreakdown = recalculateBreakdownFromComponents(stamped, {
+      annualCTC: input.annualCTC,
+      cityTier: input.cityTier,
+      regime: input.taxRegime,
+      variableAnnual,
+      baseLineSource,
+      salaryResultSource,
+      documentFileName: input.documentFileName,
     });
+    set({ breakdown: nextBreakdown });
   },
 
   reset: () => set({ input: defaultInput, breakdown: null }),

@@ -1,3 +1,4 @@
+/** Legacy reference list — live breakdown + tooltips: `salary-component-catalog.ts`, SALARY_COMPONENTS.md */
 export type ComponentType = "earning" | "deduction" | "tax-free";
 
 export interface SalaryComponentDef {
@@ -25,9 +26,9 @@ export const SALARY_COMPONENTS: SalaryComponentDef[] = [
     standard: true,
   },
   {
-    id: "pf",
-    name: "Provident Fund (PF)",
-    description: "Employer & Employee Contrib.",
+    id: "employee_pf",
+    name: "Employee PF contribution",
+    description: "Employee PF deduction",
     type: "deduction",
     standard: true,
   },

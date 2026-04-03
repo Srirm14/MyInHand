@@ -94,22 +94,35 @@ Signed-in (premium env)
 
 ### 3. Salary breakdown (`/salary/breakdown`)
 
-**Purpose:** Show in-hand and component table; distinguish **estimated** vs **document-based** copy; allow **corrections**.
+**Purpose:** Show in-hand and a **grouped** component table; distinguish **estimated** vs **document-based** copy; allow **corrections**; explain CTC vs cash truthfully.
 
 **Core inputs:** `useSalaryStore` (input + breakdown).
 
 **Banners:**
-- **Estimated breakdown** — manual path; states assumptions (not employer payslip).
+- **Estimated breakdown** — manual path; CTC ≠ in-hand; employer lines are illustrative (see `SALARY_COMPONENTS.md`).
 - **Document-based results** — upload path; shows source filename; user should verify.
 
+**Component table (grouped):**
+1. **Earnings & salary components** — cash / gross-side lines (basic, HRA, special, optional variable from split, meal & telecom reimbursements, etc.).
+2. **Employer contributions (CTC)** — not monthly cash (employer PF, gratuity accrual in this model).
+3. **Deductions** — employee PF, professional tax, TDS.
+
+**Row metadata:** `SalaryComponent` includes `group`, `type` (earning / tax-free / deduction / employer), `lineSource` (estimated / parsed / user_edited), optional `tags` (e.g. tax-sensitive, employer-side). **Info icon** per row → tooltip from `salary-component-catalog.ts` (plain language, applicability, cash vs CTC, model disclaimer).
+
+**UX:** Monthly vs **annual emphasis** toggle (visual weight only; monthly cell remains the editable field). **Net in-hand** strip reconciles earnings cash − deductions ≈ in-hand (employer group excluded).
+
 **Core outputs:**
-- Monthly in-hand, annual tax, total deductions (recalc when line items change)
-- Component table: **monthly cells are editable** (blur/Enter commits); annual column and totals use `aggregateBreakdownTotals`. Flag `meta.componentsAdjusted` after edits.
+- Monthly in-hand, annual tax, total deductions (recalc when line items change via `aggregateBreakdownTotals` — employer rows excluded from cash inflow).
+- Flag `meta.componentsAdjusted` after edits; edited rows show **Edited** badge.
+
+**Engine:** `calculate-salary.ts` — initial build via `calculateSalaryBreakdown`; **after any cell edit**, `recalculateBreakdownFromComponents` re-merges **formula rows** (basic→HRA→PF→gratuity→special residual→TDS unless those lines are **overridden** with `lineSource: user_edited`). `aggregateBreakdownTotals` derives in-hand from the latest rows only. **Meta:** `breakdownEditBasis` = `user_edited_after_estimate` | `user_edited_after_parse` when adjusted.
+
+**Breakdown page UX:** Upload salary structure at top (same mock parser as `/salary`); table uses debounced live commits (~140ms) + blur flush; no monthly/annual emphasis toggle — both columns always visible.
 
 **Primary CTA:** "Add Lifestyle Expenses" / "Optimize My Tax"
 **Secondary CTA:** "Download PDF" (placeholder)
 
-**Key UI elements:** stat cards, editable breakup table, surplus / benchmarks / savings cards, `SaveProgressCta` for anonymous users.
+**Key UI elements:** stat cards, grouped editable table + tooltips, net summary, benchmarks / scenario cards (no hardcoded savings rupees in copy), `SaveProgressCta` for anonymous users.
 
 **Upgrade hooks:** Tax / forecast links use `useTieredPremiumLinks`.
 

@@ -87,10 +87,14 @@ export function OfferComparisonView() {
       ) {
         return null;
       }
+      const variableAnnual =
+        o.compensationMode === "fixed_variable" ? o.variableAnnual : 0;
       const bd = calculateSalaryBreakdown(
         o.annualCTC,
         o.cityTier,
-        o.taxRegime
+        o.taxRegime,
+        undefined,
+        { variableAnnual }
       );
       const liquidBonus = o.joiningBonus;
       const esopLiquid = o.esopValue * 0.25;
