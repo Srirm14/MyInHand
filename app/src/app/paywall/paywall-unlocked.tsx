@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
