@@ -21,6 +21,7 @@ import { formatCTCAsLPA, formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
+import { appToast } from "@/lib/notify/app-notify";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 import { cn } from "@/lib/utils";
 import { SalaryHistoryRowsSkeleton } from "@/components/shared/loading-skeletons";
@@ -214,11 +215,13 @@ export default function SalaryHistoryPage() {
                           router.push(
                             `/salary/breakdown?session=${encodeURIComponent(entry.id)}`
                           );
+                          appToast.salarySession.opened();
                           return;
                         }
                         setInput(coerceSalarySnapshot(entry.snapshot));
                         calculateBreakdown();
                         router.push("/salary/breakdown");
+                        appToast.salarySession.opened();
                       }}
                     >
                       {active ? "Current" : "Use this salary"}

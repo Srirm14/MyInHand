@@ -137,6 +137,17 @@
   --sidebar-ring: #0D9488;
 }
 
+@keyframes inhand-totals-flash {
+  0% {
+    background-color: rgb(240 253 250 / 0.35);
+    box-shadow: inset 0 0 0 1px rgb(13 148 136 / 0.12);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -154,6 +165,10 @@
 
 /* ── Custom utility classes ── */
 @layer utilities {
+  .inhand-totals-flash-once {
+    animation: inhand-totals-flash 720ms ease-out forwards;
+  }
+
   .text-display {
     font-family: var(--font-display);
     font-weight: 800;

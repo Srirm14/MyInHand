@@ -7,6 +7,7 @@ import {
   startTransition,
   type InputHTMLAttributes,
 } from "react";
+import { deferExecution } from "@/lib/scheduling/defer-execution";
 import { cn } from "@/lib/utils";
 
 /** Indian grouping + exactly two decimal places (display). Internal value: whole rupees. */
@@ -73,7 +74,7 @@ export function InrMoneyInput({
   const [draft, setDraft] = useState(() =>
     value === 0 ? "" : String(value)
   );
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingCommitCancel = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (focusedRef.current) return;
@@ -84,7 +85,8 @@ export function InrMoneyInput({
 
   useEffect(
     () => () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+      pendingCommitCancel.current?.();
+      pendingCommitCancel.current = null;
     },
     []
   );
@@ -137,10 +139,8 @@ export function InrMoneyInput({
         }}
         onBlur={(e) => {
           onBlurProp?.(e);
-          if (debounceRef.current) {
-            clearTimeout(debounceRef.current);
-            debounceRef.current = null;
-          }
+          pendingCommitCancel.current?.();
+          pendingCommitCancel.current = null;
           focusedRef.current = false;
           setFocused(false);
           const n = digitsToRupeeInt(e.target.value);
@@ -152,11 +152,11 @@ export function InrMoneyInput({
           if (!focusedRef.current) return;
           const cleaned = e.target.value.replace(/\D/g, "");
           setDraft(cleaned);
-          if (debounceRef.current) clearTimeout(debounceRef.current);
-          debounceRef.current = setTimeout(() => {
-            debounceRef.current = null;
+          pendingCommitCancel.current?.();
+          pendingCommitCancel.current = deferExecution(debounceMs, () => {
+            pendingCommitCancel.current = null;
             flush(cleaned);
-          }, debounceMs);
+          });
         }}
       />
     </div>

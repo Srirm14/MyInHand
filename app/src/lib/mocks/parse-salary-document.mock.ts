@@ -3,6 +3,7 @@
  * filename patterns and returns the same tax engine as manual entry, labeled as document-based.
  */
 import type { CityTier } from "@/lib/constants/city-tiers";
+import { waitForMs } from "@/lib/scheduling/defer-execution";
 import type { SalaryBreakdown, SalaryInput, TaxRegime } from "@/lib/types/salary.types";
 import { calculateSalaryBreakdown } from "@/lib/utils/calculate-salary";
 
@@ -18,7 +19,7 @@ export async function mockParseSalaryDocument(
   file: File,
   defaults: { cityTier: CityTier; taxRegime: TaxRegime }
 ): Promise<{ input: SalaryInput; breakdown: SalaryBreakdown }> {
-  await new Promise((r) => setTimeout(r, 750));
+  await waitForMs(750);
 
   const annualCTC = inferAnnualCTCFromFileName(file.name);
   const taxRegime: TaxRegime = file.name.toLowerCase().includes("old")

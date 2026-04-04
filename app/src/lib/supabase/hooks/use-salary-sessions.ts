@@ -97,6 +97,12 @@ export function useCreateSalarySessionMutation() {
   });
 }
 
+export type SalarySessionUpdateResult = {
+  row: SalarySessionRow;
+  /** False when diff was empty and the row came from cache/fetch (no PATCH). */
+  didWrite: boolean;
+};
+
 export function useUpdateSalarySessionMutation() {
   const qc = useQueryClient();
   return useMutation({
@@ -106,7 +112,7 @@ export function useUpdateSalarySessionMutation() {
       breakdown: SalaryBreakdown;
       baselineInput: SalaryInput;
       baselineBreakdown: SalaryBreakdown;
-    }): Promise<SalarySessionRow> => {
+    }): Promise<SalarySessionUpdateResult> => {
       const sb = getBrowserSupabase();
       const patch = diffSalarySessionRow(
         args.baselineInput,
@@ -118,14 +124,17 @@ export function useUpdateSalarySessionMutation() {
         const cached = qc.getQueryData<SalarySessionDetail>(
           queryKeys.salarySessions.detail(args.id)
         );
-        if (cached?.session) return cached.session;
+        if (cached?.session) {
+          return { row: cached.session, didWrite: false };
+        }
         const d = await getSalarySession(sb, args.id);
         if (!d?.session) throw new Error("Salary session not found");
-        return d.session;
+        return { row: d.session, didWrite: false };
       }
-      return patchSalarySession(sb, args.id, patch);
+      const row = await patchSalarySession(sb, args.id, patch);
+      return { row, didWrite: true };
     },
-    onSuccess: (row: SalarySessionRow) => {
+    onSuccess: ({ row }) => {
       qc.setQueryData(queryKeys.salarySessions.detail(row.id), (prev) => {
         if (!prev) {
           return { session: row, planning: null } satisfies SalarySessionDetail;

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 import { AuthSync } from "@/components/providers/auth-sync";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { PremiumPlansModalHost } from "@/components/providers/premium-plans-modal-host";
@@ -46,6 +47,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-neutral-bg">
         <TooltipProvider>
           <QueryProvider>
+            <Toaster />
             <AuthSync />
             <Navbar />
             <Suspense fallback={null}>

@@ -32,6 +32,7 @@ import {
   useHistoryStore,
   SALARY_HISTORY_MAX_ENTRIES,
 } from "@/lib/stores/use-history-store";
+import { appToast } from "@/lib/notify/app-notify";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { TaxRegime } from "@/lib/types/salary.types";
 import { cn } from "@/lib/utils";
@@ -119,7 +120,9 @@ export function CtcInputForm() {
           },
         });
         useSalaryStore.getState().setActiveSalaryHistoryId(row.id);
+        appToast.salarySession.created();
       } catch {
+        appToast.persistence.cloudUnavailableLocalFallback();
         const id = useHistoryStore
           .getState()
           .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);

@@ -11,7 +11,7 @@ Salary breakdown, offer comparison, and lifestyle planning persist to Supabase. 
 
 1. **Draft vs baseline** — Editable UI state is the draft; after hydrate or a successful write, **server row (or fingerprint)** is the baseline. Saves run only when draft ≠ baseline.
 
-2. **Salary** — `diffSalarySessionRow` produces a **partial** `UPDATE`; if nothing changed, the mutation resolves from **cache** (no HTTP). **`onSuccess`** advances baseline from the **response row**. **`createSaveFlightSequence`** ensures only the latest in-flight save updates baseline refs.
+2. **Salary** — `diffSalarySessionRow` produces a **partial** `UPDATE`; if nothing changed, the mutation resolves from **cache** (no HTTP) with **`didWrite: false`**. After a real PATCH, client hooks advance **baseline + signature from the client payload** (not only parsed row JSON) to avoid stringify drift and PATCH loops; hydrate applies server JSON with a **full `setState` replace** (not `setInput` merge). **`createSaveFlightSequence`** ensures only the latest in-flight save updates baseline refs.
 
 3. **Offers** — Persistence remains **replace children** for simplicity. **Fingerprint** skips redundant writes; **save flight** avoids stale `.then` updates. **`onSuccess`** uses **`setQueryData`** for detail + list (no root `invalidateQueries` after autosave).
 
@@ -28,6 +28,7 @@ Salary breakdown, offer comparison, and lifestyle planning persist to Supabase. 
 
 ## Related code
 
+- [Client sync & UX guide](../inhand-client-sync-ux.md) — access mode, auth, routing, toasts, loading patterns.
 - [`app/src/lib/salary/session-save/salary-session-save-logic.ts`](../../app/src/lib/salary/session-save/salary-session-save-logic.ts)
 - [`app/src/lib/persistence/save-flight-sequence.ts`](../../app/src/lib/persistence/save-flight-sequence.ts)
 - [`app/src/lib/hooks/use-salary-breakdown-cloud-sync.ts`](../../app/src/lib/hooks/use-salary-breakdown-cloud-sync.ts)

@@ -1,4 +1,5 @@
 import type { SalaryBreakdown, SalaryInput } from "@/lib/types/salary.types";
+import { deferExecution } from "@/lib/scheduling/defer-execution";
 import { formatCurrency } from "./format-currency";
 
 /**
@@ -90,7 +91,7 @@ export function downloadCSV(csv: string, filename: string): void {
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  deferExecution(5000, () => URL.revokeObjectURL(url));
 }
 
 /** Shared basename for exports, e.g. `inhand-salary-25lpa-2026-04` */

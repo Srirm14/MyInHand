@@ -34,6 +34,8 @@ import {
 import { buildOfferBreakdownRecalcContext } from "@/lib/utils/offer-breakdown-recalc-context";
 import { isSplitBalanced } from "@/lib/utils/compensation-split";
 import { formatCurrency } from "@/lib/utils/format-currency";
+import { appToast } from "@/lib/notify/app-notify";
+import { deferExecution } from "@/lib/scheduling/defer-execution";
 import { cn } from "@/lib/utils";
 import { SalaryBreakdownEditablePanel } from "@/components/shared/salary-breakdown-editable-panel";
 import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
@@ -283,12 +285,12 @@ export function OfferComparisonView() {
     if (!canCompare) return;
     setComparisonRevealed(true);
     requestAnimationFrame(() => {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         resultsRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "nearest",
         });
-      }, 100);
+      });
     });
   }, [canCompare]);
 
@@ -375,7 +377,7 @@ export function OfferComparisonView() {
 
   useEffect(() => {
     if (valid.length < 2) return;
-    const timer = globalThis.setTimeout(() => {
+    return deferExecution(1000, () => {
       const offersSnap = offersForAutosaveRef.current;
       const validSnap = validForAutosaveRef.current;
       const editsSnap = editsForAutosaveRef.current;
@@ -429,17 +431,19 @@ export function OfferComparisonView() {
           })
           .then((detail: OfferSessionDetail) => {
             if (!offerSaveFlight.isLatest(flightId)) return;
+            appToast.offerComparison.autosaved();
             lastSavedOfferFingerprint.current = fp;
             const id = detail.session.id;
-            setActiveOfferSessionId((prev) => {
-              if (prev !== id) {
+            const previousId = activeOfferSessionRef.current;
+            setActiveOfferSessionId(id);
+            if (previousId !== id) {
+              queueMicrotask(() => {
                 router.replace(
                   `/premium/offer-comparison?session=${encodeURIComponent(id)}`,
                   { scroll: false }
                 );
-              }
-              return id;
-            });
+              });
+            }
           });
       } else {
         useHistoryStore.getState().pushOfferComparison(
@@ -451,8 +455,7 @@ export function OfferComparisonView() {
           }))
         );
       }
-    }, 1000);
-    return () => globalThis.clearTimeout(timer);
+    });
   }, [
     offersFingerprint,
     breakdownEditsFingerprint,

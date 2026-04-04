@@ -12,6 +12,7 @@ import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { isSalaryInputEquivalent } from "@/lib/utils/salary-context-match";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
+import { appToast } from "@/lib/notify/app-notify";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 
 const LIST_LIMIT = 40;
@@ -47,6 +48,7 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
       const finishLocal = () => {
         removeSalaryContext(entry.id);
         onAfterRemove?.();
+        appToast.persistence.removedFromDevice();
         const remaining = useHistoryStore.getState().salaryContexts;
         if (wasActive) {
           const next = remaining[0];
@@ -66,6 +68,7 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
       if (cloud) {
         try {
           await deleteSalarySession.mutateAsync(entry.id);
+          appToast.salarySession.deleted();
           const mapped =
             queryClient.getQueryData<SalaryHistoryEntry[]>(
               queryKeys.salarySessions.list(LIST_LIMIT)
@@ -86,7 +89,7 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
             }
           }
         } catch {
-          /* toast could go here */
+          appToast.errors.salarySessionDeleteFailed();
         }
         return;
       }

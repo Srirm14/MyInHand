@@ -14,6 +14,7 @@ import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
+import { appToast } from "@/lib/notify/app-notify";
 import { cn } from "@/lib/utils";
 import type { HistoryEntry } from "@/lib/types/history.types";
 import { SalaryRecentsPanelsSkeleton } from "@/components/shared/loading-skeletons";
@@ -98,6 +99,7 @@ export function SalaryRecentsPanels() {
                       router.push(
                         `/salary/breakdown?session=${encodeURIComponent(e.id)}`
                       );
+                      appToast.salarySession.opened();
                       return;
                     }
                     setInput(
@@ -109,6 +111,7 @@ export function SalaryRecentsPanels() {
                     );
                     calculateBreakdown();
                     router.push("/salary/breakdown");
+                    appToast.salarySession.opened();
                   }}
                   className={cn(
                     "w-full text-left rounded-xl border border-navy-200/60 bg-white px-4 py-3 shadow-sm",
@@ -166,9 +169,11 @@ export function SalaryRecentsPanels() {
                       router.push(
                         `/premium/offer-comparison?session=${encodeURIComponent(e.id)}`
                       );
+                      appToast.offerComparison.opened();
                     } else {
                       queueRestore(e.offersSnapshot);
                       router.push(toolHref("offers"));
+                      appToast.offerComparison.opened();
                     }
                   }}
                   className={cn(

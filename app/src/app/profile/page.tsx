@@ -17,6 +17,7 @@ import {
 } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { ProfilePageSkeleton } from "@/components/shared/loading-skeletons";
+import { appToast } from "@/lib/notify/app-notify";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -61,6 +62,7 @@ export default function ProfilePage() {
       return;
     }
     form.reset(data);
+    appToast.profile.updated();
   };
 
   return (

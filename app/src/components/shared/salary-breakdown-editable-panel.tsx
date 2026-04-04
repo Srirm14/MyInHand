@@ -40,6 +40,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
+import { useTotalsSectionFlash } from "@/lib/hooks/use-totals-section-flash";
 import type {
   SalaryBreakdown,
   SalaryBreakdownSection,
@@ -688,22 +689,11 @@ export function SalaryBreakdownEditablePanel({
     ].join("|");
   }, [breakdown]);
 
-  const [totalsJustUpdated, setTotalsJustUpdated] = useState(false);
-  const totalsPrimedRef = useRef(false);
-  useEffect(() => {
-    if (!totalsSignature) return;
-    if (!totalsPrimedRef.current) {
-      totalsPrimedRef.current = true;
-      return;
-    }
-    setTotalsJustUpdated(true);
-    const t = globalThis.setTimeout(() => setTotalsJustUpdated(false), 720);
-    return () => globalThis.clearTimeout(t);
-  }, [totalsSignature]);
-
-  const totalsPulseClass = totalsJustUpdated
-    ? "bg-teal-50/[0.35] shadow-[inset_0_0_0_1px_rgba(13,148,136,0.12)]"
-    : "";
+  const {
+    flashActive: totalsFlashActive,
+    stripFlashClass: totalsStripFlashClass,
+    onTotalsFlashEnd,
+  } = useTotalsSectionFlash(totalsSignature);
 
   return (
     <div
@@ -733,8 +723,9 @@ export function SalaryBreakdownEditablePanel({
       <div
         className={cn(
           "space-y-5 rounded-xl p-2 -mx-2 transition-[background-color,box-shadow] duration-500 ease-out md:-mx-0 md:p-0",
-          totalsPulseClass
+          totalsStripFlashClass
         )}
+        onAnimationEnd={onTotalsFlashEnd}
       >
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard
@@ -745,7 +736,7 @@ export function SalaryBreakdownEditablePanel({
             icon={Banknote}
             className={cn(
               "transition-shadow duration-500",
-              totalsJustUpdated && "shadow-md shadow-teal-900/[0.06]"
+              totalsFlashActive && "shadow-md shadow-teal-900/[0.06]"
             )}
           />
           <StatCard
@@ -988,7 +979,7 @@ export function SalaryBreakdownEditablePanel({
       <div
         className={cn(
           "mt-5 rounded-xl border border-teal-100/90 bg-gradient-to-b from-teal-50/50 to-white px-4 py-3 text-sm text-navy-700 transition-[background-color,box-shadow] duration-500 ease-out",
-          totalsJustUpdated && "shadow-sm shadow-teal-900/[0.06] ring-1 ring-teal-200/40"
+          totalsFlashActive && "shadow-sm shadow-teal-900/[0.06] ring-1 ring-teal-200/40"
         )}
       >
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-500">

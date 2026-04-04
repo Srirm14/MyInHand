@@ -25,6 +25,7 @@ import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown
 import { Separator } from "@/components/ui/separator";
 import { RemoveSalaryEntryDialog } from "@/components/layout/remove-salary-entry-dialog";
 import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
+import { appToast } from "@/lib/notify/app-notify";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 import { cn } from "@/lib/utils";
 
@@ -178,55 +179,108 @@ function SalaryNavHistoryDropdown({
                 return (
                   <li key={entry.id} className="px-0.5">
                     <div className="flex items-stretch gap-1 rounded-lg pr-1 hover:bg-navy-50/50">
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={current}
-                        onClick={() => {
-                          onSelectEntry(entry);
-                          onOpenChange(false);
-                        }}
-                        className={cn(
-                          "min-w-0 flex-1 px-2 py-2.5 text-left transition-colors rounded-lg",
-                          "hover:bg-teal-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-400",
-                          current && "bg-teal-50/40"
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex min-w-0 items-center gap-2">
-                            {current ? (
-                              <Check
-                                className="mt-0.5 size-3.5 shrink-0 text-teal-600"
-                                aria-hidden
-                              />
-                            ) : (
-                              <span className="w-3.5 shrink-0" aria-hidden />
-                            )}
-                            <div className="min-w-0">
-                              <span
-                                className={cn(
-                                  "block text-sm font-semibold tabular-nums",
-                                  current ? "text-teal-800" : "text-navy-800"
-                                )}
-                              >
-                                {formatCTCAsLPA(entry.annualCTC)}
-                              </span>
-                              <span className="text-[11px] text-navy-500">
-                                {current ? (
-                                  <span className="font-medium text-teal-700">
-                                    Active ·{" "}
-                                  </span>
-                                ) : null}
-                                {entry.regimeLabel} · In-hand{" "}
-                                {formatCurrency(entry.monthlyInHand)}/mo
-                              </span>
+                      {historySource === "cloud" ? (
+                        <Link
+                          href={`/salary/breakdown?session=${encodeURIComponent(entry.id)}`}
+                          scroll={false}
+                          role="option"
+                          aria-selected={current}
+                          onClick={() => {
+                            onSelectEntry(entry);
+                            onOpenChange(false);
+                          }}
+                          className={cn(
+                            "min-w-0 flex-1 px-2 py-2.5 text-left transition-colors rounded-lg",
+                            "hover:bg-teal-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-400",
+                            current && "bg-teal-50/40"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
+                              {current ? (
+                                <Check
+                                  className="mt-0.5 size-3.5 shrink-0 text-teal-600"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <span className="w-3.5 shrink-0" aria-hidden />
+                              )}
+                              <div className="min-w-0">
+                                <span
+                                  className={cn(
+                                    "block text-sm font-semibold tabular-nums",
+                                    current ? "text-teal-800" : "text-navy-800"
+                                  )}
+                                >
+                                  {formatCTCAsLPA(entry.annualCTC)}
+                                </span>
+                                <span className="text-[11px] text-navy-500">
+                                  {current ? (
+                                    <span className="font-medium text-teal-700">
+                                      Active ·{" "}
+                                    </span>
+                                  ) : null}
+                                  {entry.regimeLabel} · In-hand{" "}
+                                  {formatCurrency(entry.monthlyInHand)}/mo
+                                </span>
+                              </div>
                             </div>
+                            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-navy-400 tabular-nums">
+                              {formatRelativeTime(entry.at)}
+                            </span>
                           </div>
-                          <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-navy-400 tabular-nums">
-                            {formatRelativeTime(entry.at)}
-                          </span>
-                        </div>
-                      </button>
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={current}
+                          onClick={() => {
+                            onSelectEntry(entry);
+                            onOpenChange(false);
+                          }}
+                          className={cn(
+                            "min-w-0 flex-1 px-2 py-2.5 text-left transition-colors rounded-lg",
+                            "hover:bg-teal-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-400",
+                            current && "bg-teal-50/40"
+                          )}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
+                              {current ? (
+                                <Check
+                                  className="mt-0.5 size-3.5 shrink-0 text-teal-600"
+                                  aria-hidden
+                                />
+                              ) : (
+                                <span className="w-3.5 shrink-0" aria-hidden />
+                              )}
+                              <div className="min-w-0">
+                                <span
+                                  className={cn(
+                                    "block text-sm font-semibold tabular-nums",
+                                    current ? "text-teal-800" : "text-navy-800"
+                                  )}
+                                >
+                                  {formatCTCAsLPA(entry.annualCTC)}
+                                </span>
+                                <span className="text-[11px] text-navy-500">
+                                  {current ? (
+                                    <span className="font-medium text-teal-700">
+                                      Active ·{" "}
+                                    </span>
+                                  ) : null}
+                                  {entry.regimeLabel} · In-hand{" "}
+                                  {formatCurrency(entry.monthlyInHand)}/mo
+                                </span>
+                              </div>
+                            </div>
+                            <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-navy-400 tabular-nums">
+                              {formatRelativeTime(entry.at)}
+                            </span>
+                          </div>
+                        </button>
+                      )}
                       <button
                         type="button"
                         aria-label={`Remove saved salary ${formatCTCAsLPA(entry.annualCTC)}`}
@@ -348,22 +402,15 @@ export function SalaryNavItem() {
     (entry: SalaryHistoryEntry) => {
       setActiveSalaryHistoryId(entry.id);
       if (persist) {
-        router.push(
-          `/salary/breakdown?session=${encodeURIComponent(entry.id)}`
-        );
+        appToast.salarySession.opened();
         return;
       }
       setInput(coerceSalarySnapshot(entry.snapshot));
       calculateBreakdown();
       router.push("/salary/breakdown");
+      appToast.salarySession.opened();
     },
-    [
-      setInput,
-      calculateBreakdown,
-      setActiveSalaryHistoryId,
-      router,
-      persist,
-    ]
+    [setInput, calculateBreakdown, setActiveSalaryHistoryId, router, persist]
   );
 
   const linkClass = cn(

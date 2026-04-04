@@ -14,6 +14,7 @@ import {
   persistSalaryBreakdownScrollNow,
   useSalaryBreakdownScrollRestoration,
 } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
+import { useTotalsSectionFlash } from "@/lib/hooks/use-totals-section-flash";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -124,7 +125,8 @@ export function SalaryBreakdownView() {
   const [docBusy, setDocBusy] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
 
-  const { cloudHydrating, cloudSaving } = useSalaryBreakdownCloudSync();
+  const { cloudHydrating, cloudSaving, cloudDetailReady } =
+    useSalaryBreakdownCloudSync();
 
   useSalaryBreakdownScrollRestoration(!!breakdown, {
     skipNextPersistRef: skipBreakdownScrollPersistRef,
@@ -138,12 +140,14 @@ export function SalaryBreakdownView() {
 
   useEffect(() => {
     if (cloudHydrating) return;
-    if (!breakdown && input.annualCTC < 100_000) {
+    if (cloudDetailReady && useSalaryStore.getState().breakdown == null) return;
+    const st = useSalaryStore.getState();
+    if (!st.breakdown && st.input.annualCTC < 100_000) {
       skipBreakdownScrollPersistRef.current = true;
       clearSalaryBreakdownScrollSave();
       router.replace("/salary");
     }
-  }, [breakdown, input.annualCTC, router, cloudHydrating]);
+  }, [breakdown, input.annualCTC, router, cloudHydrating, cloudDetailReady]);
 
   const earningsBySection = useMemo(() => {
     if (!breakdown) {
@@ -234,22 +238,11 @@ export function SalaryBreakdownView() {
     ].join("|");
   }, [breakdown]);
 
-  const [totalsJustUpdated, setTotalsJustUpdated] = useState(false);
-  const totalsPrimedRef = useRef(false);
-  useEffect(() => {
-    if (!totalsSignature) return;
-    if (!totalsPrimedRef.current) {
-      totalsPrimedRef.current = true;
-      return;
-    }
-    setTotalsJustUpdated(true);
-    const t = window.setTimeout(() => setTotalsJustUpdated(false), 720);
-    return () => window.clearTimeout(t);
-  }, [totalsSignature]);
-
-  const totalsPulseClass = totalsJustUpdated
-    ? "bg-teal-50/[0.35] shadow-[inset_0_0_0_1px_rgba(13,148,136,0.12)]"
-    : "";
+  const {
+    flashActive: totalsFlashActive,
+    stripFlashClass: totalsStripFlashClass,
+    onTotalsFlashEnd,
+  } = useTotalsSectionFlash(totalsSignature);
 
   const onStructureUpload = async (list: FileList | null) => {
     const file = list?.[0];
@@ -434,7 +427,7 @@ export function SalaryBreakdownView() {
         <aside
           className={cn(
             "max-w-sm shrink-0 rounded-xl border border-navy-200/60 bg-white p-4 shadow-sm transition-[background-color,box-shadow] duration-500 ease-out lg:mt-1",
-            totalsJustUpdated && "bg-teal-50/20 shadow-md shadow-teal-900/[0.04]"
+            totalsFlashActive && "bg-teal-50/20 shadow-md shadow-teal-900/[0.04]"
           )}
           aria-label="Take-home snapshot"
         >
@@ -458,8 +451,9 @@ export function SalaryBreakdownView() {
       <div
         className={cn(
           "mt-10 space-y-6 rounded-2xl p-2 -mx-2 transition-[background-color,box-shadow] duration-500 ease-out md:-mx-0 md:p-0",
-          totalsPulseClass
+          totalsStripFlashClass
         )}
+        onAnimationEnd={onTotalsFlashEnd}
       >
         <motion.div
           className="grid gap-5 md:grid-cols-2 xl:grid-cols-4"
@@ -477,7 +471,7 @@ export function SalaryBreakdownView() {
               icon={Banknote}
               className={cn(
                 "transition-shadow duration-500",
-                totalsJustUpdated && "shadow-md shadow-teal-900/[0.06]"
+                totalsFlashActive && "shadow-md shadow-teal-900/[0.06]"
               )}
             />
           </motion.div>
@@ -748,7 +742,7 @@ export function SalaryBreakdownView() {
         <div
           className={cn(
             "mt-6 rounded-xl border border-teal-100/90 bg-gradient-to-b from-teal-50/50 to-white px-4 py-4 text-sm text-navy-700 transition-[background-color,box-shadow] duration-500 ease-out",
-            totalsJustUpdated && "shadow-sm shadow-teal-900/[0.06] ring-1 ring-teal-200/40"
+            totalsFlashActive && "shadow-sm shadow-teal-900/[0.06] ring-1 ring-teal-200/40"
           )}
         >
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-500">

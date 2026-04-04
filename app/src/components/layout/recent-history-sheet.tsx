@@ -31,6 +31,7 @@ import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { cn } from "@/lib/utils";
 import { RecentHistoryRowsSkeleton } from "@/components/shared/loading-skeletons";
+import { appToast } from "@/lib/notify/app-notify";
 
 export function RecentHistoryNavButton() {
   const [open, setOpen] = useState(false);
@@ -92,19 +93,23 @@ function RecentHistorySheet({
           router.push(
             `/salary/breakdown?session=${encodeURIComponent(entry.id)}`
           );
+          appToast.salarySession.opened();
         } else {
           setInput(coerceSalarySnapshot(entry.snapshot));
           calculateBreakdown();
           router.push("/salary/breakdown");
+          appToast.salarySession.opened();
         }
       } else {
         if (entry.hydrateFromServer) {
           router.push(
             `/premium/offer-comparison?session=${encodeURIComponent(entry.id)}`
           );
+          appToast.offerComparison.opened();
         } else {
           queueOfferRestore(entry.offersSnapshot);
           router.push(toolHref("offers"));
+          appToast.offerComparison.opened();
         }
       }
       onOpenChange(false);
@@ -129,9 +134,15 @@ function RecentHistorySheet({
   const confirmSheetOfferDelete = useCallback(async () => {
     if (!pendingOfferDelete) return;
     if (pendingOfferDelete.hydrateFromServer) {
-      await deleteOfferSession.mutateAsync(pendingOfferDelete.id);
+      try {
+        await deleteOfferSession.mutateAsync(pendingOfferDelete.id);
+        appToast.offerComparison.deleted();
+      } catch {
+        appToast.errors.offerComparisonDeleteFailed();
+      }
     } else {
       removeOfferComparisonEntry(pendingOfferDelete.id);
+      appToast.persistence.removedFromDevice();
     }
   }, [pendingOfferDelete, removeOfferComparisonEntry, deleteOfferSession]);
 

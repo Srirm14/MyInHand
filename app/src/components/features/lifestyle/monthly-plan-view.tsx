@@ -31,6 +31,8 @@ import {
 } from "@/lib/supabase/hooks/use-salary-sessions";
 import { SaveProgressCta } from "@/components/shared/save-progress-cta";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import { appToast } from "@/lib/notify/app-notify";
+import { deferExecution } from "@/lib/scheduling/defer-execution";
 import { cn } from "@/lib/utils";
 import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 
@@ -92,7 +94,7 @@ export function MonthlyPlanView() {
     ) {
       return;
     }
-    const t = window.setTimeout(() => {
+    return deferExecution(900, () => {
       const now = JSON.stringify(useLifestyleStore.getState().expenses);
       if (
         lastPersistedLifestyleSig.current != null &&
@@ -110,11 +112,11 @@ export function MonthlyPlanView() {
             lastPersistedLifestyleSig.current = JSON.stringify(
               useLifestyleStore.getState().expenses
             );
+            appToast.monthlyPlan.autosaved();
           },
         }
       );
-    }, 900);
-    return () => window.clearTimeout(t);
+    });
   }, [
     expensesSerialized,
     persist,

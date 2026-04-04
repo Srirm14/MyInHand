@@ -11,6 +11,8 @@ import {
   salaryDraftSignature,
   salaryStoreMatchesServerPayload,
 } from "@/lib/salary/session-save/salary-session-save-logic";
+import { appToast } from "@/lib/notify/app-notify";
+import { deferExecution } from "@/lib/scheduling/defer-execution";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import {
   useSalarySessionDetailQuery,
@@ -146,7 +148,7 @@ export function useSalaryBreakdownCloudSync() {
     ) {
       return;
     }
-    const t = globalThis.setTimeout(() => {
+    return deferExecution(1000, () => {
       const curInput = inputRef.current;
       const curBreakdown = breakdownRef.current;
       if (!curBreakdown || curInput.annualCTC < 100_000) return;
@@ -172,9 +174,9 @@ export function useSalaryBreakdownCloudSync() {
           baselineBreakdown,
         },
         {
-          onSuccess: () => {
+          onSuccess: (result) => {
             if (!saveFlight.isLatest(flightId)) return;
-            // Client payload, not row JSON — avoids signature mismatch vs server round-trip.
+            if (result.didWrite) appToast.salarySession.autosaved();
             lastPersistedInputRef.current = curInput;
             lastPersistedBreakdownRef.current = curBreakdown;
             lastPersistedSalarySig.current = salaryDraftSignature(
@@ -184,8 +186,7 @@ export function useSalaryBreakdownCloudSync() {
           },
         }
       );
-    }, 1000);
-    return () => globalThis.clearTimeout(t);
+    });
   // Snapshots + session id only — omit `detail.session` (new object on every
   // setQueryData) so PATCH success does not reset the 1s debounce and re-queue saves.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -202,10 +203,19 @@ export function useSalaryBreakdownCloudSync() {
   const cloudHydrating =
     persist && Boolean(effectiveId) && isPending && detail == null;
 
+  /** Detail row is in cache for this session — store may hydrate next microtask. */
+  const cloudDetailReady =
+    persist &&
+    Boolean(effectiveId) &&
+    detail?.session != null &&
+    detail.session.id === effectiveId;
+
   const cloudSavingVisible = useDelayedTrue(updateMut.isPending, 450);
 
   return {
     cloudHydrating,
     cloudSaving: cloudSavingVisible,
+    /** True while we have server data to merge but Zustand may not reflect it yet (avoid empty redirect). */
+    cloudDetailReady,
   };
 }

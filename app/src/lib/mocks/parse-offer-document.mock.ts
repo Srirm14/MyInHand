@@ -2,6 +2,7 @@
  * ASSUMPTION: Mock extraction from offer letter uploads until a document API exists.
  */
 import type { CityTier } from "@/lib/constants/city-tiers";
+import { waitForMs } from "@/lib/scheduling/defer-execution";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { TaxRegime } from "@/lib/types/salary.types";
 
@@ -17,7 +18,7 @@ export async function mockParseOfferDocument(
   file: File,
   defaults: { cityTier: CityTier; taxRegime: TaxRegime }
 ): Promise<OfferDraft> {
-  await new Promise((r) => setTimeout(r, 500));
+  await waitForMs(500);
 
   const base = file.name.replace(/\.[^.]+$/i, "");
   const companyName =
