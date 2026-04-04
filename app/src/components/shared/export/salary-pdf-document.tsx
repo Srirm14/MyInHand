@@ -71,38 +71,70 @@ const styles = StyleSheet.create({
     color: C.navyLight,
     textTransform: "uppercase",
     letterSpacing: 1.2,
-    marginBottom: 8,
-    marginTop: 14,
+    marginBottom: 6,
+    marginTop: 10,
   },
 
-  // ── Summary KPI cards ────────────────────────────────────────────────────────
-  kpiRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  // ── Top context + annual cash rows (3-up cards) ─────────────────────────────
+  twoCol: { flexDirection: "row", gap: 9, marginBottom: 0 },
+  contextCardsRow: { marginBottom: 4 },
+  annualCashRow: { marginTop: 8, marginBottom: 2 },
+  statBox: {
+    flex: 1,
+    backgroundColor: C.navyBg,
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 9,
+    borderWidth: 0.5,
+    borderColor: C.navyBorder,
+  },
+  statLabel: {
+    fontSize: 7,
+    color: C.navyLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.85,
+    lineHeight: 1.3,
+    marginBottom: 3,
+  },
+  statVal: { fontFamily: "Helvetica-Bold", fontSize: 10, color: C.navy, marginTop: 0 },
+  statSub: {
+    fontSize: 7,
+    color: C.navyLight,
+    marginTop: 4,
+    lineHeight: 1.35,
+  },
+
+  // ── Monthly summary KPI cards ───────────────────────────────────────────────
+  kpiRow: { flexDirection: "row", gap: 9, marginBottom: 4 },
   kpiCard: {
     flex: 1,
     backgroundColor: C.navyBg,
     borderRadius: 6,
-    padding: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 9,
     borderWidth: 0.5,
     borderColor: C.navyBorder,
   },
-  kpiLabel: { fontSize: 7, color: C.navyLight, textTransform: "uppercase", letterSpacing: 0.8 },
-  kpiAmount: { fontFamily: "Helvetica-Bold", fontSize: 13, color: C.navy, marginTop: 3 },
-  kpiSub: { fontSize: 7, color: C.navyLight, marginTop: 2 },
-  kpiAccentBar: { height: 2.5, width: 24, borderRadius: 2, marginTop: 8 },
-
-  // ── Two-column stats ─────────────────────────────────────────────────────────
-  twoCol: { flexDirection: "row", gap: 12, marginBottom: 10 },
-  statBox: {
-    flex: 1,
-    backgroundColor: C.navyBg,
-    borderRadius: 5,
-    padding: 8,
-    borderWidth: 0.5,
-    borderColor: C.navyBorder,
+  kpiLabel: {
+    fontSize: 7,
+    color: C.navyLight,
+    textTransform: "uppercase",
+    letterSpacing: 0.85,
+    lineHeight: 1.3,
+    marginBottom: 4,
   },
-  statLabel: { fontSize: 7, color: C.navyLight, textTransform: "uppercase", letterSpacing: 0.8 },
-  statVal: { fontFamily: "Helvetica-Bold", fontSize: 10, color: C.navy, marginTop: 2 },
-  statSub: { fontSize: 7, color: C.navyLight, marginTop: 1 },
+  kpiAmount: { fontFamily: "Helvetica-Bold", fontSize: 13, color: C.navy, marginTop: 0 },
+  kpiSub: { fontSize: 7, color: C.navyLight, lineHeight: 1.35 },
+  /** Subcopy directly under a KPI amount (e.g. “per month”). */
+  kpiSubFoot: { fontSize: 7, color: C.navyLight, lineHeight: 1.35, marginTop: 4 },
+  kpiSubRow: {
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    alignItems: "baseline",
+    marginTop: 4,
+    gap: 0,
+  },
+  kpiAccentBar: { height: 2.5, width: 26, borderRadius: 2, marginTop: 6 },
 
   // ── Component table ───────────────────────────────────────────────────────────
   tableHeader: {
@@ -138,15 +170,13 @@ const styles = StyleSheet.create({
   cellTextBold: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: C.navy },
   cellDesc: { fontSize: 6.5, color: C.navyLight, marginTop: 1 },
 
-  /** Small “INR” before amounts — secondary to the number, ASCII-safe in Helvetica. */
+  /** Small “INR” before amounts — baseline-aligned with figures (no flex-end lift). */
   currencyInrPrefix: {
     fontSize: 6.5,
     fontFamily: "Helvetica",
     color: C.navyLight,
-    marginRight: 2,
-    letterSpacing: 0.4,
-    alignSelf: "flex-end",
-    paddingBottom: 0.75,
+    marginRight: 3,
+    letterSpacing: 0.35,
   },
 
   // ── Badges ────────────────────────────────────────────────────────────────────
@@ -242,7 +272,7 @@ function InrAmountText({
       style={{
         flexDirection: "row",
         flexWrap: "nowrap",
-        alignItems: "flex-end",
+        alignItems: "baseline",
         justifyContent: align === "right" ? "flex-end" : "flex-start",
         width: align === "right" ? "100%" : undefined,
       }}
@@ -327,8 +357,8 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
         </View>
         <View style={styles.divider} />
 
-        {/* ── Context row ── */}
-        <View style={styles.twoCol}>
+        {/* ── Context row (CTC / regime / take-home) ── */}
+        <View style={[styles.twoCol, styles.contextCardsRow]}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Annual CTC</Text>
             <InrAmountText amount={breakdown.statedAnnualCTC} style={styles.statVal} />
@@ -346,8 +376,8 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
           </View>
         </View>
 
-        {/* ── KPI cards ── */}
-        <Text style={styles.sectionTitle}>Monthly Summary</Text>
+        {/* ── KPI cards (monthly summary) ── */}
+        <Text style={[styles.sectionTitle, { marginTop: 2 }]}>Monthly Summary</Text>
         <View style={styles.kpiRow}>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>In-hand (excl. variable)</Text>
@@ -355,7 +385,7 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
               amount={breakdown.monthlyInHandExcludingVariable}
               style={styles.kpiAmount}
             />
-            <Text style={styles.kpiSub}>per month</Text>
+            <Text style={styles.kpiSubFoot}>per month</Text>
             <View style={[styles.kpiAccentBar, { backgroundColor: C.teal }]} />
           </View>
           <View style={styles.kpiCard}>
@@ -364,14 +394,7 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
               amount={breakdown.annualIncomeTax}
               style={[styles.kpiAmount, { color: C.red }]}
             />
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "nowrap",
-                alignItems: "flex-end",
-                marginTop: 2,
-              }}
-            >
+            <View style={styles.kpiSubRow}>
               <InrAmountText
                 amount={Math.round(breakdown.annualIncomeTax / 12)}
                 style={styles.kpiSub}
@@ -386,13 +409,13 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
               amount={breakdown.totalMonthlyDeductions}
               style={[styles.kpiAmount, { color: C.navyMid }]}
             />
-            <Text style={styles.kpiSub}>per month</Text>
+            <Text style={styles.kpiSubFoot}>per month</Text>
             <View style={[styles.kpiAccentBar, { backgroundColor: C.navyLight }]} />
           </View>
         </View>
 
-        {/* ── Annual summary ── */}
-        <View style={[styles.twoCol, { marginTop: 4 }]}>
+        {/* ── Annual cash summary ── */}
+        <View style={[styles.twoCol, styles.annualCashRow]}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Fixed Cash (Annual)</Text>
             <InrAmountText amount={breakdown.annualFixedCashTotal} style={styles.statVal} />
@@ -416,7 +439,7 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
         </View>
 
         {/* ── Component table ── */}
-        <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Salary Components</Text>
+        <Text style={[styles.sectionTitle, { marginTop: 10 }]}>Salary Components</Text>
 
         {/* Table header */}
         <View style={styles.tableHeader}>
