@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Download, FileSpreadsheet, FileText, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PDFPreviewModal } from "./pdf-preview-modal";
@@ -10,6 +10,8 @@ import {
   salaryCSVFilename,
 } from "@/lib/utils/export-csv";
 import type { SalaryBreakdown, SalaryInput } from "@/lib/types/salary.types";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
+import { mergeSalaryInputWithProfile } from "@/lib/utils/salary-input-profile";
 import { cn } from "@/lib/utils";
 
 interface ExportDropdownProps {
@@ -34,6 +36,11 @@ export function ExportDropdown({
   const [open, setOpen] = useState(false);
   const [pdfOpen, setPDFOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const user = useAuthStore((s) => s.user);
+  const inputForExport = useMemo(
+    () => mergeSalaryInputWithProfile(input, user),
+    [input, user]
+  );
 
   // ── Close dropdown on outside click ──
   useEffect(() => {
@@ -60,10 +67,10 @@ export function ExportDropdown({
   // ── CSV download (immediate) ──
   const handleCSV = useCallback(() => {
     setOpen(false);
-    const csv = buildSalaryCSV(breakdown, input);
+    const csv = buildSalaryCSV(breakdown, inputForExport);
     const filename = salaryCSVFilename(breakdown.statedAnnualCTC);
     downloadCSV(csv, filename);
-  }, [breakdown, input]);
+  }, [breakdown, inputForExport]);
 
   // ── PDF preview ──
   const handlePDFPreview = useCallback(() => {
@@ -164,7 +171,7 @@ export function ExportDropdown({
         open={pdfOpen}
         onClose={() => setPDFOpen(false)}
         breakdown={breakdown}
-        input={input}
+        input={inputForExport}
       />
     </>
   );

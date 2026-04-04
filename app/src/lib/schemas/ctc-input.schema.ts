@@ -2,10 +2,6 @@ import { z } from "zod";
 
 export const ctcInputSchema = z
   .object({
-    fullName: z.string().optional(),
-    email: z
-      .union([z.literal(""), z.string().email("Enter a valid email")])
-      .optional(),
     annualCTC: z
       .number({ error: "Annual CTC is required" })
       .min(100_000, "CTC must be at least ₹1,00,000")

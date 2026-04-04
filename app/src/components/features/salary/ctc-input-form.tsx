@@ -10,8 +10,6 @@ import { PageShell } from "@/components/layout/page-shell";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
 import { SalaryRecentsPanels } from "@/components/features/salary/salary-recents-panels";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Tooltip,
   TooltipContent,
@@ -73,8 +71,6 @@ export function CtcInputForm() {
   const form = useForm<CTCInputFormData>({
     resolver: zodResolver(ctcInputSchema),
     defaultValues: {
-      fullName: input.fullName ?? "",
-      email: input.email ?? "",
       annualCTC: Math.max(0, input.annualCTC),
       compensationMode: input.compensationMode ?? "total_only",
       fixedAnnual: input.fixedAnnual ?? 0,
@@ -86,8 +82,6 @@ export function CtcInputForm() {
 
   useEffect(() => {
     form.reset({
-      fullName: input.fullName ?? "",
-      email: input.email ?? "",
       annualCTC: Math.max(0, input.annualCTC),
       compensationMode: input.compensationMode ?? "total_only",
       fixedAnnual: input.fixedAnnual ?? 0,
@@ -97,8 +91,6 @@ export function CtcInputForm() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- sync store → form when returning to this screen
   }, [
-    input.fullName,
-    input.email,
     input.annualCTC,
     input.compensationMode,
     input.fixedAnnual,
@@ -143,8 +135,8 @@ export function CtcInputForm() {
   const onSubmit = async (data: CTCInputFormData) => {
     if (historyLimitReached) return;
     setInput({
-      fullName: data.fullName,
-      email: data.email,
+      fullName: "",
+      email: "",
       annualCTC: data.annualCTC,
       compensationMode: data.compensationMode,
       fixedAnnual:
@@ -320,38 +312,8 @@ export function CtcInputForm() {
             <p className="text-xs font-semibold uppercase tracking-wide text-navy-400 mb-6">
               Estimated from your inputs
             </p>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-navy-800">
-                  Full Name
-                </Label>
-                <Input
-                  id="fullName"
-                  placeholder="e.g. Alex Rivera"
-                  className="h-11 rounded-xl border-navy-200 bg-white"
-                  {...form.register("fullName")}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-navy-800">
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="alex@example.com"
-                  className="h-11 rounded-xl border-navy-200 bg-white"
-                  {...form.register("email")}
-                />
-                {form.formState.errors.email && (
-                  <p className="text-xs text-danger-500">
-                    {form.formState.errors.email.message}
-                  </p>
-                )}
-              </div>
-            </div>
 
-            <div className="mt-8">
+            <div>
               <CompensationCtcSectionForm
                 control={form.control}
                 setValue={form.setValue}

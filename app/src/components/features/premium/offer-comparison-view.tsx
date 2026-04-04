@@ -730,10 +730,10 @@ export function OfferComparisonView() {
   }
 
   return (
-    <PageShell className="py-6 pb-28 md:py-10 md:pb-10">
+    <PageShell className="py-0 pt-2 pb-28 md:pt-3 md:pb-10">
       {persistOffers && upsertOfferSession.isPending ? (
         <div
-          className="mb-3 flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-wide text-navy-400"
+          className="mb-2 flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-wide text-navy-400"
           aria-live="polite"
         >
           <Loader2 className="size-3.5 shrink-0 animate-spin text-teal-600" aria-hidden />
@@ -741,12 +741,12 @@ export function OfferComparisonView() {
         </div>
       ) : null}
       <motion.section
-        className="overflow-hidden rounded-3xl border border-navy-200/60 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_20px_50px_-24px_rgba(15,23,42,0.1)]"
+        className="rounded-3xl border border-navy-200/60 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_20px_50px_-24px_rgba(15,23,42,0.1)]"
       >
         <div className="min-w-0">
-            <div className="sticky top-16 z-20 border-b border-navy-100/90 bg-white/95 px-4 py-4 backdrop-blur-md supports-[backdrop-filter]:bg-white/88 md:px-6">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-6">
-                <div className="min-w-0 flex-1 space-y-2">
+          <div className="sticky top-16 z-20 rounded-t-3xl border-b border-navy-100/90 bg-white/95 px-4 py-2.5 backdrop-blur-md supports-[backdrop-filter]:bg-white/88 md:px-6 md:py-3">
+            <div className="flex flex-col gap-2.5 md:flex-row md:items-start md:justify-between md:gap-5">
+                <div className="min-w-0 flex-1 space-y-1.5">
                   <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-700">
                     Premium · Offer comparison
                   </p>
@@ -788,7 +788,7 @@ export function OfferComparisonView() {
                     in this panel with your inputs.
                   </p>
                 </div>
-                <div className="flex shrink-0 flex-wrap items-center gap-2 md:pt-1">
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <Tooltip>
                     <TooltipTrigger
                       type="button"
@@ -824,10 +824,10 @@ export function OfferComparisonView() {
                     {comparisonRevealed ? "View comparison" : "Compare offers"}
                   </Button>
                 </div>
-              </div>
             </div>
+          </div>
 
-            <div className="space-y-6 p-4 md:p-6">
+          <div className="space-y-6 p-4 md:p-6">
               <div
                 className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
                 role="toolbar"

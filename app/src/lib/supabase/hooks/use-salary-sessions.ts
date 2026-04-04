@@ -19,6 +19,8 @@ import type { Database } from "@/lib/supabase/database.types";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 import type { SalaryBreakdown, SalaryInput } from "@/lib/types/salary.types";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
+import { mergeSalaryInputWithProfile } from "@/lib/utils/salary-input-profile";
 
 type SalarySessionRow = Database["public"]["Tables"]["salary_sessions"]["Row"];
 
@@ -76,7 +78,11 @@ export function useCreateSalarySessionMutation() {
       };
     }): Promise<SalarySessionRow> => {
       const sb = getBrowserSupabase();
-      return createSalarySession(sb, args.input, args.breakdown, args.planning);
+      const input = mergeSalaryInputWithProfile(
+        args.input,
+        useAuthStore.getState().user
+      );
+      return createSalarySession(sb, input, args.breakdown, args.planning);
     },
     onSuccess: (row: SalarySessionRow) => {
       const detail = {
@@ -114,10 +120,16 @@ export function useUpdateSalarySessionMutation() {
       baselineBreakdown: SalaryBreakdown;
     }): Promise<SalarySessionUpdateResult> => {
       const sb = getBrowserSupabase();
-      const patch = diffSalarySessionRow(
+      const user = useAuthStore.getState().user;
+      const input = mergeSalaryInputWithProfile(args.input, user);
+      const baselineInput = mergeSalaryInputWithProfile(
         args.baselineInput,
+        user
+      );
+      const patch = diffSalarySessionRow(
+        baselineInput,
         args.baselineBreakdown,
-        args.input,
+        input,
         args.breakdown
       );
       if (!patch) {

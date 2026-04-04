@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
+import { salarySessionListTitle } from "@/lib/utils/salary-input-profile";
 import type { HistoryEntry } from "@/lib/types/history.types";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { SalaryInput } from "@/lib/types/salary.types";
@@ -63,9 +65,10 @@ export const useHistoryStore = create<HistoryState>()(
           return null;
         }
         const id = crypto.randomUUID();
-        const title =
-          input.fullName?.trim() ||
-          `₹${(input.annualCTC / 100000).toFixed(1)}L CTC`;
+        const title = salarySessionListTitle(
+          input,
+          useAuthStore.getState().user
+        );
         const entry: SalaryHistoryEntry = {
           kind: "salary",
           id,

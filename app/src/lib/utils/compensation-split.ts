@@ -2,8 +2,27 @@ import type { CompensationMode } from "@/lib/types/salary.types";
 
 export type DerivedCompField = "fixed" | "variable";
 
-/** Total CTC changed in fixed+variable mode: keep fixed (clamped), derive variable. */
-export function applyTotalInSplit(
+/**
+ * Headline total changed in fixed+variable mode: put the full amount in fixed by default;
+ * variable stays empty (0) until the user adds variable pay.
+ */
+export function applyTotalInSplit(total: number): {
+  annualCTC: number;
+  fixedAnnual: number;
+  variableAnnual: number;
+  derived: DerivedCompField;
+} {
+  const t = Math.max(0, Math.floor(total));
+  return {
+    annualCTC: t,
+    fixedAnnual: t,
+    variableAnnual: 0,
+    derived: "variable",
+  };
+}
+
+/** Fixed changed: keep total, derive variable from total − fixed. */
+export function applyFixedInSplit(
   total: number,
   fixed: number
 ): { annualCTC: number; fixedAnnual: number; variableAnnual: number; derived: DerivedCompField } {
@@ -15,14 +34,6 @@ export function applyTotalInSplit(
     variableAnnual: t - f,
     derived: "variable",
   };
-}
-
-/** Fixed changed: derive variable from total − fixed. */
-export function applyFixedInSplit(
-  total: number,
-  fixed: number
-): { annualCTC: number; fixedAnnual: number; variableAnnual: number; derived: DerivedCompField } {
-  return applyTotalInSplit(total, fixed);
 }
 
 /** Variable changed: derive fixed from total − variable. */
@@ -46,7 +57,7 @@ export function initialSplitFromTotal(total: number): {
   variableAnnual: number;
 } {
   const t = Math.max(0, Math.floor(total));
-  return { fixedAnnual: 0, variableAnnual: t };
+  return { fixedAnnual: t, variableAnnual: 0 };
 }
 
 export function isSplitBalanced(

@@ -75,7 +75,7 @@ export function CompensationCtcSectionForm({
       sync({ annualCTC: n });
       return;
     }
-    const out = applyTotalInSplit(n, fixedAnnual);
+    const out = applyTotalInSplit(n);
     sync({
       annualCTC: out.annualCTC,
       fixedAnnual: out.fixedAnnual,
@@ -161,7 +161,7 @@ export function CompensationCtcSectionControlled({
       onPatch({ annualCTC: n });
       return;
     }
-    const out = applyTotalInSplit(n, fixedAnnual);
+    const out = applyTotalInSplit(n);
     onPatch({
       annualCTC: out.annualCTC,
       fixedAnnual: out.fixedAnnual,

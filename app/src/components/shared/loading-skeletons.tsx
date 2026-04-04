@@ -135,9 +135,9 @@ export function SalaryBreakdownSkeleton() {
 /** Offer comparison — sticky header strip + two offer panels */
 export function OfferComparisonSkeleton() {
   return (
-    <PageShell className="py-6 pb-28 md:py-10 md:pb-10">
-      <div className="overflow-hidden rounded-3xl border border-navy-200/60 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_20px_50px_-24px_rgba(15,23,42,0.1)]">
-        <div className="border-b border-navy-100/90 px-4 py-4 md:px-6">
+    <PageShell className="py-0 pt-2 pb-28 md:pt-3 md:pb-10">
+      <div className="rounded-3xl border border-navy-200/60 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_20px_50px_-24px_rgba(15,23,42,0.1)]">
+        <div className="rounded-t-3xl border-b border-navy-100/90 px-4 py-2.5 md:px-6 md:py-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-3 w-40 rounded" />

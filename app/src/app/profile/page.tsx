@@ -78,11 +78,6 @@ export default function ProfilePage() {
           <p className="text-sm font-medium text-navy-800 capitalize">
             {user.planTier}
           </p>
-          <p className="text-xs text-navy-400 mt-1">
-            Resolved as premium when your plan is premium or when{" "}
-            <code className="text-navy-600">NEXT_PUBLIC_ACCESS_MODE=premium</code>{" "}
-            is set (dev override).
-          </p>
         </div>
 
         <div>
