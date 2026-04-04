@@ -1,10 +1,27 @@
 # SALARY_COMPONENTS.md — Indian salary breakdown (InHand)
 
-Product reference for the **Salary Breakdown** screen: information architecture, data model, tooltip copy strategy, badges, and calculation display rules. Implementation lives in `app/src/lib/constants/salary-component-catalog.ts`, `salary.types.ts`, `calculate-salary.ts`, and `salary-breakdown-view.tsx`.
+Product reference for salary math and tables. This doc focuses on the **full Salary Breakdown** screen; the **free calculator** on `/salary` is a separate, lighter path (see below).
 
 ---
 
-## 1. Information architecture
+## 0. Free salary calculator (`/salary`)
+
+**Not** the component-level breakdown. Single-page estimator only.
+
+| Piece | Role |
+|--------|------|
+| `lib/simple-salary-calculator/types.ts` | `SimpleSalaryInput` (`annualFixedPay`, `annualVariablePay`, regime, monthly PF/prof tax, extra rows) |
+| `lib/simple-salary-calculator/calculate-simple-salary.ts` | `calculateSimpleSalarySummary()` — fixed-only vs fixed+variable gross; TDS on each basis; same PT/PF/extras for both; **no** 80C/HRA |
+| `lib/simple-salary-calculator/sync-compensation-split.ts` | Reconcile **annual CTC** with fixed/variable (preserve fixed on CTC edit; keep package sum consistent) |
+| `features/salary-calculator/*` | Form (fixed + variable sections), `FixedVariableInHandPanel` (2×2 in-hand grid), `SalaryCompositionPanel`, premium cards + upgrade sheet |
+
+**UI rules:** Results column stacks **in-hand panel** → composition. Variable pay is visually separate in the form (dashed/amber block); right column copy stresses **guaranteed vs illustrative** in-hand.
+
+**Handoff:** Users who need the full modeled component table use **`/salary/detailed`** → **`/salary/breakdown`** (sections 1+ below).
+
+---
+
+## 1. Information architecture (full breakdown)
 
 1. **Hero stats** — **Est. monthly in-hand (excl. variable)**; **Monthly in-hand (incl. variable)** (÷12 illustrative); annual tax; total deductions. Plus a compact strip: **annual fixed cash**, **annual variable cash**, **total annual cash (fixed + variable)**, **stated CTC**, **modeled package** (earnings + employer lines).
 2. **Truth banner** — Estimated vs document-parsed; disclaimer that CTC ≠ in-hand.

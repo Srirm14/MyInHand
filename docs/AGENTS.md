@@ -14,12 +14,12 @@ Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode
 
 ## Key Codebase Facts
 
-- **107 files** across app/, components/, lib/.
+- **~110+ files** across app/, components/, lib/ (count drifts with features).
 - **5 Zustand stores:** auth, salary, lifestyle, history, offer-comparison-restore.
 - **4 Zod schemas:** auth, ctc-input, lifestyle, offer.
 - **3 access tiers:** anonymous, signed-in free, signed-in premium.
 - **Brand name:** "InHand" (not "The Fluid Ledger" — that was a design mockup name).
-- **Premium gate:** env `NEXT_PUBLIC_ACCESS_MODE=premium` + session cookie; dev defaults to premium.
+- **Premium gate:** env `NEXT_PUBLIC_ACCESS_MODE=premium` + session cookie where middleware requires it. Unset env = free tier (not premium) in development too.
 - **Auth:** Demo-local (Zustand persist + cookie marker). No real backend yet.
 
 ## Planning Rules
@@ -64,12 +64,19 @@ Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode
 - Utils: `src/lib/utils/[name].ts` — pure functions, no React.
 - Constants: `src/lib/constants/[name].ts`.
 
+## `/salary` route
+
+- **`PREMIUM_UNLOCKED`:** **`CtcInputForm`** (legacy name/CTC → breakdown). **`default` / paywall:** **`SalaryCalculatorScreen`** (free calculator only).
+- **Free calculator** — **`lib/simple-salary-calculator/`** + **`sync-compensation-split.ts`**: total CTC field keeps fixed/variable in sync; **dual** in-hand; TDS on fixed vs fixed+variable (no separate deductions table on `/salary`).
+- Syncs `annualCTC`, `taxRegime`, `compensationMode: "fixed_variable"`, `fixedAnnual`, `variableAnnual` into `use-salary-store`.
+- Full component table: **`/salary/detailed`** → **`/salary/breakdown`** (or premium path from **`CtcInputForm`**).
+
 ## Nav Architecture (important)
 
 - **SalaryNavItem** (`components/layout/salary-nav-item.tsx`): Smart context-aware nav.
   - No CTC: shows "Salary"
   - CTC entered: shows "Salary (25 LPA)"
-  - Premium + saved salaries **or** active breakdown: label + chevron open menu (last 5 salary rows, New in-hand check, etc.)
+  - Premium build (`PREMIUM_UNLOCKED`): label + chevron menu (last 5 salary rows, New in-hand check, etc.). Default/free build: static Salary link, no nav switcher
   - Free / anonymous: static label only
 - **Premium nav links** (Offers, Forecast, EMI): only visible for premium signed-in users.
 - **History sheet** (`recent-history-sheet.tsx`): premium-only right drawer, last 5 mixed entries; trash removes salary (`RemoveSalaryEntryDialog`) or offer comparison (`RemoveOfferComparisonEntryDialog`).

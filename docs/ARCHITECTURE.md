@@ -20,7 +20,7 @@
 - **`DESIGN_SYSTEM.md`** — Colors, typography, card/form/nav patterns.
 - **`PRODUCT_FLOW.md`** — Screen definitions, access tiers, CTA behavior.
 
-## Folder Structure (107 files)
+## Folder Structure (app grows with features; see tree below)
 
 ```
 src/
@@ -32,8 +32,9 @@ src/
 │   ├── forgot-password/page.tsx
 │   ├── profile/page.tsx              # Protected
 │   ├── salary/
-│   │   ├── page.tsx                  # CTC input + document upload + recents
-│   │   └── breakdown/page.tsx        # Editable breakdown (SalaryBreakdownView)
+│   │   ├── page.tsx                  # Premium: CtcInputForm; default/paywall: SalaryCalculatorScreen
+│   │   ├── detailed/page.tsx         # CtcInputForm: manual/upload + recents → breakdown
+│   │   └── breakdown/page.tsx      # Editable breakdown (SalaryBreakdownView)
 │   ├── lifestyle/page.tsx            # Monthly plan (MonthlyPlanView)
 │   ├── paywall/page.tsx              # Premium gate (locked/unlocked variants)
 │   └── premium/
@@ -63,6 +64,7 @@ src/
 │   │   └── salary-breakdown-readonly-panel.tsx
 │   ├── features/                     # Screen-specific compositions
 │   │   ├── landing/marketing-landing.tsx
+│   │   ├── salary-calculator/        # Free /salary: form, FixedVariableInHandPanel, deductions, composition, premium, upgrade sheet
 │   │   ├── salary/ctc-input-form.tsx
 │   │   ├── salary/compensation-ctc-section.tsx  # Form + Controlled variants
 │   │   ├── salary/salary-breakdown-view.tsx
@@ -86,6 +88,7 @@ src/
 ├── lib/
 │   ├── auth/session-cookie.ts        # Demo cookie helpers (fl_session_email)
 │   ├── config/access-mode.ts         # PREMIUM_UNLOCKED, PaywallTool, tier logic
+│   ├── config/premium-planning-tools.ts  # Metadata for premium cards on /salary
 │   ├── schemas/                      # Zod (4)
 │   │   ├── auth.schema.ts            # login, signup, forgot-password, profile
 │   │   ├── ctc-input.schema.ts       # CTC + fixed/variable split validation
@@ -117,7 +120,11 @@ src/
 │   │   ├── city-tiers.ts             # Tier1/2/3 + HRA percentages
 │   │   ├── salary-components.ts      # Legacy reference list
 │   │   └── salary-component-catalog.ts  # 268-line detailed tooltips
-│   └── utils/                        # Pure functions (11)
+│   ├── simple-salary-calculator/     # Free /salary: fixed+variable + CTC sync; dual in-hand + dual TDS
+│   │   ├── types.ts
+│   │   ├── calculate-simple-salary.ts
+│   │   └── sync-compensation-split.ts  # Total CTC vs fixed vs variable reconciliation
+│   └── utils/                        # Pure functions (11+)
 │       ├── format-currency.ts        # formatCurrency, formatCurrencyCompact, formatCTCAsLPA, formatIndianNumber, formatPercentage
 │       ├── format-relative-time.ts
 │       ├── calculate-salary.ts       # Core breakdown engine + recalc + derive summaries
@@ -149,7 +156,7 @@ Dependencies flow downward only.
 
 | Concern | Solution |
 |---------|----------|
-| User inputs (CTC, split, city, regime) | `use-salary-store` (SalaryInput) |
+| User inputs (CTC, split, city, regime) | `use-salary-store` (SalaryInput); `/salary` calculator also syncs `annualCTC` + `taxRegime` into the store |
 | Salary breakdown (components, summaries) | `use-salary-store` (SalaryBreakdown) |
 | Lifestyle expenses + surplus | `use-lifestyle-store` |
 | Auth (demo local) | `use-auth-store` (persisted, cookie sync) |
@@ -181,14 +188,14 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 **SalaryNavItem** is the smart context-aware nav entry:
 - No CTC → "Salary"
 - CTC entered → "Salary (25 LPA)" via `formatCTCAsLPA()`
-- Premium + (saved salaries **or** active breakdown) → label + chevron open the same menu (last 5 salary rows, New in-hand check, Open current workspace, Manage saved salaries)
-- Free / anonymous → static label, no dropdown
+- Premium build (`PREMIUM_UNLOCKED`) → label + chevron open the same menu (last 5 salary rows, New in-hand check, Open current workspace, Manage saved salaries)
+- Default / free build → static Salary link, no chevron
 
 Premium nav links (Offers, Forecast, EMI) only visible for premium signed-in users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
 
 **Salary breakdown scroll:** Leaving `/salary/breakdown` for Monthly plan / EMI / Forecast (etc.) saves `window` scroll Y in `sessionStorage` (`useSalaryBreakdownScrollRestoration` + `persistSalaryBreakdownScrollNow` on outbound pointerdown). Returning uses `useLayoutEffect` restore and `Link scroll={false}` on “Back to breakdown” so the App Router does not force the document to the top after restore. `clearSalaryBreakdownScrollSave()` on fresh CTC submit or “Back to salary inputs” resets the saved position.
 
-**Salary entry history (premium):** `use-history-store` keeps at most **`SALARY_HISTORY_MAX_ENTRIES` (40)** `salaryContexts` (newest first). The nav chevron lists the **five** most recent; `/salary/history` shows the full list. `removeSalaryContext(id)` drops one row from `salaryContexts` and the mixed `entries` list. `removeOfferComparisonEntry(id)` removes only an `offer_comparison` row from mixed `entries` (no salary list change). **SalaryNavItem** entry menu (label + chevron toggle): **New in-hand check**, **Open current workspace** when a breakdown exists, saved rows with trash, **Manage saved salaries**; menu shows whenever the user is premium and has **any saved salary** *or* an active breakdown (so a fresh CTC page still exposes history). **`useSalaryHistoryDelete`** + **`RemoveSalaryEntryDialog`** reconcile the active salary after removal (nav menu, **recent-history-sheet**, `/salary/history`). **`RemoveOfferComparisonEntryDialog`** + trash on offer rows in **recent-history-sheet** for offer removal. New salary runs are blocked at 40 until the user removes an entry (banner on salary form + history page).
+**Salary entry history (premium):** `use-history-store` keeps at most **`SALARY_HISTORY_MAX_ENTRIES` (40)** `salaryContexts` (newest first). The nav chevron lists the **five** most recent; `/salary/history` shows the full list. `removeSalaryContext(id)` drops one row from `salaryContexts` and the mixed `entries` list. `removeOfferComparisonEntry(id)` removes only an `offer_comparison` row from mixed `entries` (no salary list change). **SalaryNavItem** entry menu (label + chevron toggle): **New in-hand check**, **Open current workspace** when a breakdown exists, saved rows with trash, **Manage saved salaries**; menu shows in **premium** builds only (`PREMIUM_UNLOCKED`), not in default/free access mode—regardless of login or history count. **`useSalaryHistoryDelete`** + **`RemoveSalaryEntryDialog`** reconcile the active salary after removal (nav menu, **recent-history-sheet**, `/salary/history`). **`RemoveOfferComparisonEntryDialog`** + trash on offer rows in **recent-history-sheet** for offer removal. New salary runs are blocked at 40 until the user removes an entry (banner on salary form + history page).
 
 **Offer comparison inputs:** New offer cards default **annual CTC 0** with **`00,00,000`-style placeholders** on total, fixed/variable split fields, joining bonus, and ESOP until the user enters amounts (`emptyOffer`, `CompensationCtcSectionControlled` / `CompensationCtcInputs`, offer view inputs).
 

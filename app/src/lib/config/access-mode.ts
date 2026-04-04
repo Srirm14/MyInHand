@@ -1,20 +1,19 @@
 /**
  * Access tier:
- * - Env `NEXT_PUBLIC_ACCESS_MODE=premium` → full tools.
- * - Env `NEXT_PUBLIC_ACCESS_MODE=default` → paywall (explicit).
- * - Env unset: **development** defaults to premium (easy local testing);
- *   **production** defaults to default (safe for deploy).
+ * - Env `NEXT_PUBLIC_ACCESS_MODE=premium` → full tools (same on dev and prod).
+ * - Env `NEXT_PUBLIC_ACCESS_MODE=default` or **unset** → free tier / paywall paths.
+ *
+ * Unset does **not** imply premium in development—so localhost matches production
+ * gating unless you explicitly set `premium`.
  */
 export type AccessMode = "default" | "premium";
 
 const raw = process.env.NEXT_PUBLIC_ACCESS_MODE?.toLowerCase().trim();
-const isDev = process.env.NODE_ENV === "development";
 
 /** Use in middleware / server — same rules as client `PREMIUM_UNLOCKED`. */
 export function getPremiumUnlockedFromEnv(): boolean {
   if (raw === "premium") return true;
-  if (raw === "default") return false;
-  return isDev;
+  return false;
 }
 
 export const ACCESS_MODE: AccessMode = getPremiumUnlockedFromEnv()

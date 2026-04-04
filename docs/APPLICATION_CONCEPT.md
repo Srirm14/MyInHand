@@ -28,12 +28,12 @@ CTC ≠ in-hand pay. Tax regimes are confusing. HRA, PF, professional tax, and r
 
 | Free (anonymous or signed-in) | Premium (signed-in + env premium) |
 |------|---------|
-| CTC → In-hand breakdown (estimated or document-parsed) | All free features |
-| Editable component table (allowances, variable pay) | Wealth Forecast (5/10/20 year) |
+| **`/salary` quick calculator:** Fixed + variable annual pay, regime toggle, PF/prof tax, optional deductions; **dual** in-hand (fixed-only vs incl. variable, monthly & annual); composition chart | All free features |
+| **`/salary/detailed` → `/salary/breakdown`:** full estimated or document-parsed component table (allowances, variable pay) | Wealth Forecast (5/10/20 year) |
 | Monthly lifestyle plan (rent, food, transport, misc) | Offer Comparison (2–3 offers side-by-side) |
 | Surplus/deficit indicator | EMI Analyzer with loan scenarios |
-| Salary + offer recents on salary page | Full history sheet (last 5 actions) |
-| | Premium nav links (Offers, Forecast, EMI) |
+| Salary + offer recents on **detailed** salary page | Full history sheet (last 5 actions) |
+| Premium tool cards on `/salary` (locked → upgrade sheet when not premium) | Premium nav links (Offers, Forecast, EMI) |
 | | Context-aware Salary nav dropdown |
 
 ## Value Proposition

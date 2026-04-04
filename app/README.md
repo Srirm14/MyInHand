@@ -16,19 +16,19 @@ Logic lives in `src/lib/config/access-mode.ts`.
 
 | When | Behavior |
 |------|----------|
-| `npm run dev` and env **unset** | **Premium** (full `/premium/*` tools) — no `.env` needed to test. |
-| `npm run dev` + `NEXT_PUBLIC_ACCESS_MODE=default` in `.env.local` | Paywall; test free-tier UX. |
-| Production build, env unset | **Default** (paywall). |
-| Any env + `NEXT_PUBLIC_ACCESS_MODE=premium` | Full tools. |
+| Env **unset** or `NEXT_PUBLIC_ACCESS_MODE=default` | **Free tier** (calculator on `/salary`; `/lifestyle`, `/salary/breakdown`, `/salary/detailed` redirect to `/salary`; `/premium/*` → paywall). Same in dev and production. |
+| `NEXT_PUBLIC_ACCESS_MODE=premium` | Full premium routes (still requires login where middleware says so). |
 
 Restart the dev server after changing `.env.local`.
 
 ## Routes
 
 - `/` — Marketing landing  
-- `/salary` — Salary input: **manual CTC** (total-only or optional **fixed + variable** split) or **document upload** (mock parse); **Last tracked salaries / Last compared offers**  
-- `/salary/breakdown` — KPI stat row; **Component breakup** (quick links + table + cash path); **Allocation benchmarks**; **Plan from this breakdown** cards (Monthly plan, EMI, forecast); estimated vs document banners  
-- `/lifestyle` — Monthly plan (spending + surplus gauge)  
+- `/salary` — **Premium env:** `CtcInputForm` → breakdown (legacy). **Default/paywall env:** free fixed/variable calculator only (in-hand + composition).  
+- `/salary/detailed`, `/salary/breakdown`, `/lifestyle` — **Premium env only** (`NEXT_PUBLIC_ACCESS_MODE=premium`). Otherwise middleware + server **redirect → `/salary`**. With premium env, **signed-in** still required (middleware).  
+- `/salary/detailed` — Detailed CTC + document upload + recents → breakdown  
+- `/salary/breakdown` — KPI row, component breakup, plan cards (EMI, forecast, monthly plan)  
+- `/lifestyle` — Monthly plan (spending + surplus)  
 - `/premium` — Hub for planning tools  
 - `/premium/offer-comparison` — **Manual** or **upload** 2–3 offers; same CTC split pattern as `/salary` per card (mock parse)  
 - `/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  

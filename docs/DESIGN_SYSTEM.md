@@ -96,6 +96,9 @@ White, rounded-2xl, p-6. Column headers: 11px uppercase. Type badges: EARNING (g
 ### Slider Card (Lifestyle)
 White, rounded-2xl, p-6. Lucide icon in teal circle + label + amount. Range input with teal track. Min/max labels below.
 
+### Free salary calculator — results column (`/salary`)
+Use a **fixed max-width** aside (`xl:max-w-[420px]`, `min-w-0`). Stack **`FixedVariableInHandPanel`** (2×2 grid: monthly/annual × fixed-only vs incl. variable; teal emphasis on **fixed-only** when variable > 0) → package composition (donut + bar + vertical legend). Form uses a **teal-bordered** block for fixed pay and **dashed amber** block for variable pay.
+
 ## Form Patterns
 
 ### Input
@@ -116,7 +119,7 @@ Primary row: large ₹ input + INR/Year pill. Optional mode toggle (Total only |
 
 - Fixed top, white bg, shadow-sm, border-b navy-200/60
 - Logo: "InHand" teal-600 font-display font-bold tracking-tight
-- **SalaryNavItem:** Context-aware. Shows "Salary" or "Salary (25 LPA)". Premium: dropdown chevron with last 5 salary contexts. Free: static label.
+- **SalaryNavItem:** Context-aware. Shows "Salary" or "Salary (25 LPA)". Premium build: dropdown chevron (last 5 salary contexts). Default/free build: static link, no chevron.
 - Premium nav: Offers, Forecast, EMI (visible only for premium signed-in)
 - Active link: underline decoration-2 underline-offset-[20px] decoration-teal-600
 - Right: Premium badge (Crown + teal-700 pill), History button (premium), Profile/Login

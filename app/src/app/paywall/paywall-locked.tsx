@@ -91,7 +91,7 @@ export function PaywallLocked({ tool, fromPremium }: PaywallLockedProps) {
           You were viewing: {focus.title}
         </p>
 
-        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
+        <div className="mt-8 flex flex-col items-center gap-4">
           <Link
             href="/salary"
             className={cn(
@@ -99,17 +99,12 @@ export function PaywallLocked({ tool, fromPremium }: PaywallLockedProps) {
               "rounded-full px-8 h-11 bg-teal-600 hover:bg-teal-700"
             )}
           >
-            Free salary breakdown
+            Back to free salary calculator
           </Link>
-          <Link
-            href="/lifestyle"
-            className={cn(
-              buttonVariants({ variant: "outline" }),
-              "rounded-full px-8 h-11 border-navy-200"
-            )}
-          >
-            Monthly plan
-          </Link>
+          <p className="text-center text-xs text-navy-500 max-w-md leading-relaxed">
+            Detailed breakdown, payslip-style tables, and monthly plan open after
+            Premium is unlocked.
+          </p>
         </div>
       </div>
     </PageShell>

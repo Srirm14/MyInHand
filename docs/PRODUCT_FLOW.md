@@ -5,7 +5,7 @@
 ### Anonymous (logged out)
 
 - **Header:** Brand + **Salary** (context-aware label) only. No Offers/Forecast/EMI, no Premium chip, no History. **Log in** / **Sign up** on right.
-- **Flow:** Landing → Salary input → Breakdown → Monthly plan → Surplus/deficit.
+- **Flow:** Landing → **`/salary` quick calculator** (optional **detailed** → breakdown) → Monthly plan → Surplus/deficit.
 - **Save nudge:** After breakdown and on monthly plan, "Save your activity" card → login/signup.
 - **Premium CTAs:** Resolve to sign-in first, then paywall or tool via `useTieredPremiumLinks`.
 - **Salary nav:** Shows "Salary" or "Salary (25 LPA)" — static, no dropdown.
@@ -13,7 +13,7 @@
 ### Signed-in — free tier
 
 - **Header:** Salary (context-aware) + Profile. No History in nav, no Premium crown, no deep premium nav links.
-- **Flow:** Same free salary + monthly plan path. Successful runs append to persisted history for recents.
+- **Flow:** Same free path: **`/salary`** calculator and/or **detailed** breakdown + monthly plan. Successful **breakdown** runs append to persisted history for recents.
 - **Premium intent:** Links go to `/paywall` (with `?tool=` where relevant).
 - **Salary nav:** Shows "Salary (25 LPA)" — static, no dropdown.
 
@@ -25,7 +25,8 @@
 
 ```
 Anonymous:
-  Landing → Salary → Breakdown → Monthly plan → Surplus
+  Landing → /salary (quick calc) → optional /salary/detailed → /salary/breakdown
+    → Monthly plan → Surplus
     └→ (optional) Login/Signup
 
 Signed-in (free):
@@ -53,20 +54,51 @@ Signed-in (premium):
 
 ---
 
-### 2. Salary Input (`/salary`)
+### 2. Salary entry (`/salary`) — route split by access mode
 
-**Purpose:** Start breakdown from manual CTC (estimated) or uploaded document (mock parse).
+**`PREMIUM_UNLOCKED` (env premium):** Renders **`CtcInputForm`** — name/email, manual CTC (total or fixed + variable), city tier, document upload, recents → **Show estimated breakdown** → `/salary/breakdown`. Same legacy premium path as before.
+
+**`PREMIUM_UNLOCKED === false` (paywall / production default):** Renders **`SalaryCalculatorScreen`** — free fixed/variable quick calculator only (no full component table on this page).
+
+---
+
+### 2a. Free Salary Calculator (`SalaryCalculatorScreen` on `/salary`)
+
+**Purpose:** Answer “What is my estimated monthly in-hand?” in one screen—fast, trustworthy, and visually clear—without the full payroll component table.
+
+**Layout:** Two-column on `xl+`: left **inputs**, right **live results** (stacked, full-width cards; no cramped multi-column stats in the sidebar). Single column on smaller breakpoints.
+
+**Inputs (`SalaryCalculatorForm`):**
+- **Tax regime:** Old vs New (drives `calculateIncomeTax` with standard deduction only; no 80C/HRA in this free path).
+- **Annual CTC (total package):** master field; keeps **fixed** as-is and sets **variable = CTC − fixed** (if CTC is below fixed, fixed is trimmed to CTC). Fixed and variable edits keep **total = fixed + variable** via `sync-compensation-split.ts`.
+- **Fixed pay:** annual fixed / guaranteed cash (core monthly gross basis for the “fixed only” view).
+- **Variable pay:** separate annual field (performance, bonus, variable CTC)—may not be monthly or guaranteed; drives higher TDS and “incl. variable” in-hand (variable ÷ 12 illustrative).
+- Monthly **professional tax**, **employee PF**, **employer PF** (employer PF affects **composition** only, not in-hand).
+- **Add deduction:** optional labeled rows (e.g. VPF, NPS).
+
+**Live outputs:** Recalculate on every change via `calculateSimpleSalarySummary` (`lib/simple-salary-calculator/`).
+
+- **`FixedVariableInHandPanel`:** Four clearly labeled figures—**monthly** and **annual** in-hand **(fixed only)** vs **(incl. variable)**—plus regime, helper copy on variable realism, and effective tax % on fixed gross vs fixed+variable when variable > 0.
+- **Package composition:** Based on **fixed + variable** monthly gross + employer PF (full-package visual).
+- **Premium section:** Metadata-driven cards; locked tier opens **Upgrade** sheet.
+
+**Store sync:** Writes `annualCTC` (= fixed + variable), `taxRegime`, `compensationMode: "fixed_variable"`, `fixedAnnual`, `variableAnnual` to `useSalaryStore` for nav and downstream tools.
+
+**Handoff:** Footer link **Detailed breakdown input** → `/salary/detailed` for full CTC form, document parse, and `/salary/breakdown` (free tier still reaches the old breakdown flow from here).
+
+---
+
+### 2b. Detailed CTC Input (`/salary/detailed`)
+
+**Purpose:** Start the **full** estimated or document-parsed breakdown (city tier, fixed/variable split, upload, recents).
 
 **Modes (tabs):**
-- **Manual CTC:** Name, Email, Annual CTC block (Total only | Fixed + variable), City Tier, Tax Regime → estimated breakdown.
+- **Manual CTC:** Name, Email, Annual CTC block (Total only | Fixed + variable), City Tier, Tax Regime → **Show estimated breakdown** → `/salary/breakdown`.
 - **Upload document:** PDF/image → mock parser infers CTC from filename → document-labeled result.
 
-**CTC block:** Segmented control. Total only: single input. Fixed + variable: three inputs with auto-sync, Auto/You-edit chips.
+**History restore:** "Last tracked salaries" + "Last compared offers" (`useHistoryStore`).
 
-**History restore:** Below form: "Last tracked salaries" + "Last compared offers" (recents from `useHistoryStore`).
-
-**Primary CTA:** "Show estimated breakdown"
-**Validation:** Zod: CTC min ₹1L, city tier, regime; split rules when Fixed + variable.
+**Validation:** Zod (`ctc-input.schema.ts`): CTC min ₹1L, city tier, regime; split rules when Fixed + variable.
 
 ---
 
@@ -144,9 +176,8 @@ Signed-in (premium):
 
 | User state | Nav label | Entry switcher (▼) |
 |-----------|-----------|---------------------|
-| No CTC entered | "Salary" | No |
-| CTC entered, anonymous/free | "Salary (25 LPA)" | No |
-| Premium + (saved salaries **or** active breakdown) | "Salary" or "Salary (25 LPA)" + chevron | **Whole label + chevron** toggles the menu (not chevron-only). Menu stays available after **New in-hand check** if history still has entries. **New in-hand check**, up to **5** recent rows, **Open current workspace** when applicable, `/salary/history` link. |
+| Default / free build (env unset or `default`) | "Salary" or "Salary (25 LPA)" | No — plain link to `/salary` or `/salary/breakdown` |
+| Premium build (`NEXT_PUBLIC_ACCESS_MODE=premium`) | "Salary" or "Salary (25 LPA)" + chevron | **Whole label + chevron** toggles the menu. **New in-hand check**, up to **5** recent rows (may be empty), **Open current workspace** when applicable, `/salary/history` link. |
 
 **New in-hand check** resets the salary store to an empty CTC (`annualCTC` 0) and opens `/salary`. Up to **40** salaries are stored on device; the form is blocked with a calm banner when full until one is removed.
 

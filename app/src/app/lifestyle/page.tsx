@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { MonthlyPlanView } from "@/components/features/lifestyle/monthly-plan-view";
+import { redirectToSalaryUnlessPremiumEnv } from "@/lib/server/redirect-free-tier-salary-routes";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Monthly plan",
@@ -8,5 +11,6 @@ export const metadata: Metadata = {
 };
 
 export default function LifestylePage() {
+  redirectToSalaryUnlessPremiumEnv();
   return <MonthlyPlanView />;
 }

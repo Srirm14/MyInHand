@@ -14,7 +14,6 @@ import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
-import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { formatCTCAsLPA, formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
@@ -274,7 +273,8 @@ function SalaryNavHistoryDropdown({
  * Context-aware Salary nav (primary item):
  * - Before a completed run: label `Salary`, link → `/salary`
  * - After breakdown exists: `Salary (25 LPA)` via formatCTCAsLPA, link → `/salary/breakdown`
- * - Premium + saved contexts or active breakdown: label + chevron toggle menu (not chevron-only)
+ * - Premium build (`PREMIUM_UNLOCKED`): label + chevron menu (switch runs, new check).
+ *   Default/free build: plain Salary link only—no device-history switcher in nav.
  */
 export function SalaryNavItem() {
   const pathname = usePathname();
@@ -290,22 +290,22 @@ export function SalaryNavItem() {
     (s) => s.setActiveSalaryHistoryId
   );
 
-  const user = useAuthStore((s) => s.user);
   const salaryContexts = useHistoryStore((s) => s.salaryContexts);
 
   const isActive =
     pathname === "/salary" || pathname.startsWith("/salary/");
-  const loggedIn = Boolean(user);
-  const premium = loggedIn && PREMIUM_UNLOCKED;
 
   const hasMeaningfulCtc =
     breakdown != null && annualCTC >= MIN_CTC_FOR_LABEL;
   const ctcLabel = hasMeaningfulCtc ? formatCTCAsLPA(annualCTC) : "";
 
   const recentSalaries = salaryContexts.slice(0, DROPDOWN_LIMIT);
-  const hasDropdown =
-    premium &&
-    (salaryContexts.length > 0 || hasMeaningfulCtc);
+  /**
+   * Salary switcher is a premium-build feature only (`NEXT_PUBLIC_ACCESS_MODE=premium`
+   * only). Do not tie to login or history count—otherwise a guest or a user
+   * with breakdown but empty `salaryContexts` sees "Salary (1.2 Cr)" with no chevron.
+   */
+  const hasDropdown = PREMIUM_UNLOCKED;
 
   const salaryHref = breakdown ? "/salary/breakdown" : "/salary";
 

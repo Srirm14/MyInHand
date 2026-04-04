@@ -1,6 +1,6 @@
 # InHand
 
-Salary intelligence for Indian employees — manual or document-based salary input, editable breakdown, **monthly plan** surplus, offer comparison (manual or upload mock), and premium modules (EMI planner, wealth forecast, etc.). Product docs: `PRODUCT_FLOW.md`, `ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `AGENTS.md`.
+Salary intelligence for Indian employees — **`/salary`** is **premium** (legacy CTC → breakdown) or **free calculator** (fixed/variable + CTC sync) depending on `NEXT_PUBLIC_ACCESS_MODE`; **detailed** CTC/document path → editable breakdown; **monthly plan**; offer comparison; premium modules. Product docs: `PRODUCT_FLOW.md`, `ARCHITECTURE.md`, `DESIGN_SYSTEM.md`, `AGENTS.md`.
 
 ## Repository layout
 
@@ -27,6 +27,6 @@ cd app && npm install && npm run dev
 
 Open [http://localhost:3000](http://localhost:3000). A root `package.json` forwards `npm run dev|build|lint|start` to `./app`.
 
-**Premium vs paywall:** `npm run dev` unlocks premium by default (no env). Add `app/.env.local` with `NEXT_PUBLIC_ACCESS_MODE=default` to test the paywall locally. See `app/README.md`.
+**Premium vs paywall:** Without `NEXT_PUBLIC_ACCESS_MODE=premium` in `app/.env.local`, the app runs **free tier** locally (same as production). Set `NEXT_PUBLIC_ACCESS_MODE=premium` to test full flows. See `app/README.md`.
 
 Agent / contributor rules for the **Next.js app** live in `app/AGENTS.md` (pointer to root docs).
