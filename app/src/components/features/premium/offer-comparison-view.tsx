@@ -135,7 +135,7 @@ const VERDICT_FILTER_SEQUENCE: OfferVerdictFilterId[] = [
 ];
 
 /** Pixels to leave above the filter card when scrolling after Compare (avoids landing “below” the strip). */
-const SCROLL_ABOVE_SUMMARY_PX = 50;
+const SCROLL_ABOVE_SUMMARY_PX = 350;
 
 /** Subtle teal / emerald tints so expanded accordions are orienting, not loud. */
 const OFFER_PANEL_TINTS = [
