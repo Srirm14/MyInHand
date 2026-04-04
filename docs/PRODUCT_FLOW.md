@@ -134,8 +134,8 @@ Signed-in (premium):
 ### 5. Premium Paywall (`/paywall`)
 
 **Purpose:** Convert free → premium.
-**Content:** Feature comparison, pricing (or waitlist), testimonials, CTA.
-**Edge cases:** Already premium → redirect to dashboard.
+**Content (free tier):** The **same global Premium plans modal** as elsewhere (pricing section, backdrop). The route is a thin shell so shareable `/paywall` links still work; **`openPremiumPlansModal()`** from the Zustand store opens the identical UI from marketing, `/salary`, etc. Optional **`?from=premium`** sets contextual copy inside the modal.
+**Edge cases:** Premium env + unlocked → redirect to dashboard. Closing the modal while pathname is `/paywall` navigates to **`/salary`**.
 
 ---
 
@@ -152,6 +152,7 @@ Signed-in (premium):
 **Purpose:** Compare 2–3 offers on real take-home.
 **Inputs:** CTC details per offer (manual or document), city, regime. **New offers start with empty amounts** (CTC, fixed/variable when used, joining bonus, ESOP) and **`00,00,000`-style placeholders** until the user types; comparison table appears once each offer is named and CTC is at least ₹1L with a balanced split if applicable.
 **Outputs:** Side-by-side in-hand, component diff, first-year value, winner summary.
+**Upsell pattern:** When the offer screen is reachable without full premium unlock (e.g. future preview tier), in **manual** mode with **two or more valid offers**, a **blurred faux comparison strip** (`PremiumBlurOfferTeaser`) appears below the real table; CTA opens the global pricing modal. **Premium env:** omitted so subscribers are not nudged under their real data.
 **Recent activity:** A saved comparison row can be **removed** from the history sheet (trash + confirm); does not affect salary history.
 
 ---

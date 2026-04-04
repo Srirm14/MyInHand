@@ -25,7 +25,7 @@
 ```
 src/
 ├── app/                              # Next.js App Router (thin route pages)
-│   ├── layout.tsx                    # Root: fonts, providers (AuthSync, TooltipProvider), Navbar, Footer
+│   ├── layout.tsx                    # Root: fonts, providers, Navbar, Footer; Suspense + PremiumPlansModalHost (free tier: global pricing modal)
 │   ├── page.tsx                      # Landing (MarketingLanding)
 │   ├── login/page.tsx                # Auth
 │   ├── signup/page.tsx
@@ -36,7 +36,7 @@ src/
 │   │   ├── detailed/page.tsx         # CtcInputForm: manual/upload + recents → breakdown
 │   │   └── breakdown/page.tsx      # Editable breakdown (SalaryBreakdownView)
 │   ├── lifestyle/page.tsx            # Monthly plan (MonthlyPlanView)
-│   ├── paywall/page.tsx              # Premium gate (locked/unlocked variants)
+│   ├── paywall/page.tsx              # Free: minimal shell; global modal owns UX. Premium env: unlocked redirect
 │   └── premium/
 │       ├── layout.tsx                # Premium route guard
 │       ├── page.tsx                  # Dashboard hub (PremiumDashboard)
@@ -64,6 +64,9 @@ src/
 │   │   └── salary-breakdown-readonly-panel.tsx
 │   ├── features/                     # Screen-specific compositions
 │   │   ├── landing/marketing-landing.tsx
+│   │   ├── pricing/
+│   │   │   ├── premium-plans-modal.tsx      # Shared full-screen pricing (SalaryPricingSection embedded)
+│   │   │   └── premium-blur-offer-teaser.tsx  # Blurred faux metrics → openPremiumPlansModal
 │   │   ├── salary-calculator/        # Free /salary: form, FixedVariableInHandPanel, deductions, composition, premium, upgrade sheet
 │   │   ├── salary/ctc-input-form.tsx
 │   │   ├── salary/compensation-ctc-section.tsx  # Form + Controlled variants
@@ -76,6 +79,7 @@ src/
 │   │   └── premium/emi-analyzer-view.tsx
 │   ├── auth/auth-page-shell.tsx      # Centered card for auth forms
 │   ├── providers/auth-sync.tsx       # Cookie ↔ store sync
+│   ├── providers/premium-plans-modal-host.tsx  # /paywall + ?from=premium sync; PremiumPlansModal when !PREMIUM_UNLOCKED
 │   └── layout/
 │       ├── navbar.tsx                # Top nav with tiered chrome
 │       ├── salary-nav-item.tsx       # Context-aware "Salary (25 LPA)" + premium dropdown
@@ -94,12 +98,13 @@ src/
 │   │   ├── ctc-input.schema.ts       # CTC + fixed/variable split validation
 │   │   ├── lifestyle.schema.ts
 │   │   └── offer.schema.ts
-│   ├── stores/                       # Zustand (5 + 1 helper)
+│   ├── stores/                       # Zustand (6 + 1 helper)
 │   │   ├── use-auth-store.ts         # Persisted demo auth (users, login, signup, logout, profile)
 │   │   ├── use-salary-store.ts       # Input, breakdown, doc parse, editable components
 │   │   ├── use-lifestyle-store.ts    # Expenses, surplus calc
 │   │   ├── use-history-store.ts      # Persisted (localStorage); salary + offer recents
 │   │   ├── use-offer-comparison-restore-store.ts  # One-shot restore from history
+│   │   ├── use-premium-plans-modal-store.ts       # Global pricing modal open + fromPremium
 │   │   └── salary-breakdown-recalc-context.ts     # Helper: builds recalc params
 │   ├── hooks/
 │   │   ├── use-tiered-premium-links.ts  # anon→login, free→paywall, premium→tool
@@ -162,6 +167,7 @@ Dependencies flow downward only.
 | Auth (demo local) | `use-auth-store` (persisted, cookie sync) |
 | Salary + offer recents (last 5 mixed) | `use-history-store` (persisted localStorage); `removeSalaryContext`, `removeOfferComparisonEntry` |
 | Offer restore from history | `use-offer-comparison-restore-store` (one-shot) |
+| Premium plans modal (free tier) | `use-premium-plans-modal-store`; imperative `openPremiumPlansModal` / `closePremiumPlansModal` |
 | Form transient state | React Hook Form (local) |
 | UI ephemeral state | React useState (local) |
 

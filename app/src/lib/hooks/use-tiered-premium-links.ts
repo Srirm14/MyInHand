@@ -8,6 +8,7 @@ const TOOL_PATHS: Record<PaywallTool, string> = {
   offers: "/premium/offer-comparison",
   forecast: "/premium/wealth-forecast",
   emi: "/premium/emi-analyzer",
+  monthly: "/lifestyle",
 };
 
 /**

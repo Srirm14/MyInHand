@@ -27,6 +27,8 @@ import { formatCurrency } from "@/lib/utils/format-currency";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SalaryBreakdownEditablePanel } from "@/components/shared/salary-breakdown-editable-panel";
+import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
+import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -889,6 +891,12 @@ export function OfferComparisonView() {
           </div>
         </div>
       )}
+
+      {!PREMIUM_UNLOCKED && valid.length >= 2 && entryMode === "manual" ? (
+        <div className="mt-10 max-w-3xl">
+          <PremiumBlurOfferTeaser compact />
+        </div>
+      ) : null}
 
       <p className="mt-8 text-center text-xs text-navy-400">
         Same CTC structure assumptions as your{" "}

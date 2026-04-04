@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Crown, Lock } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
 import { cn } from "@/lib/utils";
 
 interface SalaryCalculatorPremiumTeaserProps {
@@ -118,15 +119,16 @@ export function SalaryCalculatorPremiumTeaser({
           >
             Unlock Premium
           </Button>
-          <Link
-            href="/paywall?from=premium"
+          <button
+            type="button"
             className={cn(
               buttonVariants({ variant: "ghost", size: "sm" }),
               "h-9 w-full rounded-full text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"
             )}
+            onClick={() => openPremiumPlansModal({ fromPremium: true })}
           >
-            View detailed breakdown
-          </Link>
+            Compare Free &amp; Premium plans
+          </button>
         </div>
       </div>
     </div>

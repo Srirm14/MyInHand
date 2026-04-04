@@ -22,7 +22,7 @@ export const ACCESS_MODE: AccessMode = getPremiumUnlockedFromEnv()
 
 export const PREMIUM_UNLOCKED = ACCESS_MODE === "premium";
 
-export type PaywallTool = "offers" | "forecast" | "emi";
+export type PaywallTool = "offers" | "forecast" | "emi" | "monthly";
 
 export function premiumHubHref(): string {
   return PREMIUM_UNLOCKED ? "/premium" : "/paywall";
@@ -35,6 +35,7 @@ export function premiumToolHref(tool: PaywallTool): string {
       offers: "/premium/offer-comparison",
       forecast: "/premium/wealth-forecast",
       emi: "/premium/emi-analyzer",
+      monthly: "/lifestyle",
     };
     return paths[tool];
   }

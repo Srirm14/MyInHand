@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthSync } from "@/components/providers/auth-sync";
+import { PremiumPlansModalHost } from "@/components/providers/premium-plans-modal-host";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import "./globals.css";
@@ -40,6 +42,9 @@ export default function RootLayout({
         <TooltipProvider>
           <AuthSync />
           <Navbar />
+          <Suspense fallback={null}>
+            <PremiumPlansModalHost />
+          </Suspense>
           <main className="flex-1">{children}</main>
           <Footer />
         </TooltipProvider>

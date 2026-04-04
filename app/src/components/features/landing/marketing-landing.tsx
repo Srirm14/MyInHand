@@ -8,14 +8,22 @@ import {
   Scale,
   TrendingUp,
 } from "lucide-react";
+import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
+import { SalaryPricingSection } from "@/components/features/pricing/salary-pricing-section";
 import { PageShell } from "@/components/layout/page-shell";
 import { FeatureCard } from "@/components/shared/feature-card";
 import { buttonVariants } from "@/components/ui/button";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
+import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
 import { cn } from "@/lib/utils";
 
 export function MarketingLanding() {
   const { toolHref } = useTieredPremiumLinks();
+  const user = useAuthStore((s) => s.user);
+  const loggedIn = Boolean(user);
+  const pricingPremiumHref = loggedIn ? "/profile" : "/login?from=%2Fpaywall";
 
   return (
     <div className="relative overflow-hidden">
@@ -64,6 +72,22 @@ export function MarketingLanding() {
             >
               See a free breakdown
             </Link>
+            {PREMIUM_UNLOCKED ? (
+              <Link
+                href="#pricing"
+                className="text-sm font-semibold text-teal-700 underline-offset-4 hover:underline sm:ml-1"
+              >
+                Compare Free &amp; Premium
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="text-sm font-semibold text-teal-700 underline-offset-4 hover:underline sm:ml-1"
+                onClick={() => openPremiumPlansModal()}
+              >
+                Compare Free &amp; Premium
+              </button>
+            )}
           </div>
         </section>
 
@@ -129,6 +153,20 @@ export function MarketingLanding() {
             />
           </div>
         </section>
+
+        {!PREMIUM_UNLOCKED ? (
+          <section className="mt-16 md:mt-20 mx-auto max-w-3xl">
+            <PremiumBlurOfferTeaser />
+          </section>
+        ) : null}
+
+        <div className="mt-24 md:mt-28">
+          <SalaryPricingSection
+            premiumHref={pricingPremiumHref}
+            freeHref="/salary"
+            id="pricing"
+          />
+        </div>
 
         <section className="mt-24 rounded-2xl bg-teal-600 px-8 py-12 text-center text-white shadow-md">
           <h2 className="text-h2 text-white mb-3">Start with your CTC</h2>

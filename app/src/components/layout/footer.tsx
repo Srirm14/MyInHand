@@ -15,6 +15,7 @@ export function Footer() {
 
   const productLinks = [
     { href: "/salary", label: "Calculator" },
+    { href: "/#pricing", label: "Pricing" },
     { href: toolHref("forecast"), label: "Forecast" },
     { href: toolHref("offers"), label: "Compare" },
   ];

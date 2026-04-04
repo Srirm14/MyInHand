@@ -33,6 +33,12 @@ Restart the dev server after changing `.env.local`.
 - `/premium/offer-comparison` — **Manual** or **upload** 2–3 offers; same CTC split pattern as `/salary` per card (mock parse)  
 - `/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  
 - `/premium/emi-analyzer` — EMI + DTI vs in-hand & monthly plan  
-- `/paywall` — Upgrade / waitlist copy (links into Premium hub)
+- `/paywall` — **Free tier:** opens the same global **Premium plans** modal as in-app CTAs (page is a minimal shell). **Premium env:** handled by the paywall page (unlocked redirect). Closing the modal while on `/paywall` returns to `/salary`.
+
+## Premium plans modal (free tier)
+
+- **Component:** `src/components/features/pricing/premium-plans-modal.tsx` (embedded pricing section).
+- **Host:** `src/components/providers/premium-plans-modal-host.tsx` in root `layout.tsx` (inside `Suspense` for `useSearchParams`).
+- **State:** `src/lib/stores/use-premium-plans-modal-store.ts` — call **`openPremiumPlansModal({ fromPremium?: boolean })`** from buttons or **`PremiumBlurOfferTeaser`**; **`closePremiumPlansModal()`** to dismiss.
 
 Design tokens and patterns: `../DESIGN_SYSTEM.md`.
