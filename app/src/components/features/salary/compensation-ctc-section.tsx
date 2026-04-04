@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefCallback,
+} from "react";
 import type { Control, UseFormSetValue } from "react-hook-form";
 import { useWatch } from "react-hook-form";
 import type { CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
@@ -25,10 +31,12 @@ export function CompensationCtcSectionForm({
   control,
   setValue,
   errors,
+  annualCtcInputRef,
 }: {
   control: Control<CTCInputFormData>;
   setValue: UseFormSetValue<CTCInputFormData>;
   errors?: FormErrors;
+  annualCtcInputRef?: RefCallback<HTMLInputElement | null>;
 }) {
   const mode = useWatch({ control, name: "compensationMode" });
   const annualCTC = useWatch({ control, name: "annualCTC" }) ?? 0;
@@ -119,6 +127,7 @@ export function CompensationCtcSectionForm({
       onVariableChange={onVariableChange}
       errors={errors}
       compact={false}
+      annualCtcInputRef={annualCtcInputRef}
     />
   );
 }
@@ -220,6 +229,7 @@ function CompensationCtcInputs({
   onVariableChange,
   errors,
   compact,
+  annualCtcInputRef,
 }: {
   mode: CompensationMode;
   annualCTC: number;
@@ -232,6 +242,7 @@ function CompensationCtcInputs({
   onVariableChange: (n: number) => void;
   errors?: FormErrors;
   compact?: boolean;
+  annualCtcInputRef?: RefCallback<HTMLInputElement | null>;
 }) {
   const totalErr = errors?.annualCTC?.message;
   const fixedErr = errors?.fixedAnnual?.message;
@@ -239,12 +250,15 @@ function CompensationCtcInputs({
 
   const [totalFocused, setTotalFocused] = useState(false);
   const [totalDraft, setTotalDraft] = useState("");
-  const totalInputRef = useRef<HTMLInputElement>(null);
+  const totalInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    if (totalFocused) return;
-    setTotalDraft("");
-  }, [annualCTC, totalFocused]);
+  const setTotalInputNode = useCallback(
+    (node: HTMLInputElement | null) => {
+      totalInputRef.current = node;
+      annualCtcInputRef?.(node);
+    },
+    [annualCtcInputRef]
+  );
 
   const displayTotal = totalFocused
     ? totalDraft
@@ -303,7 +317,7 @@ function CompensationCtcInputs({
           ₹
         </span>
         <input
-          ref={totalInputRef}
+          ref={setTotalInputNode}
           id="comp-total"
           type="text"
           inputMode="numeric"

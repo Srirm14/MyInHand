@@ -52,8 +52,8 @@ export interface SimpleSalarySummary {
 }
 
 export const defaultSimpleSalaryInput: SimpleSalaryInput = {
-  annualFixedPay: 10_800_000,
-  annualVariablePay: 1_200_000,
+  annualFixedPay: 1_800_000,
+  annualVariablePay: 0,
   monthlyProfessionalTax: 200,
   monthlyEmployerPf: 1_800,
   monthlyEmployeePf: 1_800,

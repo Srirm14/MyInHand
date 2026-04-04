@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { PageShell } from "@/components/layout/page-shell";
 import { FixedVariableInHandPanel } from "./fixed-variable-in-hand-panel";
 import { SalaryCalculatorPremiumTeaser } from "./salary-calculator-premium-teaser";
 import { PremiumFeatureSection } from "./premium-feature-section";
 import { SalaryCalculatorForm } from "./salary-calculator-form";
+import { OldRegimeTaxReferenceCard } from "./old-regime-tax-reference-card";
 import { SalaryCompositionPanel } from "./salary-composition-panel";
 import { UpgradeSheet } from "./upgrade-sheet";
 import { calculateSimpleSalarySummary } from "@/lib/simple-salary-calculator/calculate-simple-salary";
@@ -25,6 +26,7 @@ import {
   fadeUp,
   staggerContainer,
 } from "@/lib/motion/marketing-motion";
+import { smoothScrollInputIntoViewAndFocus } from "@/lib/dom/smooth-focus-input";
 
 function paywallHrefForTool(id: PlanningToolId | null): string {
   if (id === "wealth_forecast") return "/paywall?tool=forecast";
@@ -40,6 +42,12 @@ export function SalaryCalculatorScreen() {
   const [upgradeTool, setUpgradeTool] = useState<PremiumPlanningToolMeta | null>(
     null
   );
+  const annualCtcInputRef = useRef<HTMLInputElement | null>(null);
+  const setAnnualCtcInputNode = useCallback((node: HTMLInputElement | null) => {
+    annualCtcInputRef.current = node;
+  }, []);
+  const ctcFocusCleanupRef = useRef<(() => void) | null>(null);
+  const ctcFocusScheduledRef = useRef(false);
 
   const setStoreInput = useSalaryStore((s) => s.setInput);
 
@@ -66,6 +74,14 @@ export function SalaryCalculatorScreen() {
     input.annualVariablePay,
     setStoreInput,
   ]);
+
+  useEffect(
+    () => () => {
+      ctcFocusCleanupRef.current?.();
+      ctcFocusCleanupRef.current = null;
+    },
+    []
+  );
 
   const premiumLocked = !hasPremium;
 
@@ -130,8 +146,22 @@ export function SalaryCalculatorScreen() {
             animate="show"
             variants={staggerContainer(0.1)}
           >
-            <motion.div variants={fadeUp}>
-              <SalaryCalculatorForm value={input} onChange={setInput} />
+            <motion.div
+              variants={fadeUp}
+              onAnimationComplete={() => {
+                if (ctcFocusScheduledRef.current) return;
+                ctcFocusScheduledRef.current = true;
+                ctcFocusCleanupRef.current?.();
+                ctcFocusCleanupRef.current = smoothScrollInputIntoViewAndFocus(
+                  annualCtcInputRef.current
+                );
+              }}
+            >
+              <SalaryCalculatorForm
+                value={input}
+                onChange={setInput}
+                annualCtcInputRef={setAnnualCtcInputNode}
+              />
             </motion.div>
             <motion.div variants={fadeUp}>
               <SalaryCalculatorPremiumTeaser
@@ -173,6 +203,11 @@ export function SalaryCalculatorScreen() {
                 annualVariablePay={input.annualVariablePay}
               />
             </motion.div>
+            {input.taxRegime === "old" ? (
+              <motion.div variants={fadeUp}>
+                <OldRegimeTaxReferenceCard />
+              </motion.div>
+            ) : null}
             <motion.div variants={fadeUp}>
               <SalaryCompositionPanel
                 takeHomeShare={summary.compositionTakeHome}

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -35,6 +36,8 @@ import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { TaxRegime } from "@/lib/types/salary.types";
 import { cn } from "@/lib/utils";
 import { CompensationCtcSectionForm } from "@/components/features/salary/compensation-ctc-section";
+import { smoothScrollInputIntoViewAndFocus } from "@/lib/dom/smooth-focus-input";
+import { fadeUp } from "@/lib/motion/marketing-motion";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -47,6 +50,12 @@ type EntryMode = "manual" | "document";
 export function CtcInputForm() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const annualCtcInputRef = useRef<HTMLInputElement | null>(null);
+  const setAnnualCtcInputNode = useCallback((node: HTMLInputElement | null) => {
+    annualCtcInputRef.current = node;
+  }, []);
+  const premiumCtcFocusCleanupRef = useRef<(() => void) | null>(null);
+  const manualCtcFocusOnceRef = useRef(false);
   const user = useAuthStore((s) => s.user);
   const persist = shouldPersistSessions(user);
   const createSalarySession = useCreateSalarySessionMutation();
@@ -62,6 +71,20 @@ export function CtcInputForm() {
   const [entryMode, setEntryMode] = useState<EntryMode>("manual");
   const [docParsing, setDocParsing] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (entryMode !== "manual") {
+      manualCtcFocusOnceRef.current = false;
+    }
+  }, [entryMode]);
+
+  useEffect(
+    () => () => {
+      premiumCtcFocusCleanupRef.current?.();
+      premiumCtcFocusCleanupRef.current = null;
+    },
+    []
+  );
 
   const localSalaryCount = useHistoryStore((s) => s.salaryContexts.length);
   const salaryHistoryCount = persist ? cloudSalaryList.length : localSalaryCount;
@@ -305,9 +328,19 @@ export function CtcInputForm() {
             </p>
           </div>
         ) : (
-          <form
+          <motion.form
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
             onSubmit={form.handleSubmit(onSubmit)}
             className="rounded-2xl border border-navy-200/50 bg-white p-6 md:p-8 shadow-sm"
+            onAnimationComplete={() => {
+              if (manualCtcFocusOnceRef.current) return;
+              manualCtcFocusOnceRef.current = true;
+              premiumCtcFocusCleanupRef.current?.();
+              premiumCtcFocusCleanupRef.current =
+                smoothScrollInputIntoViewAndFocus(annualCtcInputRef.current);
+            }}
           >
             <p className="text-xs font-semibold uppercase tracking-wide text-navy-400 mb-6">
               Estimated from your inputs
@@ -318,6 +351,7 @@ export function CtcInputForm() {
                 control={form.control}
                 setValue={form.setValue}
                 errors={form.formState.errors}
+                annualCtcInputRef={setAnnualCtcInputNode}
               />
             </div>
 
@@ -384,7 +418,7 @@ export function CtcInputForm() {
                 </>
               )}
             </Button>
-          </form>
+          </motion.form>
         )}
 
         <SalaryRecentsPanels />

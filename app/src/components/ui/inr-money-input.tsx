@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  forwardRef,
   useEffect,
   useRef,
   useState,
@@ -56,19 +57,23 @@ export interface InrMoneyInputProps
  * Premium INR field: ₹ prefix, en-IN grouping, .00 on blur; digits-only while typing.
  * Commits integer rupees; display always shows two decimal places when blurred.
  */
-export function InrMoneyInput({
-  value,
-  onCommit,
-  debounceMs = 160,
-  deductionStyle,
-  className,
-  disabled,
-  "aria-label": ariaLabel,
-  onFocus: onFocusProp,
-  onBlur: onBlurProp,
-  onChange: onChangeProp,
-  ...rest
-}: InrMoneyInputProps) {
+export const InrMoneyInput = forwardRef<HTMLInputElement, InrMoneyInputProps>(
+  function InrMoneyInput(
+    {
+      value,
+      onCommit,
+      debounceMs = 160,
+      deductionStyle,
+      className,
+      disabled,
+      "aria-label": ariaLabel,
+      onFocus: onFocusProp,
+      onBlur: onBlurProp,
+      onChange: onChangeProp,
+      ...rest
+    },
+    ref
+  ) {
   const [focused, setFocused] = useState(false);
   const focusedRef = useRef(false);
   const [draft, setDraft] = useState(() =>
@@ -161,4 +166,6 @@ export function InrMoneyInput({
       />
     </div>
   );
-}
+});
+
+InrMoneyInput.displayName = "InrMoneyInput";

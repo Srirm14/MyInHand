@@ -1,14 +1,17 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import type { Ref } from "react";
+import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { InrMoneyInput } from "@/components/ui/inr-money-input";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { TaxRegime } from "@/lib/types/salary.types";
-import type {
-  SimpleSalaryDeductionRow,
-  SimpleSalaryInput,
+import {
+  defaultSimpleSalaryInput,
+  type SimpleSalaryDeductionRow,
+  type SimpleSalaryInput,
 } from "@/lib/simple-salary-calculator/types";
 import {
   annualPackageTotal,
@@ -22,6 +25,8 @@ interface SalaryCalculatorFormProps {
   value: SimpleSalaryInput;
   onChange: (next: SimpleSalaryInput) => void;
   className?: string;
+  /** Ref to the headline Annual CTC input (for scroll-into-view + focus on entry). */
+  annualCtcInputRef?: Ref<HTMLInputElement | null>;
 }
 
 function RegimeSwitcher({
@@ -83,6 +88,7 @@ export function SalaryCalculatorForm({
   value,
   onChange,
   className,
+  annualCtcInputRef,
 }: SalaryCalculatorFormProps) {
   const patch = (partial: Partial<SimpleSalaryInput>) =>
     onChange({ ...value, ...partial });
@@ -112,6 +118,13 @@ export function SalaryCalculatorForm({
     });
   };
 
+  const resetToDefaults = () => {
+    onChange({
+      ...defaultSimpleSalaryInput,
+      extraDeductions: [],
+    });
+  };
+
   return (
     <div
       className={cn(
@@ -119,14 +132,29 @@ export function SalaryCalculatorForm({
         className
       )}
     >
-      <h2 className="font-display text-lg font-bold text-navy-800 md:text-xl">
-        Salary details
-      </h2>
-      <p className="mt-1 text-xs text-navy-500 leading-relaxed">
-        Enter <strong className="font-semibold text-navy-700">total CTC</strong>{" "}
-        to auto-fill variable (fixed stays), or edit fixed/variable
-        directly—totals always stay in sync.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-lg font-bold text-navy-800 md:text-xl">
+            Salary details
+          </h2>
+          <p className="mt-1 text-xs text-navy-500 leading-relaxed">
+            Enter <strong className="font-semibold text-navy-700">total CTC</strong>{" "}
+            to fill fixed pay and clear variable; add variable if part of your
+            package—or edit fixed/variable directly so totals stay in sync.
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          onClick={resetToDefaults}
+          className="shrink-0 gap-1 text-[11px] font-semibold text-navy-400 hover:bg-navy-100/80 hover:text-navy-700"
+          aria-label="Reset salary details to defaults"
+        >
+          <RotateCcw className="size-3 opacity-80" aria-hidden />
+          Reset
+        </Button>
+      </div>
 
       <div className="mt-6 space-y-2">
         <Label className="text-navy-700">Tax regime</Label>
@@ -152,21 +180,22 @@ export function SalaryCalculatorForm({
             Total package (CTC)
           </h3>
           <p className="mt-1 text-[11px] text-navy-500 leading-snug">
-            Annual cash compensation (fixed + variable). Updating this keeps
-            your fixed pay and sets variable to the remainder.
+            Annual cash compensation (fixed + variable). Updating this sets fixed
+            to the full amount and clears variable until you add it.
           </p>
           <div className="mt-4">
             <Label htmlFor="annual-ctc-total" className="text-navy-800">
               Annual CTC
             </Label>
             <InrMoneyInput
+              ref={annualCtcInputRef}
               id="annual-ctc-total"
               value={annualPackageTotal(
                 value.annualFixedPay,
                 value.annualVariablePay
               )}
               onCommit={(n) => {
-                const next = reconcileAfterTotalCtc(n, value.annualFixedPay);
+                const next = reconcileAfterTotalCtc(n);
                 onChange({
                   ...value,
                   annualFixedPay: next.annualFixedPay,

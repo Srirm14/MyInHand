@@ -6,16 +6,15 @@ function clampRupee(n: number): number {
 }
 
 /**
- * User set total CTC — keep current fixed pay where possible; variable absorbs the rest.
- * If total is below current fixed, fixed is reduced to total and variable becomes 0.
+ * User set total headline CTC — treat it as fixed pay; variable clears until they add it
+ * (matches premium / offer CTC behavior).
  */
-export function reconcileAfterTotalCtc(
-  totalCtc: number,
-  currentFixedPay: number
-): { annualFixedPay: number; annualVariablePay: number } {
+export function reconcileAfterTotalCtc(totalCtc: number): {
+  annualFixedPay: number;
+  annualVariablePay: number;
+} {
   const t = clampRupee(totalCtc);
-  const f = Math.min(clampRupee(currentFixedPay), t);
-  return { annualFixedPay: f, annualVariablePay: t - f };
+  return { annualFixedPay: t, annualVariablePay: 0 };
 }
 
 /**
