@@ -31,7 +31,7 @@ function NavbarInner() {
   const paywallTool = searchParams.get("tool");
   const user = useAuthStore((s) => s.user);
   const authReady = useAuthStore((s) => s.authReady);
-  const { premium, toolHref, hubHref } = useTieredPremiumLinks();
+  const { premium, toolHref } = useTieredPremiumLinks();
 
   const onAuthPath =
     pathname === "/login" ||
@@ -43,8 +43,8 @@ function NavbarInner() {
   const showHistory = showProductChrome && showPremiumHeader;
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-navy-200/60 shadow-sm">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+    <header className="sticky top-0 z-50 w-full border-b border-navy-200/70 bg-white/95 shadow-[0_1px_0_rgba(15,23,42,0.04)] backdrop-blur-sm supports-[backdrop-filter]:bg-white/90">
+      <div className="mx-auto flex h-[3.75rem] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         {/* Logo */}
         <Link
           href="/"
@@ -63,43 +63,59 @@ function NavbarInner() {
         </Link>
 
         {/* Center Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
-          {/* Smart Salary nav — context-aware with LPA label + premium dropdown */}
-          <SalaryNavItem />
+        <nav
+          className="hidden min-w-0 flex-1 justify-center md:flex"
+          aria-label="Primary"
+        >
+          <div className="flex items-center gap-7 lg:gap-8">
+            <SalaryNavItem />
 
-          {/* Offer comparison — paywall when not premium */}
-          {showProductChrome && (
-            <Link
-              href={toolHref("offers")}
-              className={cn(
-                "text-sm font-medium transition-colors",
-                navOfferComparisonActive(pathname, paywallTool, premium)
-                  ? "text-navy-800 underline decoration-2 underline-offset-[20px] decoration-teal-600"
-                  : "text-navy-500 hover:text-navy-800"
-              )}
-            >
-              Offer comparison
-            </Link>
-          )}
+            {showProductChrome && (
+              <Link
+                href={toolHref("offers")}
+                className={cn(
+                  "text-sm font-medium transition-colors duration-150",
+                  "rounded px-0.5 -mx-0.5",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2",
+                  navOfferComparisonActive(pathname, paywallTool, premium)
+                    ? "text-navy-800 underline decoration-2 underline-offset-[18px] decoration-teal-600"
+                    : "text-navy-500 hover:text-navy-800"
+                )}
+              >
+                Offer comparison
+              </Link>
+            )}
+          </div>
         </nav>
 
-        {/* Right Actions */}
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* Right: plan status (non-interactive) + tools + account */}
+        <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5 md:gap-3">
           {showPremiumHeader && showProductChrome && (
-            <Link
-              href={hubHref()}
-              className={cn(
-                buttonVariants({ variant: "default", size: "sm" }),
-                "inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-teal-800 hover:border-white/20"
-              )}
-            >
-              <Crown
-                className="size-3.5 shrink-0 text-white"
-                strokeWidth={2}
-                aria-hidden
-              />
-              <span>Premium</span>
-            </Link>
+            <>
+              <span
+                className={cn(
+                  "inline-flex max-w-full items-center gap-1 rounded-full border border-teal-200/70",
+                  "bg-gradient-to-b from-teal-50/95 to-teal-50/50 px-2 py-0.5",
+                  "text-[11px] font-medium leading-none tracking-tight text-teal-900/85",
+                  "ring-1 ring-teal-100/80 select-none",
+                  "pointer-events-none"
+                )}
+                aria-label="Premium plan"
+              >
+                <Crown
+                  className="size-3 shrink-0 text-teal-600/90"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                <span>Premium</span>
+              </span>
+              {showHistory ? (
+                <span
+                  className="hidden h-5 w-px shrink-0 bg-navy-200/80 sm:block"
+                  aria-hidden
+                />
+              ) : null}
+            </>
           )}
           {showHistory ? <RecentHistoryNavButton /> : null}
           {authReady ? (
@@ -108,7 +124,9 @@ function NavbarInner() {
                 href="/profile"
                 className={cn(
                   buttonVariants({ variant: "outline", size: "sm" }),
-                  "rounded-full border-navy-200 gap-1.5 px-3 text-xs font-semibold text-navy-700"
+                  "rounded-full border-navy-200/90 gap-1.5 px-3 text-xs font-semibold text-navy-700",
+                  "transition-[color,background-color,border-color,box-shadow] duration-150",
+                  "hover:border-navy-300/90 hover:bg-navy-50/50"
                 )}
               >
                 <User className="size-4 shrink-0" />
@@ -121,7 +139,7 @@ function NavbarInner() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="text-xs font-semibold text-navy-600 hover:text-navy-800 px-2"
+                  className="rounded-md px-2 text-xs font-semibold text-navy-600 transition-colors duration-150 hover:text-navy-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-2"
                 >
                   Log in
                 </Link>
