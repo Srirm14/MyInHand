@@ -101,8 +101,12 @@ export function SalaryCalculatorScreen() {
         </header>
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] xl:items-start xl:gap-10 2xl:gap-12">
-          <div className="min-w-0">
+          <div className="flex min-w-0 flex-col gap-8">
             <SalaryCalculatorForm value={input} onChange={setInput} />
+            <SalaryCalculatorPremiumTeaser
+              locked={premiumLocked}
+              onRequestUnlock={() => openUpgrade(null)}
+            />
           </div>
 
           <aside className="flex min-w-0 w-full max-w-full flex-col gap-4 xl:max-w-[420px] xl:justify-self-end">
@@ -134,10 +138,6 @@ export function SalaryCalculatorScreen() {
               takeHomeShare={summary.compositionTakeHome}
               employeeDeductionsShare={summary.compositionEmployeeDeductions}
               employerPfShare={summary.compositionEmployerPf}
-            />
-            <SalaryCalculatorPremiumTeaser
-              locked={premiumLocked}
-              onRequestUnlock={() => openUpgrade(null)}
             />
             {premiumLocked ? (
               <PremiumBlurOfferTeaser compact className="shadow-sm" />
