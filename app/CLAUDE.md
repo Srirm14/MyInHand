@@ -1,1 +1,1 @@
-See [`AGENTS.md`](./AGENTS.md) and the repository root [`AGENTS.md`](../AGENTS.md).
+See [`AGENTS.md`](./AGENTS.md) and [`../docs/AGENTS.md`](../docs/AGENTS.md) for project-wide contributor rules.

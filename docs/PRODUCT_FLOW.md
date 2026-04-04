@@ -19,7 +19,7 @@
 
 ### Signed-in — premium tier
 
-- **Header:** Salary (context-aware + **dropdown with last 5**) + Offer comparison + Premium (Crown pill → primary premium tool) + **Recent activity** (sheet: resume or remove salaries and offer comparisons) + Profile.
+- **Header:** Salary (context-aware + **dropdown with last 5**) + Offer comparison + **Premium** (small read-only plan badge, not a link) + **Recent activity** (sheet: resume or remove salaries and offer comparisons) + Profile.
 - **Flow:** All free routes + `/premium/*` tool routes (`/premium` itself redirects to offer comparison).
 - **Salary nav:** Shows "Salary (25 LPA) ▼". Click opens dropdown with recent salary contexts. Selecting one switches the active salary across the entire app.
 

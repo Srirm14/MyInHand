@@ -16,7 +16,8 @@
 
 ## Related Docs
 
-- **`API.md`** — Planned REST surface for persisting salary runs, offer comparisons, and history (calculations remain client-side today).
+- **`inhand-backend-api-spec.md`** — Intended API surface (Supabase is used today for auth + persisted sessions).
+- **`inhand-client-sync-ux.md`** — Client sync, cookies, autosave, toasts.
 - **`SALARY_COMPONENTS.md`** — Breakdown IA, component model, tooltip/badge rules, grouping.
 - **`DESIGN_SYSTEM.md`** — Colors, typography, card/form/nav patterns.
 - **`PRODUCT_FLOW.md`** — Screen definitions, access tiers, CTA behavior.
@@ -90,7 +91,7 @@ src/
 │       └── page-shell.tsx
 │
 ├── lib/
-│   ├── auth/session-cookie.ts        # Demo cookie helpers (fl_session_email)
+│   ├── auth/premium-entitlement.ts   # Server-side premium check helpers
 │   ├── config/access-mode.ts         # PREMIUM_UNLOCKED, PaywallTool, tier logic
 │   ├── config/premium-planning-tools.ts  # Metadata for premium cards on /salary
 │   ├── schemas/                      # Zod (4)
@@ -99,27 +100,27 @@ src/
 │   │   ├── lifestyle.schema.ts
 │   │   └── offer.schema.ts
 │   ├── stores/                       # Zustand (6 + 1 helper)
-│   │   ├── use-auth-store.ts         # Persisted demo auth (users, login, signup, logout, profile)
+│   │   ├── use-auth-store.ts         # Supabase session + profile; login/signup/logout/updateProfile
 │   │   ├── use-salary-store.ts       # Input, breakdown, doc parse, editable components
 │   │   ├── use-lifestyle-store.ts    # Expenses, surplus calc
 │   │   ├── use-history-store.ts      # Persisted (localStorage); salary + offer recents
 │   │   ├── use-offer-comparison-restore-store.ts  # One-shot restore from history
 │   │   ├── use-premium-plans-modal-store.ts       # Global pricing modal open + fromPremium
 │   │   └── salary-breakdown-recalc-context.ts     # Helper: builds recalc params
-│   ├── hooks/
-│   │   ├── use-tiered-premium-links.ts  # anon→login, free→paywall, premium→tool
-│   │   ├── use-salary-history-delete.ts  # Shared remove + active salary reconciliation
-│   │   └── use-salary-breakdown-scroll-restoration.ts  # sessionStorage Y + layout restore; detour links use pointerdown + inbound `scroll={false}`
+│   ├── hooks/                        # TanStack Query hooks, UX hooks (see folder)
+│   ├── supabase/                     # Browser/server clients, middleware session, queries, RLS types
 │   ├── types/                        # TypeScript (5)
-│   │   ├── user.types.ts             # UserProfile, LocalAccountRecord
+│   │   ├── user.types.ts             # UserProfile, PlanTier
 │   │   ├── salary.types.ts           # SalaryInput, SalaryBreakdown, SalaryComponent, groups, sections, tags
 │   │   ├── lifestyle.types.ts        # LifestyleExpenses, SurplusResult
 │   │   ├── offer.types.ts            # OfferDraft, OfferInput, OfferComparison
 │   │   └── history.types.ts          # SalaryHistoryEntry, OfferComparisonHistoryEntry
-│   ├── mocks/                        # Mock data & parsers (3)
-│   │   ├── auth.demo.ts              # Demo credentials (demo@fluidledger.app / password123)
+│   ├── mocks/                        # Mock document parsers (client-side)
 │   │   ├── parse-salary-document.mock.ts  # Filename-based CTC extraction
 │   │   └── parse-offer-document.mock.ts   # Filename-based offer parse
+│   ├── offer-comparison/
+│   │   └── verdict-explanations.ts   # Verdict copy, filters, formulas (shared UI strings)
+│   ├── persistence/                  # save-flight, workspace session cookies (salary/offer deep links)
 │   ├── constants/                    # Tax, city, component data (4)
 │   │   ├── tax-slabs.ts              # FY 2025-26 old + new regime
 │   │   ├── city-tiers.ts             # Tier1/2/3 + HRA percentages
@@ -142,7 +143,7 @@ src/
 │       ├── offer-breakdown-recalc-context.ts
 │       └── utils.ts                  # cn() tailwind merge (also at lib/utils.ts)
 │
-├── middleware.ts                     # Route protection: /profile (session), /premium/* (session + premium)
+├── middleware.ts                     # Session refresh; /profile, /premium/*, breakdown, detailed, lifestyle (session + premium)
 └── styles/globals.css                # Tailwind tokens + custom utility classes
 ```
 
@@ -164,7 +165,7 @@ Dependencies flow downward only.
 | User inputs (CTC, split, city, regime) | `use-salary-store` (SalaryInput); `/salary` calculator also syncs `annualCTC` + `taxRegime` into the store |
 | Salary breakdown (components, summaries) | `use-salary-store` (SalaryBreakdown) |
 | Lifestyle expenses + surplus | `use-lifestyle-store` |
-| Auth (demo local) | `use-auth-store` (persisted, cookie sync) |
+| Auth + profile | Supabase Auth + `profiles` row; `use-auth-store` mirrors session user |
 | Salary + offer recents (last 5 mixed) | `use-history-store` (persisted localStorage); `removeSalaryContext`, `removeOfferComparisonEntry` |
 | Offer restore from history | `use-offer-comparison-restore-store` (one-shot) |
 | Premium plans modal (free tier) | `use-premium-plans-modal-store`; imperative `openPremiumPlansModal` / `closePremiumPlansModal` |
@@ -183,11 +184,11 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 |-------|--------|
 | `/` | Public |
 | `/login`, `/signup`, `/forgot-password` | Public (redirect if logged in) |
-| `/salary`, `/salary/breakdown` | Public (anonymous OK) |
-| `/lifestyle` | Public |
+| `/salary` | Public (free calculator or premium CTC flow per `NEXT_PUBLIC_ACCESS_MODE`) |
+| `/salary/detailed`, `/salary/breakdown`, `/lifestyle` | Signed-in + premium (`profiles.plan_tier` or env `NEXT_PUBLIC_ACCESS_MODE=premium`); else redirect to login/paywall |
 | `/profile` | Signed-in (middleware) |
 | `/paywall` | Public |
-| `/premium` (redirect), `/premium/*` | Signed-in + env premium (middleware) |
+| `/premium` (redirect), `/premium/*` | Signed-in + premium (same rule as breakdown/lifestyle) |
 
 ## Nav Architecture
 
@@ -197,7 +198,7 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 - Premium build (`PREMIUM_UNLOCKED`) → label + chevron open the same menu (last 5 salary rows, New in-hand check, Open current workspace, Manage saved salaries)
 - Default / free build → static Salary link, no chevron
 
-Premium nav (Offer comparison + Crown shortcut to `/premium/offer-comparison`) only for premium signed-in users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
+Premium nav: **Offer comparison** link + **Premium** plan badge (read-only status, not a link) for signed-in premium users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
 
 **Salary breakdown scroll:** Leaving `/salary/breakdown` for Monthly plan / EMI / Forecast (etc.) saves `window` scroll Y in `sessionStorage` (`useSalaryBreakdownScrollRestoration` + `persistSalaryBreakdownScrollNow` on outbound pointerdown). Returning uses `useLayoutEffect` restore and `Link scroll={false}` on “Back to breakdown” so the App Router does not force the document to the top after restore. `clearSalaryBreakdownScrollSave()` on fresh CTC submit or “Back to salary inputs” resets the saved position.
 
@@ -205,13 +206,13 @@ Premium nav (Offer comparison + Crown shortcut to `/premium/offer-comparison`) o
 
 **Offer comparison inputs:** New offer cards default **annual CTC 0** with **`00,00,000`-style placeholders** on total, fixed/variable split fields, joining bonus, and ESOP until the user enters amounts (`emptyOffer`, `CompensationCtcSectionControlled` / `CompensationCtcInputs`, offer view inputs).
 
-## Mock-First Approach
+## Mock-First (documents & calculations)
 
-All calculations client-side. Document upload uses mock parsers (filename heuristics, `// ASSUMPTION:`). History persisted to localStorage. Demo auth in Zustand. Mark future server calls with `// MOCK:` or `// API:`.
+All **tax/salary math** runs client-side. **Document upload** uses mock parsers (filename heuristics, `// ASSUMPTION:`). **Salary/offer persistence** uses Supabase when configured; otherwise local history remains in **localStorage**. Mark future server calls with `// MOCK:` or `// API:`.
 
 ## Assumptions
 
-- Auth is demo-local. Swap for OAuth + HttpOnly cookies when backend exists.
+- **Auth:** Supabase (`NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`). Without env, auth UI shows configure message; middleware treats app as unsigned-in for protected routes.
 - Tax slabs: FY 2025-26. Configurable in `constants/tax-slabs.ts`.
-- Document upload: client-side mock parsers. Replace with upload + OCR/API.
-- No payment integration. Paywall is UI-only.
+- Document upload: client-side mock parsers until OCR/API exists.
+- No payment integration. Paywall is UI-only (`plan_tier` or env unlock).

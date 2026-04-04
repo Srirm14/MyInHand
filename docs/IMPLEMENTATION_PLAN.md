@@ -1,5 +1,7 @@
 # IMPLEMENTATION_PLAN.md — InHand
 
+> **Note:** This file is a **historical phase checklist**. For **current** routes, folders, auth (Supabase), and sync behavior, use **`ARCHITECTURE.md`**, **`PRODUCT_FLOW.md`**, **`inhand-client-sync-ux.md`**, and **`adr/ADR-002-session-save.md`**.
+
 ## Current Status
 
 **Phases 1–4 substantially complete.** App shell, design tokens, shared components, auth, free flow (landing → input → breakdown → monthly plan), premium tools (offer comparison, wealth forecast, EMI analyzer) — all implemented. Nav is context-aware with salary dropdown for premium users.

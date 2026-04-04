@@ -46,4 +46,8 @@ Restart the dev server after changing `.env.local`.
 - **`public/brand/inhand-logo.svg`** — logo mark; referenced by **`InhandLogoMark`** (`src/components/layout/inhand-logo-mark.tsx`) and `metadata.icons` in `src/app/layout.tsx`.
 - **`src/app/icon.svg`** — same artwork for the app icon / favicon. Update both files together when the mark changes.
 
-Design tokens and patterns: `../DESIGN_SYSTEM.md`.
+Design tokens and patterns: [`../docs/DESIGN_SYSTEM.md`](../docs/DESIGN_SYSTEM.md).
+
+## Environment
+
+Copy **`.env.example`** → **`.env.local`** and set Supabase URL + anon key. Restart the dev server after changes.

@@ -11,9 +11,3 @@ export interface UserProfile {
   /** ISO timestamp from profiles.updated_at */
   profileUpdatedAt?: string;
 }
-
-/** Stored credential record (legacy demo — removed when using Supabase auth). */
-export interface LocalAccountRecord {
-  password: string;
-  profile: UserProfile;
-}

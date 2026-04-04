@@ -14,14 +14,14 @@ Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode
 
 ## Key Codebase Facts
 
-- **~110+ files** across app/, components/, lib/ (count drifts with features).
-- **6 Zustand stores:** auth, salary, lifestyle, history, offer-comparison-restore, **premium-plans-modal** (open/close + `fromPremium` for contextual copy).
+- **Source** lives under `app/src/` (see root **`README.md`** tree); file count drifts with features.
+- **6 Zustand stores:** auth, salary, lifestyle, history, offer-comparison-restore, **premium-plans-modal** (open/close + `fromPremium` for contextual copy). Plus **`salary-breakdown-recalc-context`** (helper, not a store).
 - **4 Zod schemas:** auth, ctc-input, lifestyle, offer.
 - **3 access tiers:** anonymous, signed-in free, signed-in premium.
 - **Brand name:** "InHand" (not "The Fluid Ledger" — that was a design mockup name).
 - **Premium gate:** env `NEXT_PUBLIC_ACCESS_MODE=premium` + session cookie where middleware requires it. Unset env = free tier (not premium) in development too.
 - **Premium plans UI (free tier):** Shared **`PremiumPlansModal`** mounted via **`PremiumPlansModalHost`** in root layout. Open from anywhere with **`openPremiumPlansModal()`** / **`closePremiumPlansModal()`** from `use-premium-plans-modal-store` (or the store hook). **`/paywall`** is a thin route that syncs the same modal open; closing from paywall navigates back to **`/salary`**. **`PremiumBlurOfferTeaser`** (marketing, calculator aside, offer comparison when manual + 2+ valid offers) blurs faux metrics and opens that modal.
-- **Auth:** Demo-local (Zustand persist + cookie marker). No real backend yet.
+- **Auth & cloud data:** **Supabase** (email/password, session cookies via `@supabase/ssr`). **`use-auth-store`** mirrors `profiles` + `auth.users`. Salary/offer sessions use **TanStack Query** + partial PATCH autosave when Supabase is configured; see **`docs/inhand-client-sync-ux.md`** and **ADR-002**.
 
 ## Planning Rules
 
