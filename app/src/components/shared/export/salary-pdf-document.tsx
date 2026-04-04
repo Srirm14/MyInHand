@@ -11,6 +11,7 @@ import {
   Text,
   StyleSheet,
 } from "@react-pdf/renderer";
+import type { Style } from "@react-pdf/types";
 import type { SalaryBreakdown, SalaryInput } from "@/lib/types/salary.types";
 
 // ── Fonts ────────────────────────────────────────────────────────────────────
@@ -137,6 +138,17 @@ const styles = StyleSheet.create({
   cellTextBold: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: C.navy },
   cellDesc: { fontSize: 6.5, color: C.navyLight, marginTop: 1 },
 
+  /** Small “INR” before amounts — secondary to the number, ASCII-safe in Helvetica. */
+  currencyInrPrefix: {
+    fontSize: 6.5,
+    fontFamily: "Helvetica",
+    color: C.navyLight,
+    marginRight: 2,
+    letterSpacing: 0.4,
+    alignSelf: "flex-end",
+    paddingBottom: 0.75,
+  },
+
   // ── Badges ────────────────────────────────────────────────────────────────────
   badge: {
     borderRadius: 3,
@@ -184,16 +196,76 @@ const styles = StyleSheet.create({
 });
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function inr(amount: number): string {
-  // Manual Indian formatting without Intl (not available in @react-pdf context)
+/** Indian grouping only (digits + commas); currency prefix added separately. */
+function inrNumberBody(amount: number): { sign: string; body: string } {
   const abs = Math.abs(amount);
   const sign = amount < 0 ? "-" : "";
   const s = Math.round(abs).toString();
-  if (s.length <= 3) return `${sign}₹${s}`;
+  if (s.length <= 3) return { sign, body: s };
   const last3 = s.slice(-3);
   const rest = s.slice(0, -3);
   const grouped = rest.replace(/\B(?=(\d{2})+(?!\d))/g, ",");
-  return `${sign}₹${grouped},${last3}`;
+  return { sign, body: `${grouped},${last3}` };
+}
+
+function colorFromAmountStyle(style?: Style | Style[]): string | undefined {
+  if (style == null) return undefined;
+  const list = Array.isArray(style) ? style : [style];
+  for (let i = list.length - 1; i >= 0; i--) {
+    const s = list[i];
+    if (s && typeof s === "object" && "color" in s) {
+      const c = (s as { color?: string }).color;
+      if (typeof c === "string") return c;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * PDF amounts: ASCII “INR” in a smaller type than the figure (no ₹ — bad glyph in Helvetica).
+ * Prefix tint follows the amount when `style` sets `color` (e.g. tax in red).
+ */
+function InrAmountText({
+  amount,
+  style,
+  align = "left",
+}: {
+  amount: number;
+  style?: Style | Style[];
+  align?: "left" | "right";
+}) {
+  const { sign, body } = inrNumberBody(amount);
+  const base: Style | Style[] | undefined = style;
+  const amountColor = colorFromAmountStyle(base);
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        flexWrap: "nowrap",
+        alignItems: "flex-end",
+        justifyContent: align === "right" ? "flex-end" : "flex-start",
+        width: align === "right" ? "100%" : undefined,
+      }}
+    >
+      {sign ? (
+        <Text style={base} wrap={false}>
+          {sign}
+        </Text>
+      ) : null}
+      <Text
+        style={[
+          styles.currencyInrPrefix,
+          amountColor != null ? { color: amountColor } : {},
+        ]}
+        wrap={false}
+      >
+        INR{" "}
+      </Text>
+      <Text style={base} wrap={false}>
+        {body}
+      </Text>
+    </View>
+  );
 }
 
 function badgeColors(type: string): { bg: string; text: string } {
@@ -259,7 +331,7 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
         <View style={styles.twoCol}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Annual CTC</Text>
-            <Text style={styles.statVal}>{inr(breakdown.statedAnnualCTC)}</Text>
+            <InrAmountText amount={breakdown.statedAnnualCTC} style={styles.statVal} />
             <Text style={styles.statSub}>Stated CTC</Text>
           </View>
           <View style={styles.statBox}>
@@ -279,19 +351,41 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
         <View style={styles.kpiRow}>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>In-hand (excl. variable)</Text>
-            <Text style={styles.kpiAmount}>{inr(breakdown.monthlyInHandExcludingVariable)}</Text>
+            <InrAmountText
+              amount={breakdown.monthlyInHandExcludingVariable}
+              style={styles.kpiAmount}
+            />
             <Text style={styles.kpiSub}>per month</Text>
             <View style={[styles.kpiAccentBar, { backgroundColor: C.teal }]} />
           </View>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Annual Income Tax</Text>
-            <Text style={[styles.kpiAmount, { color: C.red }]}>{inr(breakdown.annualIncomeTax)}</Text>
-            <Text style={styles.kpiSub}>{inr(Math.round(breakdown.annualIncomeTax / 12))}/mo (TDS)</Text>
+            <InrAmountText
+              amount={breakdown.annualIncomeTax}
+              style={[styles.kpiAmount, { color: C.red }]}
+            />
+            <View
+              style={{
+                flexDirection: "row",
+                flexWrap: "nowrap",
+                alignItems: "flex-end",
+                marginTop: 2,
+              }}
+            >
+              <InrAmountText
+                amount={Math.round(breakdown.annualIncomeTax / 12)}
+                style={styles.kpiSub}
+              />
+              <Text style={styles.kpiSub}>/mo (TDS)</Text>
+            </View>
             <View style={[styles.kpiAccentBar, { backgroundColor: C.red }]} />
           </View>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiLabel}>Total Deductions</Text>
-            <Text style={[styles.kpiAmount, { color: C.navyMid }]}>{inr(breakdown.totalMonthlyDeductions)}</Text>
+            <InrAmountText
+              amount={breakdown.totalMonthlyDeductions}
+              style={[styles.kpiAmount, { color: C.navyMid }]}
+            />
             <Text style={styles.kpiSub}>per month</Text>
             <View style={[styles.kpiAccentBar, { backgroundColor: C.navyLight }]} />
           </View>
@@ -301,17 +395,23 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
         <View style={[styles.twoCol, { marginTop: 4 }]}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Fixed Cash (Annual)</Text>
-            <Text style={styles.statVal}>{inr(breakdown.annualFixedCashTotal)}</Text>
+            <InrAmountText amount={breakdown.annualFixedCashTotal} style={styles.statVal} />
           </View>
           {breakdown.annualVariableCashTotal > 0 && (
             <View style={styles.statBox}>
               <Text style={styles.statLabel}>Variable Cash (Annual)</Text>
-              <Text style={styles.statVal}>{inr(breakdown.annualVariableCashTotal)}</Text>
+              <InrAmountText
+                amount={breakdown.annualVariableCashTotal}
+                style={styles.statVal}
+              />
             </View>
           )}
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Total Cash (Annual)</Text>
-            <Text style={styles.statVal}>{inr(breakdown.annualCashCompensation)}</Text>
+            <InrAmountText
+              amount={breakdown.annualCashCompensation}
+              style={styles.statVal}
+            />
           </View>
         </View>
 
@@ -349,14 +449,18 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
                 <Text style={styles.cellDesc}>{c.description}</Text>
               </View>
               <View style={styles.colMonthly}>
-                <Text style={[styles.cellText, { textAlign: "right", color: isDeduction ? C.red : C.navyMid }]}>
-                  {isDeduction ? `-${inr(c.monthlyValue)}` : inr(c.monthlyValue)}
-                </Text>
+                <InrAmountText
+                  amount={isDeduction ? -c.monthlyValue : c.monthlyValue}
+                  style={[styles.cellText, { color: isDeduction ? C.red : C.navyMid }]}
+                  align="right"
+                />
               </View>
               <View style={styles.colAnnual}>
-                <Text style={[styles.cellText, { textAlign: "right", color: isDeduction ? C.red : C.navyMid }]}>
-                  {isDeduction ? `-${inr(c.annualValue)}` : inr(c.annualValue)}
-                </Text>
+                <InrAmountText
+                  amount={isDeduction ? -c.annualValue : c.annualValue}
+                  style={[styles.cellText, { color: isDeduction ? C.red : C.navyMid }]}
+                  align="right"
+                />
               </View>
               <View style={styles.colType}>
                 <View style={[styles.badge, { backgroundColor: bg, alignSelf: "center" }]}>
@@ -374,14 +478,18 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
             <Text style={[styles.cellDesc, { color: C.teal }]}>Fixed components, excl. variable pay</Text>
           </View>
           <View style={styles.colMonthly}>
-            <Text style={[styles.cellTextBold, { textAlign: "right", color: C.teal, fontSize: 10 }]}>
-              {inr(breakdown.monthlyInHandExcludingVariable)}
-            </Text>
+            <InrAmountText
+              amount={breakdown.monthlyInHandExcludingVariable}
+              style={[styles.cellTextBold, { color: C.teal, fontSize: 10 }]}
+              align="right"
+            />
           </View>
           <View style={styles.colAnnual}>
-            <Text style={[styles.cellTextBold, { textAlign: "right", color: C.teal, fontSize: 10 }]}>
-              {inr(breakdown.monthlyInHandExcludingVariable * 12)}
-            </Text>
+            <InrAmountText
+              amount={breakdown.monthlyInHandExcludingVariable * 12}
+              style={[styles.cellTextBold, { color: C.teal, fontSize: 10 }]}
+              align="right"
+            />
           </View>
           <View style={styles.colType} />
         </View>
@@ -412,3 +520,4 @@ export function SalaryPDFDocument({ breakdown, input }: SalaryPDFDocumentProps) 
     </Document>
   );
 }
+
