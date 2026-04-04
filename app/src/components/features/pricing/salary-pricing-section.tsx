@@ -184,7 +184,7 @@ export function SalaryPricingSection({
             )}
           >
             <span className="inline-flex items-center gap-1.5">
-              Yearly
+              <span>Yearly</span>
               <span
                 className={cn(
                   "rounded-full bg-emerald-100 font-bold uppercase tracking-wide text-emerald-800",

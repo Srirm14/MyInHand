@@ -125,7 +125,7 @@ export function SalaryCalculatorPremiumTeaser({
               buttonVariants({ variant: "ghost", size: "sm" }),
               "h-9 w-full rounded-full text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"
             )}
-            onClick={() => openPremiumPlansModal({ fromPremium: true })}
+            onClick={() => openPremiumPlansModal()}
           >
             Compare Free &amp; Premium plans
           </button>

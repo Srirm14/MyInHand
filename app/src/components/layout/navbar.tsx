@@ -18,7 +18,8 @@ function navOfferComparisonActive(
   const href = "/premium/offer-comparison";
   const onRoute = pathname === href || pathname.startsWith(`${href}/`);
   if (PREMIUM_UNLOCKED) return onRoute;
-  return pathname === "/paywall" && (paywallTool ?? "offers") === "offers";
+  /** Plain `/paywall` (e.g. hub or global pricing modal route) must not imply “offers”. */
+  return pathname === "/paywall" && paywallTool === "offers";
 }
 
 function NavbarInner() {

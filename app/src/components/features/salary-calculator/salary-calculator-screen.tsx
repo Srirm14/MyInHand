@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/layout/page-shell";
 import { FixedVariableInHandPanel } from "./fixed-variable-in-hand-panel";
@@ -14,6 +13,7 @@ import {
   defaultSimpleSalaryInput,
   type SimpleSalaryInput,
 } from "@/lib/simple-salary-calculator/types";
+import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
 import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
 import type {
   PlanningToolId,
@@ -139,6 +139,9 @@ export function SalaryCalculatorScreen() {
               locked={premiumLocked}
               onRequestUnlock={() => openUpgrade(null)}
             />
+            {premiumLocked ? (
+              <PremiumBlurOfferTeaser compact className="shadow-sm" />
+            ) : null}
           </aside>
         </div>
 
