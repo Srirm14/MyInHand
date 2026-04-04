@@ -25,7 +25,7 @@ export const PREMIUM_UNLOCKED = ACCESS_MODE === "premium";
 export type PaywallTool = "offers" | "forecast" | "emi" | "monthly";
 
 export function premiumHubHref(): string {
-  return PREMIUM_UNLOCKED ? "/premium" : "/paywall";
+  return PREMIUM_UNLOCKED ? "/premium/offer-comparison" : "/paywall";
 }
 
 /** Deep link into paywall with ?tool= when locked; real route when unlocked. */

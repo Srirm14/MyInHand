@@ -32,7 +32,6 @@ import {
 import { buildOfferBreakdownRecalcContext } from "@/lib/utils/offer-breakdown-recalc-context";
 import { isSplitBalanced } from "@/lib/utils/compensation-split";
 import { formatCurrency } from "@/lib/utils/format-currency";
-import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SalaryBreakdownEditablePanel } from "@/components/shared/salary-breakdown-editable-panel";
 import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
@@ -463,23 +462,6 @@ export function OfferComparisonView() {
 
   return (
     <PageShell className="py-6 pb-28 md:py-10 md:pb-10">
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.48, ease: EASE }}
-        className="mb-4"
-      >
-        <Link
-          href="/premium"
-          className={cn(
-            buttonVariants({ variant: "ghost" }),
-            "inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-semibold text-teal-800 hover:bg-teal-50"
-          )}
-        >
-          ← Premium hub
-        </Link>
-      </motion.div>
-
       <motion.section
         className="overflow-hidden rounded-3xl border border-navy-200/60 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_20px_50px_-24px_rgba(15,23,42,0.1)]"
       >
@@ -602,15 +584,6 @@ export function OfferComparisonView() {
                     <Plus className="size-4 shrink-0" data-icon="inline-start" />
                     Add offer
                   </Button>
-                  <Link
-                    href="/premium"
-                    className={cn(
-                      buttonVariants({ variant: "outline", size: "lg" }),
-                      "h-9 flex-1 items-center justify-center rounded-full border-navy-200 px-4 text-sm font-semibold text-teal-800 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-900 sm:inline-flex sm:w-auto sm:flex-initial"
-                    )}
-                  >
-                    Hub
-                  </Link>
                 </div>
               </div>
 

@@ -17,17 +17,17 @@ export function PaywallUnlocked() {
         <h1 className="text-h1 text-navy-800">Premium access is on</h1>
         <p className="mt-4 text-navy-600 leading-relaxed max-w-md mx-auto">
           This environment is set to <strong>premium</strong> mode. Offer
-          comparison, wealth forecast, and EMI tools live in the Premium hub —
+          comparison, wealth forecast, and EMI tools are available directly —
           no paywall gate.
         </p>
         <Link
-          href="/premium"
+          href="/premium/offer-comparison"
           className={cn(
             buttonVariants({ variant: "default" }),
             "mt-10 inline-flex rounded-full px-8 h-11 bg-teal-600 hover:bg-teal-700"
           )}
         >
-          Open Premium hub
+          Open offer comparison
         </Link>
       </div>
     </PageShell>

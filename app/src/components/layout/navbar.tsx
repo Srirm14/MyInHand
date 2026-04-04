@@ -8,7 +8,11 @@ import { SalaryNavItem } from "@/components/layout/salary-nav-item";
 import { RecentHistoryNavButton } from "@/components/layout/recent-history-sheet";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
-import { PREMIUM_UNLOCKED, premiumToolHref } from "@/lib/config/access-mode";
+import {
+  PREMIUM_UNLOCKED,
+  premiumHubHref,
+  premiumToolHref,
+} from "@/lib/config/access-mode";
 import { InhandLogoMark } from "@/components/layout/inhand-logo-mark";
 import { cn } from "@/lib/utils";
 
@@ -73,7 +77,7 @@ function NavbarInner() {
           {/* Smart Salary nav — context-aware with LPA label + premium dropdown */}
           <SalaryNavItem />
 
-          {/* Offer comparison — paywall when not premium; Forecast/EMI stay under Premium hub */}
+          {/* Offer comparison — paywall when not premium */}
           {showProductChrome && (
             <Link
               href={premiumToolHref("offers")}
@@ -93,7 +97,7 @@ function NavbarInner() {
         <div className="flex items-center gap-2 md:gap-3">
           {showPremiumHeader && showProductChrome && (
             <Link
-              href="/premium"
+              href={premiumHubHref()}
               className={cn(
                 buttonVariants({ variant: "default", size: "sm" }),
                 "inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-teal-800 hover:border-white/20"

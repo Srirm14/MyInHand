@@ -29,7 +29,7 @@ Restart the dev server after changing `.env.local`.
 - `/salary/detailed` — Detailed CTC + document upload + recents → breakdown  
 - `/salary/breakdown` — KPI row, component breakup, plan cards (EMI, forecast, monthly plan)  
 - `/lifestyle` — Monthly plan (spending + surplus)  
-- `/premium` — Hub for planning tools  
+- `/premium` — Redirects to `/premium/offer-comparison` (no separate hub page)  
 - `/premium/offer-comparison` — **Manual** or **upload** 2–3 offers; same CTC split pattern as `/salary` per card (mock parse)  
 - `/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  
 - `/premium/emi-analyzer` — EMI + DTI vs in-hand & monthly plan  

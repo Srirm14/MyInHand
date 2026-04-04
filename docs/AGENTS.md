@@ -79,9 +79,9 @@ Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode
   - CTC entered: shows "Salary (25 LPA)"
   - Premium build (`PREMIUM_UNLOCKED`): label + chevron menu (last 5 salary rows, New in-hand check, etc.). Default/free build: static Salary link, no nav switcher
   - Free / anonymous: static label only
-- **Premium nav links** (Offers, Forecast, EMI): only visible for premium signed-in users.
+- **Premium nav:** **Offer comparison** in the header + **Premium** crown (shortcut to `/premium/offer-comparison`); only for premium signed-in users. Wealth forecast and EMI remain reachable from breakdown / lifestyle CTAs and deep URLs.
 - **History sheet** (`recent-history-sheet.tsx`): premium-only right drawer, last 5 mixed entries; trash removes salary (`RemoveSalaryEntryDialog`) or offer comparison (`RemoveOfferComparisonEntryDialog`).
-- **`useTieredPremiumLinks()`**: routes anon → login, free → paywall, premium → tool.
+- **`useTieredPremiumLinks()`**: routes anon → login, free → paywall, premium → tool; `hubHref()` when unlocked → `/premium/offer-comparison`.
 
 ## Documentation Rules
 

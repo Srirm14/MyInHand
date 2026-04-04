@@ -1,5 +1,6 @@
-import { PremiumDashboard } from "@/components/features/premium/premium-dashboard";
+import { redirect } from "next/navigation";
 
+/** `/premium` is not a standalone hub; send users to the primary premium tool. */
 export default function PremiumPage() {
-  return <PremiumDashboard />;
+  redirect("/premium/offer-comparison");
 }

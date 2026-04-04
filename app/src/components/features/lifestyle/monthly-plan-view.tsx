@@ -384,7 +384,7 @@ export function MonthlyPlanView() {
             buttonVariants({ size: "icon" }),
             "fixed bottom-8 right-6 z-40 size-12 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 md:size-14"
           )}
-          aria-label="Open Premium hub"
+          aria-label="Open premium tools"
         >
           <LineChart className="size-5 md:size-6" />
         </Link>

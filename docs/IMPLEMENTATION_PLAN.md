@@ -2,7 +2,7 @@
 
 ## Current Status
 
-**Phases 1–4 substantially complete.** App shell, design tokens, shared components, auth, free flow (landing → input → breakdown → monthly plan), premium dashboard, offer comparison, wealth forecast, EMI analyzer — all implemented. Nav is context-aware with salary dropdown for premium users.
+**Phases 1–4 substantially complete.** App shell, design tokens, shared components, auth, free flow (landing → input → breakdown → monthly plan), premium tools (offer comparison, wealth forecast, EMI analyzer) — all implemented. Nav is context-aware with salary dropdown for premium users.
 
 ---
 
@@ -41,11 +41,10 @@
 
 ---
 
-## Phase 4: Premium Dashboard & Modules ✅
+## Phase 4: Premium Tools & Modules ✅
 
 **Delivered:**
 - Premium paywall (locked/unlocked variants)
-- Premium dashboard hub
 - Offer Comparison (2–3 offers, side-by-side)
 - Wealth Forecast (5/10/20 year projection)
 - EMI Analyzer (loan scenarios)

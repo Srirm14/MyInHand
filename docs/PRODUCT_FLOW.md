@@ -19,8 +19,8 @@
 
 ### Signed-in — premium tier
 
-- **Header:** Salary (context-aware + **dropdown with last 5**) + Offers + Forecast + EMI + Premium (Crown pill) + **Recent activity** (sheet: resume or remove salaries and offer comparisons) + Profile.
-- **Flow:** All free routes + `/premium/*` routes.
+- **Header:** Salary (context-aware + **dropdown with last 5**) + Offer comparison + Premium (Crown pill → primary premium tool) + **Recent activity** (sheet: resume or remove salaries and offer comparisons) + Profile.
+- **Flow:** All free routes + `/premium/*` tool routes (`/premium` itself redirects to offer comparison).
 - **Salary nav:** Shows "Salary (25 LPA) ▼". Click opens dropdown with recent salary contexts. Selecting one switches the active salary across the entire app.
 
 ```
@@ -34,8 +34,7 @@ Signed-in (free):
     └→ Paywall for upgrade
 
 Signed-in (premium):
-  Above + header deep links + Premium hub
-    → Dashboard → Offers, Forecast, EMI
+  Above + header (Offer comparison, Premium shortcut) + `/premium/*` tools
     → Salary dropdown for context switching
 ```
 
@@ -135,15 +134,13 @@ Signed-in (premium):
 
 **Purpose:** Convert free → premium.
 **Content (free tier):** The **same global Premium plans modal** as elsewhere (pricing section, backdrop). The route is a thin shell so shareable `/paywall` links still work; **`openPremiumPlansModal()`** from the Zustand store opens the identical UI from marketing, `/salary`, etc. Optional **`?from=premium`** sets contextual copy inside the modal.
-**Edge cases:** Premium env + unlocked → redirect to dashboard. Closing the modal while pathname is `/paywall` navigates to **`/salary`**.
+**Edge cases:** Premium env + unlocked → minimal “premium on” page with CTA to offer comparison. Closing the modal while pathname is `/paywall` navigates to **`/salary`**.
 
 ---
 
-### 6. Premium Dashboard (`/premium`)
+### 6. `/premium` (redirect)
 
-**Purpose:** Hub for all premium tools.
-**Layout:** Card grid: Offer Comparison, Wealth Forecast, EMI Analyzer.
-**Empty state:** "Complete your salary breakdown first" if no CTC data.
+**Purpose:** Legacy path; immediately **redirects** to **`/premium/offer-comparison`**. There is no separate hub screen.
 
 ---
 

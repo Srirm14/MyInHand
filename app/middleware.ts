@@ -25,17 +25,17 @@ function isPremiumSalaryOrLifestylePath(pathname: string) {
   return false;
 }
 
-/** Premium hub only — paywall when env is default; salary deep routes handled above. */
-function requiresPremiumHubAccess(pathname: string) {
+/** Premium tool routes — paywall when env is default; salary deep routes handled above. */
+function requiresPremiumToolAccess(pathname: string) {
   return pathname === "/premium" || pathname.startsWith("/premium/");
 }
 
 /**
- * With env premium: salary deep flows + lifestyle still require a session (same as hub).
+ * With env premium: salary deep flows + lifestyle still require a session (same as premium tools).
  */
 function requiresPremiumAccess(pathname: string) {
   return (
-    requiresPremiumHubAccess(pathname) || isPremiumSalaryOrLifestylePath(pathname)
+    requiresPremiumToolAccess(pathname) || isPremiumSalaryOrLifestylePath(pathname)
   );
 }
 

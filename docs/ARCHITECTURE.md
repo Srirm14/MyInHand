@@ -40,7 +40,7 @@ src/
 │   ├── paywall/page.tsx              # Free: minimal shell; global modal owns UX. Premium env: unlocked redirect
 │   └── premium/
 │       ├── layout.tsx                # Premium route guard
-│       ├── page.tsx                  # Dashboard hub (PremiumDashboard)
+│       ├── page.tsx                  # Redirect → /premium/offer-comparison
 │       ├── offer-comparison/page.tsx # OfferComparisonView
 │       ├── wealth-forecast/page.tsx  # WealthForecastView
 │       └── emi-analyzer/page.tsx     # EmiAnalyzerView
@@ -74,7 +74,6 @@ src/
 │   │   ├── salary/salary-breakdown-view.tsx
 │   │   ├── salary/salary-recents-panels.tsx
 │   │   ├── lifestyle/monthly-plan-view.tsx
-│   │   ├── premium/premium-dashboard.tsx
 │   │   ├── premium/offer-comparison-view.tsx
 │   │   ├── premium/wealth-forecast-view.tsx
 │   │   └── premium/emi-analyzer-view.tsx
@@ -188,7 +187,7 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 | `/lifestyle` | Public |
 | `/profile` | Signed-in (middleware) |
 | `/paywall` | Public |
-| `/premium`, `/premium/*` | Signed-in + env premium (middleware) |
+| `/premium` (redirect), `/premium/*` | Signed-in + env premium (middleware) |
 
 ## Nav Architecture
 
@@ -198,7 +197,7 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 - Premium build (`PREMIUM_UNLOCKED`) → label + chevron open the same menu (last 5 salary rows, New in-hand check, Open current workspace, Manage saved salaries)
 - Default / free build → static Salary link, no chevron
 
-Premium nav links (Offers, Forecast, EMI) only visible for premium signed-in users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
+Premium nav (Offer comparison + Crown shortcut to `/premium/offer-comparison`) only for premium signed-in users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
 
 **Salary breakdown scroll:** Leaving `/salary/breakdown` for Monthly plan / EMI / Forecast (etc.) saves `window` scroll Y in `sessionStorage` (`useSalaryBreakdownScrollRestoration` + `persistSalaryBreakdownScrollNow` on outbound pointerdown). Returning uses `useLayoutEffect` restore and `Link scroll={false}` on “Back to breakdown” so the App Router does not force the document to the top after restore. `clearSalaryBreakdownScrollSave()` on fresh CTC submit or “Back to salary inputs” resets the saved position.
 

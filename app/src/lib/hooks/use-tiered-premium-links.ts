@@ -30,7 +30,7 @@ export function useTieredPremiumLinks() {
     }
 
     function hubHref(): string {
-      if (premium) return "/premium";
+      if (premium) return "/premium/offer-comparison";
       if (loggedIn) return "/paywall";
       return `/login?from=${encodeURIComponent("/paywall")}`;
     }
