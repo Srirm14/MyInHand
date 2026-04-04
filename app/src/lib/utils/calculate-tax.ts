@@ -4,6 +4,8 @@ import {
   STANDARD_DEDUCTION,
   REBATE_THRESHOLD_NEW,
   REBATE_THRESHOLD_OLD,
+  REBATE_MAX_NEW,
+  REBATE_MAX_OLD,
   CESS_RATE,
   type TaxSlab,
 } from "@/lib/constants/tax-slabs";
@@ -64,8 +66,11 @@ export function calculateIncomeTax(
   let tax = calculateSlabTax(taxableIncome, slabs);
 
   // Apply Section 87A rebate
+  // Old regime: partial rebate up to ₹12,500 when taxable income ≤ ₹5L
+  // New regime: full rebate up to ₹60,000 when taxable income ≤ ₹12L (at ≤12L, slab tax never exceeds ₹60K)
   if (taxableIncome <= rebateThreshold) {
-    tax = 0;
+    const maxRebate = regime === "old" ? REBATE_MAX_OLD : REBATE_MAX_NEW;
+    tax = Math.max(0, tax - maxRebate);
   }
 
   // Add cess

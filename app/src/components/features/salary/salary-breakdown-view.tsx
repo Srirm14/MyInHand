@@ -443,9 +443,9 @@ export function SalaryBreakdownView() {
             className="transition-shadow duration-500"
           />
           <StatCard
-            label="Est. income tax (TDS)"
+            label="Annual income tax (TDS)"
             amount={breakdown.annualIncomeTax}
-            sublabel={regimeLabel}
+            sublabel={`${regimeLabel} · ÷12 for monthly TDS`}
             sentiment="negative"
             icon={PiggyBank}
             className="transition-shadow duration-500"

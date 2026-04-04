@@ -25,19 +25,21 @@ function MetricCell({
   subtitle,
   amount,
   emphasize,
+  sentiment = "neutral",
 }: Readonly<{
   title: string;
   subtitle?: string;
   amount: number;
   emphasize?: boolean;
+  sentiment?: "positive" | "neutral";
 }>) {
   return (
     <div
       className={cn(
-        "min-w-0 rounded-xl border p-3 sm:p-3.5",
+        "relative min-w-0 flex flex-col rounded-xl border p-3 sm:p-3.5 overflow-hidden",
         emphasize
-          ? "border-teal-200/90 bg-teal-50/50 shadow-sm ring-1 ring-teal-100/50"
-          : "border-navy-200/70 bg-white"
+          ? "border-teal-200/80 bg-teal-50/40 shadow-sm ring-1 ring-teal-100/60"
+          : "border-navy-200/60 bg-white"
       )}
     >
       <p className="text-[10px] font-semibold uppercase tracking-wide text-navy-500 leading-snug">
@@ -55,6 +57,15 @@ function MetricCell({
       >
         {formatCurrency(amount)}
       </p>
+      {/* Coloured bottom accent matching StatCard style */}
+      <div className="mt-auto pt-3">
+        <div
+          className={cn(
+            "h-0.5 w-8 rounded-full",
+            sentiment === "positive" ? "bg-teal-500" : "bg-navy-300"
+          )}
+        />
+      </div>
     </div>
   );
 }
@@ -117,11 +128,13 @@ export function FixedVariableInHandPanel({
           subtitle="Fixed pay only — dependable baseline"
           amount={monthlyInHandFixedOnly}
           emphasize
+          sentiment="positive"
         />
         <MetricCell
           title="Illustrative monthly in-hand"
           subtitle="Including variable, averaged per month"
           amount={monthlyInHandIncludingVariable}
+          sentiment="positive"
         />
         <MetricCell
           title="Guaranteed annual in-hand"

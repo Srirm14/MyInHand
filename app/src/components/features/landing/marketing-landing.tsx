@@ -125,50 +125,56 @@ function HeroAbstractPreview() {
             <div className="flex-1 h-7 rounded-full border border-navy-200/40 bg-white/60" />
           </div>
 
-          {/* Breakdown rows */}
+          {/* Breakdown rows — colors match real composition panel */}
           <div className="space-y-2 pt-1">
             {[
-              { labelW: "42%", valW: "22%", color: "bg-emerald-400/35" },
-              { labelW: "55%", valW: "18%", color: "bg-teal-300/35" },
-              { labelW: "38%", valW: "20%", color: "bg-navy-300/30" },
-              { labelW: "48%", valW: "16%", color: "bg-navy-200/30" },
-              { labelW: "60%", valW: "24%", color: "bg-teal-400/30" },
-            ].map(({ labelW, valW, color }, i) => (
+              { id: "th1", labelW: "52%", valW: "22%", dot: "#0d9488", valBg: "bg-teal-500/30" },
+              { id: "th2", labelW: "42%", valW: "18%", dot: "#0d9488", valBg: "bg-teal-400/25" },
+              { id: "ded", labelW: "60%", valW: "20%", dot: "#fb7185", valBg: "bg-rose-400/30" },
+              { id: "tax", labelW: "38%", valW: "16%", dot: "#fb7185", valBg: "bg-rose-300/25" },
+              { id: "epf", labelW: "48%", valW: "14%", dot: "#a78bfa", valBg: "bg-violet-400/25" },
+            ].map(({ id, labelW, valW, dot, valBg }) => (
               <div
-                key={i}
+                key={id}
                 className="flex justify-between items-center border-b border-navy-100/70 pb-1.5"
               >
-                <div
-                  className="h-1.5 rounded-full bg-navy-200/55"
-                  style={{ width: labelW }}
-                />
-                <div
-                  className={cn("h-1.5 rounded-full", color)}
-                  style={{ width: valW }}
-                />
+                <div className="flex items-center gap-1.5">
+                  <div className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: dot, opacity: 0.6 }} />
+                  <div className="h-1.5 rounded-full bg-navy-200/55" style={{ width: labelW }} />
+                </div>
+                <div className={cn("h-1.5 rounded-full", valBg)} style={{ width: valW }} />
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right — result card */}
-        <div className="w-32 md:w-36 shrink-0 rounded-xl border border-teal-200/50 bg-gradient-to-b from-teal-50/90 to-white/80 p-3 space-y-2.5 flex flex-col">
-          <div className="h-1.5 w-14 rounded-full bg-teal-500/35" />
-          <div className="h-6 w-24 rounded-full bg-teal-500/20" />
-          <div className="space-y-1.5 flex-1">
-            <div className="h-1 w-full rounded-full bg-teal-300/35" />
-            <div className="h-1 w-4/5 rounded-full bg-teal-300/30" />
-            <div className="h-1 w-3/5 rounded-full bg-teal-300/25" />
+        {/* Right — composition card matching the real donut panel */}
+        <div className="w-32 md:w-36 shrink-0 rounded-xl border border-teal-200/50 bg-gradient-to-b from-teal-50/80 to-white/90 p-3 space-y-2 flex flex-col">
+          <div className="h-1.5 w-16 rounded-full bg-navy-300/40" />
+          {/* Mini donut ring — size-12 = 48px, inner hole ~24px via m-3 */}
+          <div
+            className="mx-auto mt-1 size-12 shrink-0 rounded-full"
+            style={{ background: "conic-gradient(from -90deg, #0d9488 0% 72%, #fb7185 72% 100%)" }}
+          >
+            <div className="m-3 size-6 rounded-full bg-white/95" />
           </div>
-          {/* Tiny bar chart */}
-          <div className="flex items-end gap-1 pt-2">
-            {[55, 80, 40, 95, 65].map((h, i) => (
-              <div
-                key={i}
-                className="flex-1 rounded-sm bg-gradient-to-t from-teal-400/50 to-teal-200/40"
-                style={{ height: `${h * 0.28}px` }}
-              />
+          {/* Legend dots */}
+          <div className="space-y-1.5 flex-1">
+            {[
+              { id: "lg-take", dot: "#0d9488", w: "55%" },
+              { id: "lg-ded",  dot: "#fb7185", w: "38%" },
+              { id: "lg-epf",  dot: "#a78bfa", w: "28%" },
+            ].map(({ id, dot, w }) => (
+              <div key={id} className="flex items-center gap-1">
+                <div className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: dot, opacity: 0.7 }} />
+                <div className="h-1 rounded-full bg-navy-200/40" style={{ width: w }} />
+              </div>
             ))}
+          </div>
+          {/* Bar split */}
+          <div className="h-1.5 w-full overflow-hidden rounded-full flex gap-px">
+            <div className="h-full rounded-l-full bg-teal-500/50" style={{ width: "72%" }} />
+            <div className="h-full rounded-r-full bg-rose-400/50" style={{ width: "28%" }} />
           </div>
         </div>
       </div>

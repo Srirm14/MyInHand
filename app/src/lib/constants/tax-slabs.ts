@@ -31,9 +31,13 @@ export const NEW_REGIME_SLABS: TaxSlab[] = [
 /** Standard Deduction available in both regimes */
 export const STANDARD_DEDUCTION = 75000;
 
-/** Section 87A Rebate threshold (New Regime FY 2025-26) */
+/** Section 87A Rebate — New Regime FY 2025-26: full rebate up to ₹60,000 for taxable income ≤ ₹12L */
 export const REBATE_THRESHOLD_NEW = 1200000;
-export const REBATE_THRESHOLD_OLD = 700000;
+export const REBATE_MAX_NEW = 60000;
+
+/** Section 87A Rebate — Old Regime: max ₹12,500 rebate if taxable income ≤ ₹5L */
+export const REBATE_THRESHOLD_OLD = 500000;
+export const REBATE_MAX_OLD = 12500;
 
 /** Health & Education Cess */
 export const CESS_RATE = 0.04;
