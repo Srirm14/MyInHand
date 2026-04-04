@@ -6,13 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
-import { getBrowserSupabase } from "@/lib/supabase/client/browser";
 import { useDeleteSalarySessionMutation } from "@/lib/supabase/hooks/use-salary-sessions";
 import { queryKeys } from "@/lib/supabase/query-keys";
-import {
-  listSalarySessions,
-  salaryRowToHistoryEntry,
-} from "@/lib/supabase/queries/salary-sessions";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { isSalaryInputEquivalent } from "@/lib/utils/salary-context-match";
@@ -71,12 +66,10 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
       if (cloud) {
         try {
           await deleteSalarySession.mutateAsync(entry.id);
-          const rows = await listSalarySessions(getBrowserSupabase(), LIST_LIMIT);
-          const mapped = rows.map(salaryRowToHistoryEntry);
-          queryClient.setQueryData(
-            queryKeys.salarySessions.list(LIST_LIMIT),
-            mapped
-          );
+          const mapped =
+            queryClient.getQueryData<SalaryHistoryEntry[]>(
+              queryKeys.salarySessions.list(LIST_LIMIT)
+            ) ?? [];
           onAfterRemove?.();
           if (wasActive) {
             const next = mapped[0];

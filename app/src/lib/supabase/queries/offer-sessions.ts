@@ -94,7 +94,7 @@ function buildChildRows(
 export async function createOfferSession(
   supabase: SupabaseClient<Database>,
   payload: OfferSavePayload
-): Promise<Database["public"]["Tables"]["offer_sessions"]["Row"]> {
+): Promise<OfferSessionDetail> {
   const { data: session, error: sErr } = await supabase
     .from("offer_sessions")
     .insert({
@@ -107,27 +107,34 @@ export async function createOfferSession(
   if (sErr) throw sErr;
 
   const children = buildChildRows(session.id, payload);
+  let offers: Database["public"]["Tables"]["offer_session_offers"]["Row"][] = [];
   if (children.length) {
-    const { error: cErr } = await supabase.from("offer_session_offers").insert(children);
+    const { data, error: cErr } = await supabase
+      .from("offer_session_offers")
+      .insert(children)
+      .select("*");
     if (cErr) throw cErr;
+    offers = data ?? [];
   }
 
-  return session;
+  return { session, offers };
 }
 
 export async function replaceOfferSessionContent(
   supabase: SupabaseClient<Database>,
   sessionId: string,
   payload: OfferSavePayload
-) {
-  const { error: uErr } = await supabase
+): Promise<OfferSessionDetail> {
+  const { data: session, error: uErr } = await supabase
     .from("offer_sessions")
     .update({
       title: payload.summary.title,
       offer_count: payload.summary.offerCount,
       winner_summary: payload.summary.winnerSummary,
     })
-    .eq("id", sessionId);
+    .eq("id", sessionId)
+    .select("*")
+    .single();
   if (uErr) throw uErr;
 
   const { error: dErr } = await supabase
@@ -137,10 +144,17 @@ export async function replaceOfferSessionContent(
   if (dErr) throw dErr;
 
   const children = buildChildRows(sessionId, payload);
+  let offers: Database["public"]["Tables"]["offer_session_offers"]["Row"][] = [];
   if (children.length) {
-    const { error: cErr } = await supabase.from("offer_session_offers").insert(children);
+    const { data, error: cErr } = await supabase
+      .from("offer_session_offers")
+      .insert(children)
+      .select("*");
     if (cErr) throw cErr;
+    offers = data ?? [];
   }
+
+  return { session, offers };
 }
 
 export async function deleteOfferSession(

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import {
   Bolt,
   Car,
@@ -25,7 +25,10 @@ import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
-import { useUpsertSalaryPlanningMutation } from "@/lib/supabase/hooks/use-salary-sessions";
+import {
+  useSalarySessionDetailQuery,
+  useUpsertSalaryPlanningMutation,
+} from "@/lib/supabase/hooks/use-salary-sessions";
 import { SaveProgressCta } from "@/components/shared/save-progress-cta";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { cn } from "@/lib/utils";
@@ -37,6 +40,10 @@ export function MonthlyPlanView() {
   const persist = shouldPersistSessions(user);
   const activeSalarySessionId = useSalaryStore((s) => s.activeSalaryHistoryId);
   const upsertPlanning = useUpsertSalaryPlanningMutation();
+  const detailQ = useSalarySessionDetailQuery(
+    activeSalarySessionId,
+    Boolean(persist && activeSalarySessionId)
+  );
 
   const breakdown = useSalaryStore((s) => s.breakdown);
   const monthlyInHand = breakdown?.monthlyInHand ?? 0;
@@ -46,16 +53,75 @@ export function MonthlyPlanView() {
   const setExpense = useLifestyleStore((s) => s.setExpense);
   const calculateSurplus = useLifestyleStore((s) => s.calculateSurplus);
 
+  const expensesSerialized = JSON.stringify(expenses);
+  const planningLifestyleKey =
+    detailQ.data?.planning?.lifestyle_json &&
+    typeof detailQ.data.planning.lifestyle_json === "object" &&
+    !Array.isArray(detailQ.data.planning.lifestyle_json)
+      ? JSON.stringify(detailQ.data.planning.lifestyle_json)
+      : "";
+
+  const lastPersistedLifestyleSig = useRef<string | null>(null);
+
+  useEffect(() => {
+    lastPersistedLifestyleSig.current = null;
+  }, [activeSalarySessionId]);
+
+  useEffect(() => {
+    if (!detailQ.data?.session || detailQ.data.session.id !== activeSalarySessionId) {
+      return;
+    }
+    lastPersistedLifestyleSig.current =
+      planningLifestyleKey === "" ? "{}" : planningLifestyleKey;
+  }, [
+    activeSalarySessionId,
+    detailQ.data?.session?.id,
+    detailQ.data?.planning?.updated_at,
+    planningLifestyleKey,
+  ]);
+
   useEffect(() => {
     if (!persist || !activeSalarySessionId) return;
+    if (!detailQ.data?.session || detailQ.data.session.id !== activeSalarySessionId) {
+      return;
+    }
+    const snap = expensesSerialized;
+    if (
+      lastPersistedLifestyleSig.current != null &&
+      snap === lastPersistedLifestyleSig.current
+    ) {
+      return;
+    }
     const t = window.setTimeout(() => {
-      upsertPlanning.mutate({
-        salarySessionId: activeSalarySessionId,
-        lifestyle: useLifestyleStore.getState().expenses,
-      });
+      const now = JSON.stringify(useLifestyleStore.getState().expenses);
+      if (
+        lastPersistedLifestyleSig.current != null &&
+        now === lastPersistedLifestyleSig.current
+      ) {
+        return;
+      }
+      upsertPlanning.mutate(
+        {
+          salarySessionId: activeSalarySessionId,
+          lifestyle: useLifestyleStore.getState().expenses,
+        },
+        {
+          onSuccess: () => {
+            lastPersistedLifestyleSig.current = JSON.stringify(
+              useLifestyleStore.getState().expenses
+            );
+          },
+        }
+      );
     }, 900);
     return () => window.clearTimeout(t);
-  }, [expenses, persist, activeSalarySessionId, upsertPlanning]);
+  }, [
+    expensesSerialized,
+    persist,
+    activeSalarySessionId,
+    upsertPlanning,
+    detailQ.data?.session?.id,
+  ]);
 
   const result = calculateSurplus(monthlyInHand);
 

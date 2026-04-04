@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import { SalaryBreakdownEditablePanel } from "@/components/shared/salary-breakdown-editable-panel";
 import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
 import { hasPremiumProductAccess } from "@/lib/access/product-access";
+import { createSaveFlightSequence } from "@/lib/persistence/save-flight-sequence";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import {
   useOfferSessionDetailQuery,
@@ -46,6 +47,7 @@ import {
 import {
   hydrateOfferComparisonFromDetail,
   type OfferSavePayload,
+  type OfferSessionDetail,
 } from "@/lib/supabase/queries/offer-sessions";
 import {
   EASE,
@@ -113,6 +115,14 @@ function sumEmployerContributionsAnnual(bd: SalaryBreakdown): number {
     .reduce((s, c) => s + c.annualValue, 0);
 }
 
+function offerAutosaveFingerprint(
+  offers: OfferDraft[],
+  edits: Record<string, { breakdown: SalaryBreakdown; inputKey: string }>,
+  validSummaryKey: string
+): string {
+  return JSON.stringify({ o: offers, e: edits, v: validSummaryKey });
+}
+
 export function OfferComparisonView() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -146,6 +156,13 @@ export function OfferComparisonView() {
   const [activeOfferSessionId, setActiveOfferSessionId] = useState<string | null>(
     urlOfferSession
   );
+  const [hydrateEpoch, setHydrateEpoch] = useState(0);
+  const lastSavedOfferFingerprint = useRef<string | null>(null);
+  const offerSaveFlightRef = useRef<ReturnType<
+    typeof createSaveFlightSequence
+  > | null>(null);
+  offerSaveFlightRef.current ??= createSaveFlightSequence();
+  const offerSaveFlight = offerSaveFlightRef.current;
 
   const offerDetailQ = useOfferSessionDetailQuery(
     activeOfferSessionId,
@@ -165,6 +182,10 @@ export function OfferComparisonView() {
   }, [urlOfferSession]);
 
   useEffect(() => {
+    offerSaveFlight.reset();
+  }, [activeOfferSessionId, offerSaveFlight]);
+
+  useEffect(() => {
     if (!persistOffers || !offerSessionDetail) return;
     const sig = `${offerSessionDetail.session.id}:${offerSessionDetail.session.updated_at}`;
     if (offerHydratedSig.current === sig) return;
@@ -174,6 +195,7 @@ export function OfferComparisonView() {
     if (ho.length >= 2) {
       setOffers(ho);
       setOfferBreakdownEdits(breakdownEdits);
+      setHydrateEpoch((e) => e + 1);
     }
   }, [offerSessionDetail, persistOffers]);
 
@@ -315,6 +337,20 @@ export function OfferComparisonView() {
     [offers]
   );
 
+  const breakdownEditsFingerprint = useMemo(
+    () => JSON.stringify(offerBreakdownEdits),
+    [offerBreakdownEdits]
+  );
+
+  const offersForAutosaveRef = useRef(offers);
+  const editsForAutosaveRef = useRef(offerBreakdownEdits);
+  const validForAutosaveRef = useRef(valid);
+  const activeOfferSessionRef = useRef(activeOfferSessionId);
+  offersForAutosaveRef.current = offers;
+  editsForAutosaveRef.current = offerBreakdownEdits;
+  validForAutosaveRef.current = valid;
+  activeOfferSessionRef.current = activeOfferSessionId;
+
   const validSummaryKey = useMemo(
     () =>
       valid
@@ -327,12 +363,23 @@ export function OfferComparisonView() {
   );
 
   useEffect(() => {
+    if (hydrateEpoch === 0 || !persistOffers) return;
     if (valid.length < 2) return;
-    const offersSnap = offers;
-    const validSnap = valid;
-    const editsSnap = offerBreakdownEdits;
-    const sessionIdSnap = activeOfferSessionId;
-    const timer = window.setTimeout(() => {
+    lastSavedOfferFingerprint.current = offerAutosaveFingerprint(
+      offers,
+      offerBreakdownEdits,
+      validSummaryKey
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- baseline only after server hydrate
+  }, [hydrateEpoch]);
+
+  useEffect(() => {
+    if (valid.length < 2) return;
+    const timer = globalThis.setTimeout(() => {
+      const offersSnap = offersForAutosaveRef.current;
+      const validSnap = validForAutosaveRef.current;
+      const editsSnap = editsForAutosaveRef.current;
+      const sessionIdSnap = activeOfferSessionRef.current;
       const first = validSnap[0]!;
       const bestHand = validSnap.reduce(
         (a, b) => (b.monthlyInHand > a.monthlyInHand ? b : a),
@@ -349,6 +396,21 @@ export function OfferComparisonView() {
         winnerSummary = `${bestHand.companyName} best in-hand · ${bestVal.companyName} best 1Y value`;
       }
 
+      const validKeyAtSave = validSnap
+        .map(
+          (v) =>
+            `${v.companyName}:${v.monthlyInHand}:${v.firstYearValue}`
+        )
+        .join("|");
+      const fp = offerAutosaveFingerprint(
+        offersSnap,
+        editsSnap,
+        validKeyAtSave
+      );
+      if (lastSavedOfferFingerprint.current === fp) {
+        return;
+      }
+
       if (persistOffers) {
         const payload: OfferSavePayload = {
           offers: offersSnap,
@@ -359,12 +421,16 @@ export function OfferComparisonView() {
             winnerSummary,
           },
         };
+        const flightId = offerSaveFlight.next();
         void upsertOfferSession
           .mutateAsync({
             sessionId: sessionIdSnap,
             payload,
           })
-          .then((id) => {
+          .then((detail: OfferSessionDetail) => {
+            if (!offerSaveFlight.isLatest(flightId)) return;
+            lastSavedOfferFingerprint.current = fp;
+            const id = detail.session.id;
             setActiveOfferSessionId((prev) => {
               if (prev !== id) {
                 router.replace(
@@ -386,18 +452,17 @@ export function OfferComparisonView() {
         );
       }
     }, 1000);
-    return () => window.clearTimeout(timer);
+    return () => globalThis.clearTimeout(timer);
   }, [
     offersFingerprint,
+    breakdownEditsFingerprint,
     valid.length,
     validSummaryKey,
-    offers,
-    valid,
     persistOffers,
-    offerBreakdownEdits,
     activeOfferSessionId,
     upsertOfferSession,
     router,
+    offerSaveFlight,
   ]);
 
   const update = (id: string, patch: Partial<OfferDraft>) => {

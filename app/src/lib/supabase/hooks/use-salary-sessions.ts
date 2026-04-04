@@ -6,11 +6,12 @@ import { queryKeys } from "@/lib/supabase/query-keys";
 import {
   createSalarySession,
   deleteSalarySession,
+  diffSalarySessionRow,
   getSalarySession,
   listSalarySessions,
+  patchSalarySession,
   salaryRowToHistoryEntry,
   touchSalarySessionOpened,
-  updateSalarySession,
   upsertSalarySessionPlanning,
   type SalarySessionDetail,
 } from "@/lib/supabase/queries/salary-sessions";
@@ -22,7 +23,14 @@ import type { SalaryBreakdown, SalaryInput } from "@/lib/types/salary.types";
 type SalarySessionRow = Database["public"]["Tables"]["salary_sessions"]["Row"];
 
 const LIST_LIMIT = 40;
-const DETAIL_STALE_MS = 3 * 60 * 1000;
+const LIST_STALE_MS = 5 * 60 * 1000;
+const DETAIL_STALE_MS = 5 * 60 * 1000;
+
+const calmSessionQueryOptions = {
+  staleTime: LIST_STALE_MS,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
 
 export function useSalarySessionsListQuery(enabled: boolean) {
   return useQuery({
@@ -33,6 +41,7 @@ export function useSalarySessionsListQuery(enabled: boolean) {
       return rows.map(salaryRowToHistoryEntry);
     },
     enabled,
+    ...calmSessionQueryOptions,
   });
 }
 
@@ -49,6 +58,8 @@ export function useSalarySessionDetailQuery(sessionId: string | null, enabled: b
     },
     enabled: Boolean(sessionId && enabled),
     staleTime: DETAIL_STALE_MS,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -68,11 +79,20 @@ export function useCreateSalarySessionMutation() {
       return createSalarySession(sb, args.input, args.breakdown, args.planning);
     },
     onSuccess: (row: SalarySessionRow) => {
-      qc.invalidateQueries({ queryKey: queryKeys.salarySessions.root });
-      qc.setQueryData(queryKeys.salarySessions.detail(row.id), {
+      const detail = {
         session: row,
         planning: null,
-      } satisfies SalarySessionDetail);
+      } satisfies SalarySessionDetail;
+      qc.setQueryData(queryKeys.salarySessions.detail(row.id), detail);
+      qc.setQueryData(
+        queryKeys.salarySessions.list(LIST_LIMIT),
+        (prev: SalaryHistoryEntry[] | undefined) => {
+          const entry = salaryRowToHistoryEntry(row);
+          if (!prev?.length) return [entry];
+          const without = prev.filter((e) => e.id !== row.id);
+          return [entry, ...without];
+        }
+      );
     },
   });
 }
@@ -84,9 +104,26 @@ export function useUpdateSalarySessionMutation() {
       id: string;
       input: SalaryInput;
       breakdown: SalaryBreakdown;
+      baselineInput: SalaryInput;
+      baselineBreakdown: SalaryBreakdown;
     }): Promise<SalarySessionRow> => {
       const sb = getBrowserSupabase();
-      return updateSalarySession(sb, args.id, args.input, args.breakdown);
+      const patch = diffSalarySessionRow(
+        args.baselineInput,
+        args.baselineBreakdown,
+        args.input,
+        args.breakdown
+      );
+      if (!patch) {
+        const cached = qc.getQueryData<SalarySessionDetail>(
+          queryKeys.salarySessions.detail(args.id)
+        );
+        if (cached?.session) return cached.session;
+        const d = await getSalarySession(sb, args.id);
+        if (!d?.session) throw new Error("Salary session not found");
+        return d.session;
+      }
+      return patchSalarySession(sb, args.id, patch);
     },
     onSuccess: (row: SalarySessionRow) => {
       qc.setQueryData(queryKeys.salarySessions.detail(row.id), (prev) => {
@@ -121,7 +158,10 @@ export function useDeleteSalarySessionMutation() {
     },
     onSuccess: (id) => {
       qc.removeQueries({ queryKey: queryKeys.salarySessions.detail(id) });
-      qc.invalidateQueries({ queryKey: queryKeys.salarySessions.root });
+      qc.setQueryData(
+        queryKeys.salarySessions.list(LIST_LIMIT),
+        (prev: SalaryHistoryEntry[] | undefined) => prev?.filter((e) => e.id !== id)
+      );
     },
   });
 }

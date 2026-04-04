@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/lib/supabase/database.types";
+
+type SalarySessionUpdate = Database["public"]["Tables"]["salary_sessions"]["Update"];
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 import type { SalaryBreakdown, SalaryInput } from "@/lib/types/salary.types";
@@ -111,6 +113,53 @@ export async function createSalarySession(
   }
 
   return session;
+}
+
+/** Shapes a PATCH body with only columns that changed vs baseline. */
+export function diffSalarySessionRow(
+  baselineInput: SalaryInput,
+  baselineBreakdown: SalaryBreakdown,
+  input: SalaryInput,
+  breakdown: SalaryBreakdown
+): SalarySessionUpdate | null {
+  const inputChanged =
+    JSON.stringify(baselineInput) !== JSON.stringify(input);
+  const breakdownChanged =
+    JSON.stringify(baselineBreakdown) !== JSON.stringify(breakdown);
+  if (!inputChanged && !breakdownChanged) return null;
+
+  const patch: SalarySessionUpdate = {};
+  if (inputChanged) {
+    patch.title = deriveTitle(input);
+    patch.annual_ctc = input.annualCTC;
+    patch.regime_label = input.taxRegime === "old" ? "Old regime" : "New regime";
+    patch.result_source = input.resultSource ?? null;
+    patch.input_json =
+      input as unknown as Database["public"]["Tables"]["salary_sessions"]["Row"]["input_json"];
+  }
+  if (breakdownChanged) {
+    patch.breakdown_json =
+      breakdown as unknown as Database["public"]["Tables"]["salary_sessions"]["Row"]["breakdown_json"];
+  }
+  if (inputChanged || breakdownChanged) {
+    patch.monthly_in_hand = breakdown.monthlyInHand;
+  }
+  return patch;
+}
+
+export async function patchSalarySession(
+  supabase: SupabaseClient<Database>,
+  id: string,
+  patch: SalarySessionUpdate
+): Promise<Database["public"]["Tables"]["salary_sessions"]["Row"]> {
+  const { data, error } = await supabase
+    .from("salary_sessions")
+    .update(patch)
+    .eq("id", id)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 export async function updateSalarySession(

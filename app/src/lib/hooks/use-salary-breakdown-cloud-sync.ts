@@ -2,23 +2,30 @@
 
 import { useEffect, useRef } from "react";
 import { useDelayedTrue } from "@/lib/hooks/use-delayed-true";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
+import { createSaveFlightSequence } from "@/lib/persistence/save-flight-sequence";
+import {
+  salaryDraftSignature,
+  salaryStoreMatchesServerPayload,
+} from "@/lib/salary/session-save/salary-session-save-logic";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import {
   useSalarySessionDetailQuery,
-  useTouchSalarySessionMutation,
   useUpdateSalarySessionMutation,
 } from "@/lib/supabase/hooks/use-salary-sessions";
 import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 import type { SalaryBreakdown, SalaryInput } from "@/lib/types/salary.types";
 
 /**
- * URL `?session=`, hydrate from Supabase detail, debounced PATCH, and last_opened touch.
+ * URL `?session=`, hydrate from query, coalesced autosave with dirty baseline,
+ * partial PATCH via mutation, save-flight sequencing, no last_opened touch.
  */
 export function useSalaryBreakdownCloudSync() {
+  const router = useRouter();
+  const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const persist = shouldPersistSessions(user);
   const searchParams = useSearchParams();
@@ -26,11 +33,16 @@ export function useSalaryBreakdownCloudSync() {
 
   const activeId = useSalaryStore((s) => s.activeSalaryHistoryId);
   const setActive = useSalaryStore((s) => s.setActiveSalaryHistoryId);
-  const setInput = useSalaryStore((s) => s.setInput);
   const input = useSalaryStore((s) => s.input);
   const breakdown = useSalaryStore((s) => s.breakdown);
 
   const hydrateLifestyle = useLifestyleStore((s) => s.hydrateFromJson);
+
+  const saveFlightRef = useRef<ReturnType<
+    typeof createSaveFlightSequence
+  > | null>(null);
+  saveFlightRef.current ??= createSaveFlightSequence();
+  const saveFlight = saveFlightRef.current;
 
   useEffect(() => {
     if (urlSession && persist) {
@@ -39,13 +51,32 @@ export function useSalaryBreakdownCloudSync() {
   }, [urlSession, persist, setActive]);
 
   const effectiveId = activeId;
-  const { data: detail, isPending } = useSalarySessionDetailQuery(
+  const { data: detail, isPending, isError } = useSalarySessionDetailQuery(
     effectiveId,
     Boolean(persist && effectiveId)
   );
 
   const lastHydratedSig = useRef<string | null>(null);
-  const skipNextSave = useRef(false);
+  const skipNextFlush = useRef(false);
+  const lastPersistedSalarySig = useRef<string | null>(null);
+  const lastPersistedInputRef = useRef<SalaryInput | null>(null);
+  const lastPersistedBreakdownRef = useRef<SalaryBreakdown | null>(null);
+
+  useEffect(() => {
+    saveFlight.reset();
+    lastPersistedSalarySig.current = null;
+    lastPersistedInputRef.current = null;
+    lastPersistedBreakdownRef.current = null;
+  }, [effectiveId, saveFlight]);
+
+  useEffect(() => {
+    if (!persist || !effectiveId || !isError) return;
+    setActive(null);
+    lastHydratedSig.current = null;
+    if (pathname.startsWith("/salary/breakdown")) {
+      router.replace("/salary");
+    }
+  }, [persist, effectiveId, isError, setActive, router, pathname]);
 
   useEffect(() => {
     if (!persist || !detail?.session || !effectiveId) return;
@@ -53,51 +84,119 @@ export function useSalaryBreakdownCloudSync() {
     const sig = `${detail.session.id}:${detail.session.updated_at}`;
     if (lastHydratedSig.current === sig) return;
     lastHydratedSig.current = sig;
-    skipNextSave.current = true;
+    skipNextFlush.current = true;
 
     const nextInput = detail.session.input_json as unknown as SalaryInput;
     const nextBreakdown = detail.session.breakdown_json as unknown as SalaryBreakdown;
-    setInput(nextInput);
-    useSalaryStore.setState({ breakdown: nextBreakdown });
+
+    const storeInput = useSalaryStore.getState().input;
+    const storeBreakdown = useSalaryStore.getState().breakdown;
+    const { input: sameInput, breakdown: sameBreakdown } =
+      salaryStoreMatchesServerPayload(
+        storeInput,
+        storeBreakdown,
+        nextInput,
+        nextBreakdown
+      );
+
+    if (!sameInput || !sameBreakdown) {
+      // Full replace — setInput() merges partials and can leave stale keys vs
+      // server JSON, which then diverges from lastPersisted* and retriggers PATCH.
+      useSalaryStore.setState({
+        input: nextInput,
+        breakdown: nextBreakdown,
+      });
+    }
+
+    const st = useSalaryStore.getState();
+    const bd = st.breakdown;
+    if (bd) {
+      lastPersistedInputRef.current = st.input;
+      lastPersistedBreakdownRef.current = bd;
+      lastPersistedSalarySig.current = salaryDraftSignature(st.input, bd);
+    }
 
     const lj = detail.planning?.lifestyle_json;
     if (lj && typeof lj === "object" && !Array.isArray(lj)) {
       hydrateLifestyle(lj as Partial<LifestyleExpenses>);
     }
-  }, [detail, effectiveId, persist, setInput, hydrateLifestyle]);
+  }, [detail, effectiveId, persist, hydrateLifestyle]);
 
   const updateMut = useUpdateSalarySessionMutation();
-  const touchMut = useTouchSalarySessionMutation();
-  const touchedId = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (!persist || !effectiveId) return;
-    if (touchedId.current === effectiveId) return;
-    touchedId.current = effectiveId;
-    touchMut.mutate(effectiveId);
-  }, [effectiveId, persist, touchMut]);
+  const inputRef = useRef(input);
+  const breakdownRef = useRef(breakdown);
+  inputRef.current = input;
+  breakdownRef.current = breakdown;
 
   const inputSnapshot = JSON.stringify(input);
   const breakdownSnapshot = breakdown ? JSON.stringify(breakdown) : "";
 
   useEffect(() => {
     if (!persist || !effectiveId || !breakdown || input.annualCTC < 100_000) return;
-    if (skipNextSave.current) {
-      skipNextSave.current = false;
+    if (detail?.session?.id !== effectiveId) return;
+    if (skipNextFlush.current) {
+      skipNextFlush.current = false;
       return;
     }
-    const t = window.setTimeout(() => {
-      updateMut.mutate({ id: effectiveId, input, breakdown });
+    const currentSig = `${inputSnapshot}|${breakdownSnapshot}`;
+    if (
+      lastPersistedSalarySig.current != null &&
+      currentSig === lastPersistedSalarySig.current
+    ) {
+      return;
+    }
+    const t = globalThis.setTimeout(() => {
+      const curInput = inputRef.current;
+      const curBreakdown = breakdownRef.current;
+      if (!curBreakdown || curInput.annualCTC < 100_000) return;
+
+      const sigNow = salaryDraftSignature(curInput, curBreakdown);
+      if (
+        lastPersistedSalarySig.current != null &&
+        sigNow === lastPersistedSalarySig.current
+      ) {
+        return;
+      }
+
+      const baselineInput = lastPersistedInputRef.current ?? curInput;
+      const baselineBreakdown = lastPersistedBreakdownRef.current ?? curBreakdown;
+
+      const flightId = saveFlight.next();
+      updateMut.mutate(
+        {
+          id: effectiveId,
+          input: curInput,
+          breakdown: curBreakdown,
+          baselineInput,
+          baselineBreakdown,
+        },
+        {
+          onSuccess: () => {
+            if (!saveFlight.isLatest(flightId)) return;
+            // Client payload, not row JSON — avoids signature mismatch vs server round-trip.
+            lastPersistedInputRef.current = curInput;
+            lastPersistedBreakdownRef.current = curBreakdown;
+            lastPersistedSalarySig.current = salaryDraftSignature(
+              curInput,
+              curBreakdown
+            );
+          },
+        }
+      );
     }, 1000);
-    return () => window.clearTimeout(t);
+    return () => globalThis.clearTimeout(t);
+  // Snapshots + session id only — omit `detail.session` (new object on every
+  // setQueryData) so PATCH success does not reset the 1s debounce and re-queue saves.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     persist,
     effectiveId,
+    detail?.session?.id,
     inputSnapshot,
     breakdownSnapshot,
     updateMut,
-    input,
-    breakdown,
+    saveFlight,
   ]);
 
   const cloudHydrating =
@@ -107,7 +206,6 @@ export function useSalaryBreakdownCloudSync() {
 
   return {
     cloudHydrating,
-    /** True while autosave mutation is in flight (delayed to avoid flicker on fast writes). */
     cloudSaving: cloudSavingVisible,
   };
 }

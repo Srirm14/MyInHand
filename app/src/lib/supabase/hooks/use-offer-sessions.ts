@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBrowserSupabase } from "@/lib/supabase/client/browser";
 import { queryKeys } from "@/lib/supabase/query-keys";
+import type { OfferComparisonHistoryEntry } from "@/lib/types/history.types";
 import {
   createOfferSession,
   deleteOfferSession,
@@ -15,7 +16,14 @@ import {
 } from "@/lib/supabase/queries/offer-sessions";
 
 const LIST_LIMIT = 40;
-const DETAIL_STALE_MS = 3 * 60 * 1000;
+const LIST_STALE_MS = 5 * 60 * 1000;
+const DETAIL_STALE_MS = 5 * 60 * 1000;
+
+const calmSessionQueryOptions = {
+  staleTime: LIST_STALE_MS,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
 
 export function useOfferSessionsListQuery(enabled: boolean) {
   return useQuery({
@@ -26,6 +34,7 @@ export function useOfferSessionsListQuery(enabled: boolean) {
       return rows.map(offerListRowToHistoryEntry);
     },
     enabled,
+    ...calmSessionQueryOptions,
   });
 }
 
@@ -42,6 +51,8 @@ export function useOfferSessionDetailQuery(sessionId: string | null, enabled: bo
     },
     enabled: Boolean(sessionId && enabled),
     staleTime: DETAIL_STALE_MS,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }
 
@@ -51,18 +62,27 @@ export function useUpsertOfferSessionMutation() {
     mutationFn: async (args: {
       sessionId: string | null;
       payload: OfferSavePayload;
-    }) => {
+    }): Promise<OfferSessionDetail> => {
       const sb = getBrowserSupabase();
       if (args.sessionId) {
-        await replaceOfferSessionContent(sb, args.sessionId, args.payload);
-        return args.sessionId;
+        return replaceOfferSessionContent(sb, args.sessionId, args.payload);
       }
-      const row = await createOfferSession(sb, args.payload);
-      return row.id;
+      return createOfferSession(sb, args.payload);
     },
-    onSuccess: (sessionId) => {
-      qc.invalidateQueries({ queryKey: queryKeys.offerSessions.root });
-      qc.invalidateQueries({ queryKey: queryKeys.offerSessions.detail(sessionId) });
+    onSuccess: (detail) => {
+      const listKey = queryKeys.offerSessions.list(LIST_LIMIT);
+      qc.setQueryData(queryKeys.offerSessions.detail(detail.session.id), detail);
+      qc.setQueryData(
+        listKey,
+        (prev: OfferComparisonHistoryEntry[] | undefined) => {
+          const entry = offerListRowToHistoryEntry(detail.session);
+          if (!prev?.length) return [entry];
+          const idx = prev.findIndex((e) => e.id === detail.session.id);
+          if (idx === -1) return [entry, ...prev];
+          const next = prev.filter((_, i) => i !== idx);
+          return [entry, ...next];
+        }
+      );
     },
   });
 }
@@ -77,7 +97,11 @@ export function useDeleteOfferSessionMutation() {
     },
     onSuccess: (id) => {
       qc.removeQueries({ queryKey: queryKeys.offerSessions.detail(id) });
-      qc.invalidateQueries({ queryKey: queryKeys.offerSessions.root });
+      qc.setQueryData(
+        queryKeys.offerSessions.list(LIST_LIMIT),
+        (prev: OfferComparisonHistoryEntry[] | undefined) =>
+          prev?.filter((e) => e.id !== id)
+      );
     },
   });
 }
