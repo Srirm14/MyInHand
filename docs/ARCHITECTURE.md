@@ -16,6 +16,7 @@
 
 ## Related Docs
 
+- **`API.md`** — Planned REST surface for persisting salary runs, offer comparisons, and history (calculations remain client-side today).
 - **`SALARY_COMPONENTS.md`** — Breakdown IA, component model, tooltip/badge rules, grouping.
 - **`DESIGN_SYSTEM.md`** — Colors, typography, card/form/nav patterns.
 - **`PRODUCT_FLOW.md`** — Screen definitions, access tiers, CTA behavior.
