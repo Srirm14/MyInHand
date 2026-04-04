@@ -41,4 +41,9 @@ Restart the dev server after changing `.env.local`.
 - **Host:** `src/components/providers/premium-plans-modal-host.tsx` in root `layout.tsx` (inside `Suspense` for `useSearchParams`).
 - **State:** `src/lib/stores/use-premium-plans-modal-store.ts` — call **`openPremiumPlansModal({ fromPremium?: boolean })`** from buttons or **`PremiumBlurOfferTeaser`**; **`closePremiumPlansModal()`** to dismiss.
 
+## Brand / favicon
+
+- **`public/brand/inhand-logo.svg`** — logo mark; referenced by **`InhandLogoMark`** (`src/components/layout/inhand-logo-mark.tsx`) and `metadata.icons` in `src/app/layout.tsx`.
+- **`src/app/icon.svg`** — same artwork for the app icon / favicon. Update both files together when the mark changes.
+
 Design tokens and patterns: `../DESIGN_SYSTEM.md`.

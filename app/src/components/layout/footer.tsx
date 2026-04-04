@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Shield, Award, Lock } from "lucide-react";
+import { InhandLogoMark } from "@/components/layout/inhand-logo-mark";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 
 const legalLinks = [
@@ -26,9 +27,17 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-between gap-8">
           {/* Brand */}
           <div className="max-w-sm">
-            <span className="font-display text-lg font-bold text-teal-600 tracking-tight">
-              InHand
-            </span>
+            <div className="flex items-center gap-2">
+              <InhandLogoMark height={32} className="h-8 w-auto" aria-hidden />
+              <div className="flex flex-col leading-tight">
+                <span className="font-display text-lg font-bold tracking-tight text-navy-900">
+                  InHand
+                </span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.14em] text-navy-500">
+                  Know your real take-home
+                </span>
+              </div>
+            </div>
             <p className="mt-2 text-sm text-navy-500 leading-relaxed">
               Salary intelligence for Indian employees—in-hand clarity,
               breakups, tax context, and decisions without the fluff.

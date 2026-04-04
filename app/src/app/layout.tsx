@@ -26,6 +26,10 @@ export const metadata: Metadata = {
   title: "InHand — Salary intelligence for Indian employees",
   description:
     "From CTC to in-hand clarity: breakups, deductions, tax impact, lifestyle affordability, offer comparison, and wealth scenarios—built for Indian payroll.",
+  icons: {
+    icon: [{ url: "/brand/inhand-logo.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/brand/inhand-logo.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

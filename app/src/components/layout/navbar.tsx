@@ -9,6 +9,7 @@ import { RecentHistoryNavButton } from "@/components/layout/recent-history-sheet
 import { buttonVariants } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { PREMIUM_UNLOCKED, premiumToolHref } from "@/lib/config/access-mode";
+import { InhandLogoMark } from "@/components/layout/inhand-logo-mark";
 import { cn } from "@/lib/utils";
 
 function navOfferComparisonActive(
@@ -51,9 +52,19 @@ function NavbarInner() {
     <header className="sticky top-0 z-50 w-full bg-white border-b border-navy-200/60 shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="font-display text-xl font-bold text-teal-600 tracking-tight">
-            InHand
+        <Link
+          href="/"
+          aria-label="InHand home"
+          className="flex items-center gap-2.5 shrink-0 rounded-md outline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-600"
+        >
+          <InhandLogoMark height={34} className="h-[34px] w-auto" aria-hidden />
+          <span className="flex min-w-0 flex-col leading-tight">
+            <span className="font-display text-lg font-bold tracking-tight text-navy-900 sm:text-xl">
+              InHand
+            </span>
+            <span className="hidden text-[9px] font-semibold uppercase tracking-[0.16em] text-navy-500 sm:block">
+              Know your real take-home
+            </span>
           </span>
         </Link>
 
