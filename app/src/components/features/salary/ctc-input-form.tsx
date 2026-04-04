@@ -5,17 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  ArrowRight,
-  Info,
-  LineChart,
-  PiggyBank,
-  ShieldCheck,
-  TrendingUp,
-  Upload,
-} from "lucide-react";
+import { ArrowRight, Info, LineChart, Upload } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
-import { FeatureCard } from "@/components/shared/feature-card";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
 import { SalaryRecentsPanels } from "@/components/features/salary/salary-recents-panels";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -374,24 +365,6 @@ export function CtcInputForm() {
         )}
 
         <SalaryRecentsPanels />
-
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
-          <FeatureCard
-            icon={TrendingUp}
-            title="Growth Analysis"
-            description="See how your salary compares to industry standards."
-          />
-          <FeatureCard
-            icon={PiggyBank}
-            title="Max Deductions"
-            description="Calculate 80C, 80D and HRA to minimize taxes."
-          />
-          <FeatureCard
-            icon={ShieldCheck}
-            title="Secure Entry"
-            description="Your financial data stays local and encrypted."
-          />
-        </div>
       </PageShell>
 
       {premium && (
