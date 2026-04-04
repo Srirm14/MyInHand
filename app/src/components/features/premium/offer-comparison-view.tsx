@@ -12,7 +12,16 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Loader2, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
+import {
+  ChevronDown,
+  Info,
+  ListFilter,
+  Loader2,
+  Plus,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
@@ -69,6 +78,14 @@ import {
   isLikelyUuid,
   setOfferWorkspaceCookie,
 } from "@/lib/persistence/workspace-session-cookies";
+import {
+  OFFER_VERDICT_FILTER_FORMULA_LINE,
+  OFFER_VERDICT_FILTER_LABELS,
+  OFFER_VERDICT_FORMULAS,
+  offerMatchesVerdictFilter,
+  offerVerdictRowTooltipText,
+  type OfferVerdictFilterId,
+} from "@/lib/offer-comparison/verdict-explanations";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -109,6 +126,13 @@ function offersLookUnused(list: OfferDraft[]): boolean {
 }
 
 type OfferEntryMode = "manual" | "upload";
+
+const VERDICT_FILTER_SEQUENCE: OfferVerdictFilterId[] = [
+  "all",
+  "best_both",
+  "highest_in_hand",
+  "highest_1y",
+];
 
 /** Subtle teal / emerald tints so expanded accordions are orienting, not loud. */
 const OFFER_PANEL_TINTS = [
@@ -152,6 +176,8 @@ export function OfferComparisonView() {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [expandedOfferId, setExpandedOfferId] = useState<string | null>(null);
+  const [verdictFilter, setVerdictFilter] =
+    useState<OfferVerdictFilterId>("all");
   const [offerBreakdownEdits, setOfferBreakdownEdits] = useState<
     Record<string, { breakdown: SalaryBreakdown; inputKey: string }>
   >({});
@@ -159,7 +185,7 @@ export function OfferComparisonView() {
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [comparisonRevealed, setComparisonRevealed] = useState(false);
-  const resultsRef = useRef<HTMLDivElement>(null);
+  const comparisonTableRef = useRef<HTMLDivElement>(null);
 
   const [offers, setOffers] = useState<OfferDraft[]>(() => {
     const pending =
@@ -309,6 +335,14 @@ export function OfferComparisonView() {
         )
       : null;
 
+  const decisionTableRows = useMemo(() => {
+    return valid.filter((v) => {
+      const topHand = v.monthlyInHand === bestInHand;
+      const topVal = v.firstYearValue === bestValue;
+      return offerMatchesVerdictFilter(verdictFilter, topHand, topVal);
+    });
+  }, [valid, verdictFilter, bestInHand, bestValue]);
+
   useLayoutEffect(() => {
     if (comparisons.filter(Boolean).length >= 2) {
       setComparisonRevealed(true);
@@ -322,9 +356,9 @@ export function OfferComparisonView() {
     setComparisonRevealed(true);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        resultsRef.current?.scrollIntoView({
+        comparisonTableRef.current?.scrollIntoView({
           behavior: "smooth",
-          block: "nearest",
+          block: "start",
         });
       });
     });
@@ -1133,7 +1167,6 @@ export function OfferComparisonView() {
           ) : (
             <motion.div
               key="results"
-              ref={resultsRef}
               id="offer-comparison-results"
               role="region"
               aria-label="Offer comparison results"
@@ -1143,15 +1176,53 @@ export function OfferComparisonView() {
               transition={{ duration: 0.45, ease: EASE }}
               className="space-y-3"
             >
-          <div>
-            <h2 className="text-h3 text-navy-800">Decision summary</h2>
-            <p className="mt-1 text-xs text-navy-500 max-w-2xl leading-relaxed">
-              Scan columns for a fast read. Use the right control to open the
-              full breakdown — edit line items there; the summary row and verdict
-              refresh from the same Salary Breakdown engine.
-            </p>
-          </div>
-          <div className="overflow-x-auto rounded-2xl border border-navy-200/50 bg-white shadow-sm">
+            <div className="rounded-xl border border-navy-200/65 bg-gradient-to-br from-white via-white to-navy-50/35 px-3 py-3 shadow-sm shadow-navy-900/[0.03] sm:px-4 sm:py-3.5">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <span
+                  className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100/80"
+                  title="Filter by verdict"
+                  aria-hidden
+                >
+                  <ListFilter
+                    className="size-[18px]"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                </span>
+                <div
+                  className="flex min-w-0 flex-1 flex-wrap gap-2"
+                  role="group"
+                  aria-label="Filter table rows by verdict"
+                >
+                  {VERDICT_FILTER_SEQUENCE.map((id) => {
+                    const selected = verdictFilter === id;
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setVerdictFilter(id)}
+                        className={cn(
+                          "rounded-full px-3 py-1.5 text-left text-[11px] font-semibold transition-[color,background-color,box-shadow,border-color] sm:text-center",
+                          selected
+                            ? "bg-teal-600 text-white shadow-sm shadow-teal-900/15 ring-1 ring-teal-700/20"
+                            : "bg-white/90 text-navy-700 ring-1 ring-navy-200/85 hover:bg-navy-50/90 hover:ring-navy-300/80"
+                        )}
+                      >
+                        {OFFER_VERDICT_FILTER_LABELS[id]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <p className="mt-3 border-t border-navy-100/90 pt-2.5 text-[11px] leading-relaxed text-navy-600">
+                {OFFER_VERDICT_FILTER_FORMULA_LINE[verdictFilter]}
+              </p>
+            </div>
+          <div
+            ref={comparisonTableRef}
+            className="overflow-x-auto rounded-2xl border border-navy-200/50 bg-white shadow-sm scroll-mt-4"
+          >
             <table className="w-full min-w-[780px] text-sm">
               <thead>
                 <tr className="border-b border-navy-100 text-left text-label text-navy-400">
@@ -1179,12 +1250,37 @@ export function OfferComparisonView() {
                 </tr>
               </thead>
               <tbody>
-                {valid.map((v, offerIndex) => {
+                {decisionTableRows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-10 text-center text-sm text-navy-500"
+                    >
+                      No offers match this verdict filter.{" "}
+                      <button
+                        type="button"
+                        onClick={() => setVerdictFilter("all")}
+                        className="font-semibold text-teal-700 underline decoration-teal-300/80 underline-offset-2 hover:text-teal-800"
+                      >
+                        Show all offers
+                      </button>
+                    </td>
+                  </tr>
+                ) : null}
+                {decisionTableRows.map((v) => {
                   const topHand = v.monthlyInHand === bestInHand;
                   const topVal = v.firstYearValue === bestValue;
+                  const verdictRowTip = offerVerdictRowTooltipText(
+                    topHand,
+                    topVal
+                  );
                   const open = expandedOfferId === v.id;
+                  const tintIndex = Math.max(
+                    0,
+                    valid.findIndex((x) => x.id === v.id)
+                  );
                   const panelTint =
-                    OFFER_PANEL_TINTS[offerIndex % OFFER_PANEL_TINTS.length];
+                    OFFER_PANEL_TINTS[tintIndex % OFFER_PANEL_TINTS.length];
                   return (
                     <Fragment key={v.id}>
                       <tr
@@ -1236,24 +1332,49 @@ export function OfferComparisonView() {
                           />
                         </td>
                         <td className="px-4 py-3 text-navy-600 select-none text-[13px] leading-snug">
-                          {topHand && topVal && (
-                            <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-800 ring-1 ring-teal-100">
-                              Best on both
-                            </span>
-                          )}
-                          {topHand && !topVal && (
-                            <span className="inline-flex items-center rounded-full bg-teal-50/80 px-2.5 py-0.5 text-xs font-semibold text-teal-800 ring-1 ring-teal-100/80">
-                              Highest in-hand
-                            </span>
-                          )}
-                          {!topHand && topVal && (
-                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">
-                              Highest 1Y value
-                            </span>
-                          )}
-                          {!topHand && !topVal && (
-                            <span className="text-navy-400">—</span>
-                          )}
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {topHand && topVal && (
+                              <span className="inline-flex items-center rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-800 ring-1 ring-teal-100">
+                                Best on both
+                              </span>
+                            )}
+                            {topHand && !topVal && (
+                              <span className="inline-flex items-center rounded-full bg-teal-50/80 px-2.5 py-0.5 text-xs font-semibold text-teal-800 ring-1 ring-teal-100/80">
+                                Highest in-hand
+                              </span>
+                            )}
+                            {!topHand && topVal && (
+                              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-100">
+                                Highest 1Y value
+                              </span>
+                            )}
+                            {!topHand && !topVal && (
+                              <span className="text-navy-400">—</span>
+                            )}
+                            {verdictRowTip ? (
+                              <Tooltip>
+                                <TooltipTrigger
+                                  type="button"
+                                  className="rounded-full p-0.5 text-navy-400 transition-colors hover:bg-navy-100/80 hover:text-navy-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-300"
+                                  aria-label="Why this verdict"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Info
+                                    className="size-3.5 shrink-0"
+                                    strokeWidth={2}
+                                    aria-hidden
+                                  />
+                                </TooltipTrigger>
+                                <TooltipContent
+                                  side="top"
+                                  align="start"
+                                  className="max-w-xs border-0 bg-navy-900 px-3 py-2.5 text-left text-xs leading-relaxed text-white shadow-lg"
+                                >
+                                  {verdictRowTip}
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="px-2 py-2 align-middle text-right">
                           <button
@@ -1363,19 +1484,16 @@ export function OfferComparisonView() {
             </table>
             <div className="space-y-1.5 px-4 py-3 text-xs text-navy-400 border-t border-navy-100 leading-relaxed">
               <p>
-                <span className="font-medium text-navy-600">*</span> First-year
-                value = monthly in-hand × 12 + joining bonus + 25% of stated
-                ESOP (same engine as Salary Breakdown; variable pay excluded from
-                monthly in-hand). Editing rows below updates in-hand and this
-                score for that offer only.
+                <span className="font-medium text-navy-600">*</span>{" "}
+                {OFFER_VERDICT_FORMULAS.firstYearValue} Same Salary Breakdown
+                engine as the expanded rows; variable pay stays out of monthly
+                in-hand. Edits there refresh in-hand and this score per offer.
               </p>
               <p>
                 <span className="font-medium text-navy-600">Verdict</span>{" "}
-                compares valid offers only.{" "}
                 <span className="text-navy-500">
-                  “Highest in-hand” uses fixed-path monthly in-hand; “Highest 1Y
-                  value” uses the footnoted first-year score. “Best on both” means
-                  this offer is top on both metrics (ties can share the lead).
+                  {OFFER_VERDICT_FORMULAS.ranking} Use the filter bar above for
+                  formulas by verdict; row info icons explain each badge.
                 </span>
               </p>
             </div>
@@ -1384,7 +1502,6 @@ export function OfferComparisonView() {
           )}
         </AnimatePresence>
       </div>
-
             </div>
           </div>
       </motion.section>

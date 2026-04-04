@@ -33,9 +33,9 @@ import {
 } from "@/lib/stores/use-history-store";
 import { appToast } from "@/lib/notify/app-notify";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
-import type { TaxRegime } from "@/lib/types/salary.types";
 import { cn } from "@/lib/utils";
 import { CompensationCtcSectionForm } from "@/components/features/salary/compensation-ctc-section";
+import { TaxRegimeToggle } from "@/components/shared/tax-regime-toggle";
 import { smoothScrollInputIntoViewAndFocus } from "@/lib/dom/smooth-focus-input";
 import { fadeUp } from "@/lib/motion/marketing-motion";
 
@@ -396,6 +396,7 @@ export function CtcInputForm() {
                   <TaxRegimeToggle
                     value={field.value}
                     onChange={field.onChange}
+                    size="default"
                   />
                 )}
               />
@@ -436,42 +437,6 @@ export function CtcInputForm() {
           <LineChart className="size-5 md:size-6" />
         </Link>
       )}
-    </div>
-  );
-}
-
-function TaxRegimeToggle({
-  value,
-  onChange,
-}: {
-  value: TaxRegime;
-  onChange: (v: TaxRegime) => void;
-}) {
-  return (
-    <div className="inline-flex rounded-xl border border-navy-200 bg-navy-100/40 p-1">
-      {(
-        [
-          { id: "old" as const, label: "Old Regime" },
-          { id: "new" as const, label: "New Regime" },
-        ] as const
-      ).map((opt) => {
-        const active = value === opt.id;
-        return (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            className={cn(
-              "cursor-pointer rounded-lg px-8 py-2.5 text-sm font-semibold transition-all min-w-[120px]",
-              active
-                ? "border border-teal-600 bg-teal-100 text-teal-900 shadow-sm"
-                : "text-navy-600 hover:bg-white/60 hover:text-navy-800"
-            )}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
     </div>
   );
 }

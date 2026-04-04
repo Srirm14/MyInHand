@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  Fragment,
   useEffect,
   useMemo,
   useRef,
   useState,
   startTransition,
-  type ReactNode,
 } from "react";
 import {
   clearSalaryBreakdownScrollSave,
@@ -41,7 +39,6 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -79,6 +76,16 @@ import {
   splitInrFormattedParts,
 } from "@/components/ui/inr-money-input";
 import { SalaryBreakdownSkeleton } from "@/components/shared/loading-skeletons";
+import { TaxRegimeToggle } from "@/components/shared/tax-regime-toggle";
+import { RegimeTaxSlabReferenceCard } from "@/components/features/salary/regime-tax-slab-reference-card";
+import {
+  buildBreakdownAccordionSectionIds,
+  salaryAccordionSectionTotals,
+  SalaryBreakdownAccordionProvider,
+  SalaryBreakdownAccordionSection,
+  SalaryBreakdownAccordionToolbar,
+  SalaryBreakdownTableColgroup,
+} from "@/components/shared/salary-breakdown-accordion";
 
 const GROUP_TITLES: Record<SalaryComponentGroup, string> = {
   earnings: "Earnings & salary components",
@@ -109,6 +116,7 @@ export function SalaryBreakdownView() {
   const input = useSalaryStore((s) => s.input);
   const breakdown = useSalaryStore((s) => s.breakdown);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
+  const setTaxRegime = useSalaryStore((s) => s.setTaxRegime);
   const patchBreakdownComponent = useSalaryStore(
     (s) => s.patchBreakdownComponent
   );
@@ -202,6 +210,11 @@ export function SalaryBreakdownView() {
       }))
       .filter((s) => s.rows.length > 0);
   }, [breakdown]);
+
+  const accordionSectionIds = useMemo(
+    () => buildBreakdownAccordionSectionIds(nonEarningsGroups),
+    [nonEarningsGroups]
+  );
 
   const fixedCashMonthly = useMemo(() => {
     if (!breakdown) return 0;
@@ -475,6 +488,47 @@ export function SalaryBreakdownView() {
         onAnimationEnd={onTotalsFlashEnd}
       >
         <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
+          className="rounded-xl border border-navy-200/65 bg-white px-4 py-3.5 shadow-sm shadow-navy-900/[0.02]"
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+            <div className="flex min-w-0 flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-semibold text-navy-800 whitespace-nowrap">
+                  Tax regime
+                </p>
+                <Tooltip>
+                  <TooltipTrigger
+                    type="button"
+                    className="text-navy-400 hover:text-navy-600 shrink-0"
+                    aria-label="Tax regime info"
+                  >
+                    <Info className="size-3.5" aria-hidden />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-left text-xs">
+                    Old regime applies illustrative PF + 80C-style deduction in this
+                    model. New regime uses wider slabs with fewer deductions. Switching
+                    recomputes TDS from your current table—row edits are kept.
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+              <TaxRegimeToggle
+                value={input.taxRegime}
+                onChange={setTaxRegime}
+                size="compact"
+              />
+            </div>
+            <p className="text-[11px] leading-relaxed text-navy-500 lg:max-w-md lg:text-right">
+              FY 2025-26 slabs below. Changing regime updates the annual tax card and
+              in-hand figures using your breakdown rows.
+            </p>
+          </div>
+        </motion.div>
+
+        <motion.div
           className="grid gap-5 md:grid-cols-2 xl:grid-cols-4"
           initial="hidden"
           whileInView="show"
@@ -526,55 +580,68 @@ export function SalaryBreakdownView() {
           </motion.div>
         </motion.div>
 
-        <div className="rounded-2xl border border-navy-200/50 bg-white px-5 py-4 shadow-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-400 mb-1">
-            Annual picture
-          </p>
-          <p className="text-xs text-navy-500 mb-4 max-w-3xl leading-relaxed">
-            Fixed vs variable cash, then how it compares to your stated CTC. Figures
-            follow the table — change a row and totals refresh together.
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-            <div className="rounded-lg bg-navy-50/50 px-3 py-2.5 ring-1 ring-navy-100/80">
-              <p className="text-[11px] font-medium text-navy-500">
-                Annual fixed (cash)
-              </p>
-              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
-                {formatCurrency(breakdown.annualFixedCashTotal)}
-              </p>
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
+          className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-stretch lg:gap-6"
+        >
+          <RegimeTaxSlabReferenceCard
+            regime={input.taxRegime}
+            engineNotes="breakdown"
+            className="min-w-0 w-full lg:h-full"
+          />
+          <div className="flex min-w-0 flex-col rounded-2xl border border-navy-200/50 bg-white px-5 py-4 shadow-sm lg:h-full">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-400 mb-1">
+              Annual picture
+            </p>
+            <p className="text-xs text-navy-500 mb-4 max-w-3xl leading-relaxed">
+              Fixed vs variable cash, then how it compares to your stated CTC. Figures
+              follow the table — change a row and totals refresh together.
+            </p>
+            <div className="grid flex-1 grid-cols-2 gap-3 text-sm sm:gap-4">
+              <div className="rounded-lg bg-navy-50/50 px-3 py-2.5 ring-1 ring-navy-100/80">
+                <p className="text-[11px] font-medium text-navy-500">
+                  Annual fixed (cash)
+                </p>
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
+                  {formatCurrency(breakdown.annualFixedCashTotal)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-navy-50/50 px-3 py-2.5 ring-1 ring-navy-100/80">
+                <p className="text-[11px] font-medium text-navy-500">
+                  Annual variable (cash)
+                </p>
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
+                  {formatCurrency(breakdown.annualVariableCashTotal)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-teal-50/40 px-3 py-2.5 ring-1 ring-teal-100/70">
+                <p className="text-[11px] font-medium text-teal-800/90">
+                  Total cash (fixed + variable)
+                </p>
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-900">
+                  {formatCurrency(breakdown.annualCashCompensation)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-teal-200/60">
+                <p className="text-[11px] font-medium text-teal-700">
+                  Stated CTC (your input)
+                </p>
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-teal-800">
+                  {formatCurrency(breakdown.statedAnnualCTC)}
+                </p>
+              </div>
             </div>
-            <div className="rounded-lg bg-navy-50/50 px-3 py-2.5 ring-1 ring-navy-100/80">
-              <p className="text-[11px] font-medium text-navy-500">
-                Annual variable (cash)
-              </p>
-              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
-                {formatCurrency(breakdown.annualVariableCashTotal)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-teal-50/40 px-3 py-2.5 ring-1 ring-teal-100/70">
-              <p className="text-[11px] font-medium text-teal-800/90">
-                Total cash (fixed + variable)
-              </p>
-              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-900">
-                {formatCurrency(breakdown.annualCashCompensation)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-teal-200/60">
-              <p className="text-[11px] font-medium text-teal-700">
-                Stated CTC (your input)
-              </p>
-              <p className="mt-0.5 text-base font-semibold tabular-nums text-teal-800">
-                {formatCurrency(breakdown.statedAnnualCTC)}
-              </p>
-            </div>
+            <p className="text-[11px] text-navy-400 mt-3 leading-relaxed lg:mt-auto lg:pt-3">
+              Full modeled package (cash + employer lines):{" "}
+              <span className="font-medium text-navy-600 tabular-nums">
+                {formatCurrency(breakdown.modeledAnnualPackage)}
+              </span>
+            </p>
           </div>
-          <p className="text-[11px] text-navy-400 mt-3 leading-relaxed">
-            Full modeled package (cash + employer lines):{" "}
-            <span className="font-medium text-navy-600 tabular-nums">
-              {formatCurrency(breakdown.modeledAnnualPackage)}
-            </span>
-          </p>
-        </div>
+        </motion.div>
       </div>
 
       <div className="mt-10 rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm">
@@ -628,135 +695,161 @@ export function SalaryBreakdownView() {
           </div>
         </div>
 
-        <div className="mt-8 overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
-          <Table className="text-[13px] leading-snug">
-            <TableHeader>
-              <TableRow className="border-b border-navy-200/70 bg-navy-50/50 hover:bg-navy-50/50">
-                <TableHead className="text-label text-navy-400 pl-5 py-3 w-[42%] h-auto align-bottom font-semibold">
-                  Component
-                </TableHead>
-                <TableHead className="text-label text-navy-400 text-right tabular-nums text-navy-500 py-3 h-auto align-bottom font-semibold">
-                  Monthly
-                </TableHead>
-                <TableHead className="text-label text-navy-400 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
-                  Annual
-                </TableHead>
-                <TableHead className="text-label text-navy-400 pr-5 py-3 h-auto align-bottom font-semibold">
-                  Type
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="[&_tr]:border-navy-100/70 [&_tr:last-child]:border-b-0">
-            <SectionTableHeaderRow
-              title="Fixed salary components"
-              subtitle="Basic, HRA, DA — the stable core before allowances."
-            />
-            {earningsBySection.fixed_core.map((row) => (
-              <EditableEarningRow
-                key={row.id}
-                row={row}
-                patchComponent={patchBreakdownComponent}
-                editableName={false}
-              />
-            ))}
-            <GroupSubtotalRow
-              rows={earningsBySection.fixed_core}
-              label="Subtotal — fixed core"
-            />
+        <SalaryBreakdownAccordionProvider
+          key={accordionSectionIds.join("\u0001")}
+          sectionIds={accordionSectionIds}
+        >
+          <SalaryBreakdownAccordionToolbar className="mb-1 mt-1" />
+          <div className="mt-3 overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
+            <Table className="table-fixed w-full text-[13px] leading-snug">
+              <SalaryBreakdownTableColgroup />
+              <TableHeader>
+                <TableRow className="border-b border-navy-200/70 bg-navy-50/50 hover:bg-navy-50/50">
+                  <TableHead className="text-label text-navy-400 pl-5 py-3 w-[40%] h-auto align-bottom font-semibold">
+                    Component
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 px-2 text-right tabular-nums text-navy-500 py-3 h-auto align-bottom font-semibold">
+                    Monthly
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 px-2 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
+                    Annual
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 pr-5 py-3 text-right h-auto align-bottom font-semibold">
+                    Type
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
 
-            <SectionTableHeaderRow
-              title="Allowances"
-              subtitle="Align names and amounts with your payslip. Optional rows can be removed; add your own heads with +."
-              actions={
-                <SectionAddControl
-                  ariaLabel="Add allowance row"
-                  tooltip="Add allowance row"
-                  onClick={addBreakdownAllowanceRow}
+              <SalaryBreakdownAccordionSection
+                sectionId="fixed_core"
+                title="Fixed salary components"
+                subtitle="Basic, HRA, DA — the stable core before allowances."
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.fixed_core
+                )}
+              >
+                {earningsBySection.fixed_core.map((row) => (
+                  <EditableEarningRow
+                    key={row.id}
+                    row={row}
+                    patchComponent={patchBreakdownComponent}
+                    editableName={false}
+                  />
+                ))}
+                <GroupSubtotalRow
+                  rows={earningsBySection.fixed_core}
+                  label="Subtotal — fixed core"
                 />
-              }
-            />
-            {earningsBySection.allowance.map((row) => (
-              <EditableEarningRow
-                key={row.id}
-                row={row}
-                patchComponent={patchBreakdownComponent}
-                editableName
-                onRemove={
-                  row.removable ? removeBreakdownComponent : undefined
+              </SalaryBreakdownAccordionSection>
+
+              <SalaryBreakdownAccordionSection
+                sectionId="allowance"
+                title="Allowances"
+                subtitle="Align names and amounts with your payslip. Optional rows can be removed; add your own heads with +."
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.allowance
+                )}
+                actions={
+                  <SectionAddControl
+                    ariaLabel="Add allowance row"
+                    tooltip="Add allowance row"
+                    onClick={addBreakdownAllowanceRow}
+                  />
                 }
-              />
-            ))}
-            <GroupSubtotalRow
-              rows={earningsBySection.allowance}
-              label="Subtotal — allowances"
-            />
-
-            <SectionTableHeaderRow
-              title="Variable pay"
-              subtitle="Bonuses and variable CTC — excluded from the monthly in-hand figure above."
-              actions={
-                <SectionAddControl
-                  ariaLabel="Add variable or bonus row"
-                  tooltip="Add variable or bonus row"
-                  onClick={addBreakdownVariableRow}
+              >
+                {earningsBySection.allowance.map((row) => (
+                  <EditableEarningRow
+                    key={row.id}
+                    row={row}
+                    patchComponent={patchBreakdownComponent}
+                    editableName
+                    onRemove={
+                      row.removable ? removeBreakdownComponent : undefined
+                    }
+                  />
+                ))}
+                <GroupSubtotalRow
+                  rows={earningsBySection.allowance}
+                  label="Subtotal — allowances"
                 />
-              }
-            />
-            {earningsBySection.variable_pay.length === 0 ? (
-              <TableRow className="border-navy-100/70 hover:bg-navy-50/30">
-                <TableCell
-                  colSpan={4}
-                  className="pl-5 py-4 text-xs text-navy-500 leading-relaxed"
-                >
-                  No variable lines yet. Tap{" "}
-                  <span className="font-medium text-navy-700">+</span> in the
-                  header, or use <span className="font-medium text-navy-700">Fixed + variable</span>{" "}
-                  on the salary page.
-                </TableCell>
-              </TableRow>
-            ) : (
-              earningsBySection.variable_pay.map((row) => (
-                <EditableEarningRow
-                  key={row.id}
-                  row={row}
-                  patchComponent={patchBreakdownComponent}
-                  editableName
-                  onRemove={
-                    row.removable ? removeBreakdownComponent : undefined
-                  }
-                />
-              ))
-            )}
-            <GroupSubtotalRow
-              rows={earningsBySection.variable_pay}
-              label="Subtotal — variable pay"
-            />
+              </SalaryBreakdownAccordionSection>
 
-            {nonEarningsGroups.map(({ group, rows }) => (
-              <Fragment key={group}>
-                <SectionTableHeaderRow
+              <SalaryBreakdownAccordionSection
+                sectionId="variable_pay"
+                title="Variable pay"
+                subtitle="Bonuses and variable CTC — excluded from the monthly in-hand figure above."
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.variable_pay
+                )}
+                actions={
+                  <SectionAddControl
+                    ariaLabel="Add variable or bonus row"
+                    tooltip="Add variable or bonus row"
+                    onClick={addBreakdownVariableRow}
+                  />
+                }
+              >
+                {earningsBySection.variable_pay.length === 0 ? (
+                  <TableRow className="border-navy-100/70 hover:bg-navy-50/30">
+                    <TableCell
+                      colSpan={4}
+                      className="pl-5 py-4 text-xs text-navy-500 leading-relaxed"
+                    >
+                      No variable lines yet. Tap{" "}
+                      <span className="font-medium text-navy-700">+</span> in the
+                      header, or use{" "}
+                      <span className="font-medium text-navy-700">
+                        Fixed + variable
+                      </span>{" "}
+                      on the salary page.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  earningsBySection.variable_pay.map((row) => (
+                    <EditableEarningRow
+                      key={row.id}
+                      row={row}
+                      patchComponent={patchBreakdownComponent}
+                      editableName
+                      onRemove={
+                        row.removable ? removeBreakdownComponent : undefined
+                      }
+                    />
+                  ))
+                )}
+                <GroupSubtotalRow
+                  rows={earningsBySection.variable_pay}
+                  label="Subtotal — variable pay"
+                />
+              </SalaryBreakdownAccordionSection>
+
+              {nonEarningsGroups.map(({ group, rows }) => (
+                <SalaryBreakdownAccordionSection
+                  key={group}
+                  sectionId={`group:${group}`}
                   title={GROUP_TITLES[group]}
                   subtitle={
                     group === "employer_contributions"
                       ? "Package value, not paid as monthly salary in this view."
                       : "Taken from fixed monthly cash in this model."
                   }
-                />
-                {rows.map((row) => (
-                  <EditableSimpleComponentRow
-                    key={row.id}
-                    row={row}
-                    onMonthlyChange={(id, v) =>
-                      patchBreakdownComponent(id, { monthlyValue: v })
-                    }
-                  />
-                ))}
-                <GroupSubtotalRow rows={rows} />
-              </Fragment>
-            ))}
-          </TableBody>
-        </Table>
-        </div>
+                  sectionTotals={salaryAccordionSectionTotals(rows)}
+                >
+                  {rows.map((row) => (
+                    <EditableSimpleComponentRow
+                      key={row.id}
+                      row={row}
+                      onMonthlyChange={(id, v) =>
+                        patchBreakdownComponent(id, { monthlyValue: v })
+                      }
+                    />
+                  ))}
+                  <GroupSubtotalRow rows={rows} />
+                </SalaryBreakdownAccordionSection>
+              ))}
+            </Table>
+          </div>
+        </SalaryBreakdownAccordionProvider>
 
         <div
           className={cn(
@@ -990,10 +1083,10 @@ function GroupSubtotalRow({
       <TableCell className="pl-5 py-2.5 text-xs font-semibold tracking-wide text-navy-500">
         {label}
       </TableCell>
-      <TableCell className="py-2.5 text-right">
+      <TableCell className="px-2 py-2.5 text-right align-middle">
         <InrStaticAmount amount={monthly} emphasis="lg" />
       </TableCell>
-      <TableCell className="py-2.5 text-right">
+      <TableCell className="px-2 py-2.5 text-right align-middle">
         <InrStaticAmount amount={annual} emphasis="lg" />
       </TableCell>
       <TableCell className="pr-5" />
@@ -1079,41 +1172,6 @@ function ComponentTooltipBody({
       </p>
       <p className="text-[11px] text-white/75">{tip.applicability}</p>
     </div>
-  );
-}
-
-function SectionTableHeaderRow({
-  title,
-  subtitle,
-  actions,
-}: {
-  title: string;
-  subtitle?: string;
-  actions?: ReactNode;
-}) {
-  return (
-    <TableRow className="border-b border-navy-100/70 bg-gradient-to-r from-navy-50/85 via-navy-50/35 to-white hover:from-navy-50/85">
-      <TableCell
-        colSpan={4}
-        className="border-l-[3px] border-l-teal-500/25 py-3.5 pl-4 pr-3"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-navy-500">
-              {title}
-            </p>
-            {subtitle ? (
-              <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-navy-400">
-                {subtitle}
-              </p>
-            ) : null}
-          </div>
-          {actions ? (
-            <div className="flex shrink-0 items-center pt-0.5">{actions}</div>
-          ) : null}
-        </div>
-      </TableCell>
-    </TableRow>
   );
 }
 
@@ -1325,9 +1383,11 @@ function EditableEarningRow({
         />
       </TableCell>
       <TableCell className="pr-5 align-middle">
-        <Badge variant="secondary" className={cn("font-semibold text-[10px]", typeBadge)}>
-          {typeLabel}
-        </Badge>
+        <div className="flex justify-end">
+          <Badge variant="secondary" className={cn("font-semibold text-[10px]", typeBadge)}>
+            {typeLabel}
+          </Badge>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -1444,9 +1504,11 @@ function EditableSimpleComponentRow({
         </span>
       </TableCell>
       <TableCell className="pr-5 align-middle">
-        <Badge variant="secondary" className={cn("font-semibold text-[10px]", typeBadge)}>
-          {typeLabel}
-        </Badge>
+        <div className="flex justify-end">
+          <Badge variant="secondary" className={cn("font-semibold text-[10px]", typeBadge)}>
+            {typeLabel}
+          </Badge>
+        </div>
       </TableCell>
     </TableRow>
   );

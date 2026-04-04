@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   Banknote,
   Info,
@@ -14,7 +14,6 @@ import { StatCard } from "@/components/shared/stat-card";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -25,6 +24,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  buildBreakdownAccordionSectionIds,
+  salaryAccordionSectionTotals,
+  SalaryBreakdownAccordionProvider,
+  SalaryBreakdownAccordionSection,
+  SalaryBreakdownAccordionToolbar,
+  SalaryBreakdownTableColgroup,
+} from "@/components/shared/salary-breakdown-accordion";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
 import type {
   SalaryBreakdown,
@@ -204,34 +211,6 @@ function ComponentTooltipBody({ row }: { row: SalaryComponent }) {
   );
 }
 
-function SectionTableHeaderRow({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle?: string;
-}) {
-  return (
-    <TableRow className="border-b border-navy-100/70 bg-gradient-to-r from-navy-50/85 via-navy-50/35 to-white hover:from-navy-50/85">
-      <TableCell
-        colSpan={4}
-        className="border-l-[3px] border-l-teal-500/25 py-3.5 pl-4 pr-3"
-      >
-        <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-navy-500">
-            {title}
-          </p>
-          {subtitle ? (
-            <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-navy-400">
-              {subtitle}
-            </p>
-          ) : null}
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-}
-
 function ReadonlyEarningRow({ row }: { row: SalaryComponent }) {
   const typeBadge = {
     earning: "bg-emerald-50 text-emerald-700 border-0",
@@ -334,12 +313,14 @@ function ReadonlyEarningRow({ row }: { row: SalaryComponent }) {
         <InrStaticAmount amount={row.annualValue} emphasis="md" />
       </TableCell>
       <TableCell className="pr-5 align-middle">
-        <Badge
-          variant="secondary"
-          className={cn("font-semibold text-[10px]", typeBadge)}
-        >
-          {typeLabel}
-        </Badge>
+        <div className="flex justify-end">
+          <Badge
+            variant="secondary"
+            className={cn("font-semibold text-[10px]", typeBadge)}
+          >
+            {typeLabel}
+          </Badge>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -438,12 +419,14 @@ function ReadonlySimpleRow({ row }: { row: SalaryComponent }) {
         </span>
       </TableCell>
       <TableCell className="pr-5 align-middle">
-        <Badge
-          variant="secondary"
-          className={cn("font-semibold text-[10px]", typeBadge)}
-        >
-          {typeLabel}
-        </Badge>
+        <div className="flex justify-end">
+          <Badge
+            variant="secondary"
+            className={cn("font-semibold text-[10px]", typeBadge)}
+          >
+            {typeLabel}
+          </Badge>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -585,6 +568,11 @@ export function SalaryBreakdownReadonlyPanel({
       }))
       .filter((s) => s.rows.length > 0);
   }, [breakdown.components]);
+
+  const accordionSectionIds = useMemo(
+    () => buildBreakdownAccordionSectionIds(nonEarningsGroups),
+    [nonEarningsGroups]
+  );
 
   const fixedCashMonthly = useMemo(() => {
     return breakdown.components
@@ -758,95 +746,118 @@ export function SalaryBreakdownReadonlyPanel({
           Read-only mirror of the main breakdown table. Tooltips match Salary
           Breakdown.
         </p>
-        <div className="overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
-          <Table className="text-[13px] leading-snug">
-            <TableHeader>
-              <TableRow className="border-b border-navy-200/70 bg-navy-50/50 hover:bg-navy-50/50">
-                <TableHead className="text-label text-navy-400 pl-5 py-3 w-[42%] h-auto align-bottom font-semibold">
-                  Component
-                </TableHead>
-                <TableHead className="text-label text-navy-400 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
-                  Monthly
-                </TableHead>
-                <TableHead className="text-label text-navy-400 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
-                  Annual
-                </TableHead>
-                <TableHead className="text-label text-navy-400 pr-5 py-3 h-auto align-bottom font-semibold">
-                  Type
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="[&_tr]:border-navy-100/70 [&_tr:last-child]:border-b-0">
-              <SectionTableHeaderRow
+        <SalaryBreakdownAccordionProvider
+          key={accordionSectionIds.join("\u0001")}
+          sectionIds={accordionSectionIds}
+        >
+          <SalaryBreakdownAccordionToolbar className="mb-1 mt-1" />
+          <div className="mt-3 overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
+            <Table className="table-fixed w-full text-[13px] leading-snug">
+              <SalaryBreakdownTableColgroup />
+              <TableHeader>
+                <TableRow className="border-b border-navy-200/70 bg-navy-50/50 hover:bg-navy-50/50">
+                  <TableHead className="text-label text-navy-400 pl-5 py-3 w-[40%] h-auto align-bottom font-semibold">
+                    Component
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 px-2 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
+                    Monthly
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 px-2 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
+                    Annual
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 pr-5 py-3 text-right h-auto align-bottom font-semibold">
+                    Type
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <SalaryBreakdownAccordionSection
+                sectionId="fixed_core"
                 title="Fixed salary components"
                 subtitle="Basic, HRA, DA — the stable core before allowances."
-              />
-              {earningsBySection.fixed_core.map((row) => (
-                <ReadonlyEarningRow key={row.id} row={row} />
-              ))}
-              <GroupSubtotalRow
-                rows={earningsBySection.fixed_core}
-                label="Subtotal — fixed core"
-              />
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.fixed_core
+                )}
+              >
+                {earningsBySection.fixed_core.map((row) => (
+                  <ReadonlyEarningRow key={row.id} row={row} />
+                ))}
+                <GroupSubtotalRow
+                  rows={earningsBySection.fixed_core}
+                  label="Subtotal — fixed core"
+                />
+              </SalaryBreakdownAccordionSection>
 
-              <SectionTableHeaderRow
+              <SalaryBreakdownAccordionSection
+                sectionId="allowance"
                 title="Allowances"
                 subtitle="Same allowance handling as Salary Breakdown."
-              />
-              {earningsBySection.allowance.map((row) => (
-                <ReadonlyEarningRow key={row.id} row={row} />
-              ))}
-              <GroupSubtotalRow
-                rows={earningsBySection.allowance}
-                label="Subtotal — allowances"
-              />
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.allowance
+                )}
+              >
+                {earningsBySection.allowance.map((row) => (
+                  <ReadonlyEarningRow key={row.id} row={row} />
+                ))}
+                <GroupSubtotalRow
+                  rows={earningsBySection.allowance}
+                  label="Subtotal — allowances"
+                />
+              </SalaryBreakdownAccordionSection>
 
-              <SectionTableHeaderRow
+              <SalaryBreakdownAccordionSection
+                sectionId="variable_pay"
                 title="Variable pay"
                 subtitle="Excluded from monthly in-hand (excluding variable) in this model."
-              />
-              {earningsBySection.variable_pay.length === 0 ? (
-                <TableRow className="border-navy-100/70 hover:bg-navy-50/30">
-                  <TableCell
-                    colSpan={4}
-                    className="pl-5 py-3 text-xs text-navy-500 leading-relaxed"
-                  >
-                    No variable lines in this structure. Use{" "}
-                    <span className="font-medium text-navy-700">
-                      Fixed + variable
-                    </span>{" "}
-                    on the offer card if part of CTC is variable.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                earningsBySection.variable_pay.map((row) => (
-                  <ReadonlyEarningRow key={row.id} row={row} />
-                ))
-              )}
-              <GroupSubtotalRow
-                rows={earningsBySection.variable_pay}
-                label="Subtotal — variable pay"
-              />
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.variable_pay
+                )}
+              >
+                {earningsBySection.variable_pay.length === 0 ? (
+                  <TableRow className="border-navy-100/70 hover:bg-navy-50/30">
+                    <TableCell
+                      colSpan={4}
+                      className="pl-5 py-3 text-xs text-navy-500 leading-relaxed"
+                    >
+                      No variable lines in this structure. Use{" "}
+                      <span className="font-medium text-navy-700">
+                        Fixed + variable
+                      </span>{" "}
+                      on the offer card if part of CTC is variable.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  earningsBySection.variable_pay.map((row) => (
+                    <ReadonlyEarningRow key={row.id} row={row} />
+                  ))
+                )}
+                <GroupSubtotalRow
+                  rows={earningsBySection.variable_pay}
+                  label="Subtotal — variable pay"
+                />
+              </SalaryBreakdownAccordionSection>
 
               {nonEarningsGroups.map(({ group, rows }) => (
-                <Fragment key={group}>
-                  <SectionTableHeaderRow
-                    title={GROUP_TITLES[group]}
-                    subtitle={
-                      group === "employer_contributions"
-                        ? "Package value, not paid as monthly salary in this view."
-                        : "Taken from fixed monthly cash in this model."
-                    }
-                  />
+                <SalaryBreakdownAccordionSection
+                  key={group}
+                  sectionId={`group:${group}`}
+                  title={GROUP_TITLES[group]}
+                  subtitle={
+                    group === "employer_contributions"
+                      ? "Package value, not paid as monthly salary in this view."
+                      : "Taken from fixed monthly cash in this model."
+                  }
+                  sectionTotals={salaryAccordionSectionTotals(rows)}
+                >
                   {rows.map((row) => (
                     <ReadonlySimpleRow key={row.id} row={row} />
                   ))}
                   <GroupSubtotalRow rows={rows} />
-                </Fragment>
+                </SalaryBreakdownAccordionSection>
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </Table>
+          </div>
+        </SalaryBreakdownAccordionProvider>
       </div>
 
       <div className="rounded-xl border border-teal-100/90 bg-gradient-to-b from-teal-50/50 to-white px-4 py-3 text-sm text-navy-700">

@@ -1,13 +1,11 @@
 "use client";
 
 import {
-  Fragment,
   useEffect,
   useMemo,
   useRef,
   useState,
   startTransition,
-  type ReactNode,
 } from "react";
 import {
   Banknote,
@@ -28,7 +26,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
@@ -39,6 +36,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  buildBreakdownAccordionSectionIds,
+  salaryAccordionSectionTotals,
+  SalaryBreakdownAccordionProvider,
+  SalaryBreakdownAccordionSection,
+  SalaryBreakdownAccordionToolbar,
+  SalaryBreakdownTableColgroup,
+} from "@/components/shared/salary-breakdown-accordion";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
 import { useTotalsSectionFlash } from "@/lib/hooks/use-totals-section-flash";
 import type {
@@ -208,41 +213,6 @@ function ComponentTooltipBody({ row }: { row: SalaryComponent }) {
       </p>
       <p className="text-[11px] text-white/75">{tip.applicability}</p>
     </div>
-  );
-}
-
-function SectionTableHeaderRow({
-  title,
-  subtitle,
-  actions,
-}: {
-  title: string;
-  subtitle?: string;
-  actions?: ReactNode;
-}) {
-  return (
-    <TableRow className="border-b border-navy-100/70 bg-gradient-to-r from-navy-50/85 via-navy-50/35 to-white hover:from-navy-50/85">
-      <TableCell
-        colSpan={4}
-        className="border-l-[3px] border-l-teal-500/25 py-3.5 pl-4 pr-3"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.07em] text-navy-500">
-              {title}
-            </p>
-            {subtitle ? (
-              <p className="mt-1 max-w-3xl text-[11px] leading-relaxed text-navy-400">
-                {subtitle}
-              </p>
-            ) : null}
-          </div>
-          {actions ? (
-            <div className="flex shrink-0 items-center pt-0.5">{actions}</div>
-          ) : null}
-        </div>
-      </TableCell>
-    </TableRow>
   );
 }
 
@@ -454,12 +424,14 @@ function EditableEarningRow({
         />
       </TableCell>
       <TableCell className="pr-5 align-middle">
-        <Badge
-          variant="secondary"
-          className={cn("font-semibold text-[10px]", typeBadge)}
-        >
-          {typeLabel}
-        </Badge>
+        <div className="flex justify-end">
+          <Badge
+            variant="secondary"
+            className={cn("font-semibold text-[10px]", typeBadge)}
+          >
+            {typeLabel}
+          </Badge>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -576,12 +548,14 @@ function EditableSimpleComponentRow({
         </span>
       </TableCell>
       <TableCell className="pr-5 align-middle">
-        <Badge
-          variant="secondary"
-          className={cn("font-semibold text-[10px]", typeBadge)}
-        >
-          {typeLabel}
-        </Badge>
+        <div className="flex justify-end">
+          <Badge
+            variant="secondary"
+            className={cn("font-semibold text-[10px]", typeBadge)}
+          >
+            {typeLabel}
+          </Badge>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -637,6 +611,11 @@ export function SalaryBreakdownEditablePanel({
       }))
       .filter((s) => s.rows.length > 0);
   }, [breakdown.components]);
+
+  const accordionSectionIds = useMemo(
+    () => buildBreakdownAccordionSectionIds(nonEarningsGroups),
+    [nonEarningsGroups]
+  );
 
   const fixedCashMonthly = useMemo(() => {
     return breakdown.components
@@ -765,77 +744,79 @@ export function SalaryBreakdownEditablePanel({
           />
         </div>
 
-        <div className="rounded-xl border border-navy-200/50 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-[2px]">
-          <div className="flex gap-2.5 items-start">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
-              <Sparkles className="size-4" strokeWidth={2} />
+        <div className="space-y-3">
+          <div className="rounded-xl border border-navy-200/50 bg-white/90 px-4 py-2.5 shadow-sm backdrop-blur-[2px]">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+                <Sparkles className="size-4" strokeWidth={2} />
+              </div>
+              <p className="text-[13px] leading-snug text-navy-600">
+                <span className="font-semibold tabular-nums text-navy-800">
+                  {breakdown.takeHomePercent}%
+                </span>{" "}
+                of stated CTC as est. monthly in-hand,{" "}
+                <span className="font-medium text-navy-700">before variable</span>.
+              </p>
             </div>
-            <p className="text-[13px] leading-snug text-navy-600">
-              <span className="font-semibold tabular-nums text-navy-800">
-                {breakdown.takeHomePercent}%
-              </span>{" "}
-              of stated CTC as est. monthly in-hand,{" "}
-              <span className="font-medium text-navy-700">before variable</span>.
+          </div>
+
+          <div className="rounded-xl border border-navy-200/50 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-[2px]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-400 mb-1">
+              Annual picture
+            </p>
+            <p className="text-xs text-navy-500 mb-3 max-w-3xl leading-relaxed">
+              Fixed vs variable cash vs stated CTC — updates as you edit rows.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+              <div className="rounded-lg bg-navy-50/50 px-3 py-2 ring-1 ring-navy-100/80">
+                <p className="text-[11px] font-medium text-navy-500">
+                  Annual fixed (cash)
+                </p>
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
+                  {formatCurrency(breakdown.annualFixedCashTotal)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-navy-50/50 px-3 py-2 ring-1 ring-navy-100/80">
+                <p className="text-[11px] font-medium text-navy-500">
+                  Annual variable (cash)
+                </p>
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
+                  {formatCurrency(breakdown.annualVariableCashTotal)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-teal-50/40 px-3 py-2 ring-1 ring-teal-100/70">
+                <p className="text-[11px] font-medium text-teal-800/90">
+                  Total cash (fixed + variable)
+                </p>
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-900">
+                  {formatCurrency(breakdown.annualCashCompensation)}
+                </p>
+              </div>
+              <div className="rounded-lg bg-white px-3 py-2 ring-1 ring-teal-200/60">
+                <p className="text-[11px] font-medium text-teal-700">
+                  Stated CTC (input)
+                </p>
+                <p className="mt-0.5 text-base font-semibold tabular-nums text-teal-800">
+                  {formatCurrency(breakdown.statedAnnualCTC)}
+                </p>
+              </div>
+            </div>
+            <p className="text-[11px] text-navy-400 mt-2 leading-relaxed">
+              Full modeled package:{" "}
+              <span className="font-medium text-navy-600 tabular-nums">
+                {formatCurrency(breakdown.modeledAnnualPackage)}
+              </span>
+              {employerContributionsAnnual > 0 ? (
+                <>
+                  {" "}
+                  · Employer-only annual:{" "}
+                  <span className="font-medium text-navy-600 tabular-nums">
+                    {formatCurrency(employerContributionsAnnual)}
+                  </span>
+                </>
+              ) : null}
             </p>
           </div>
-        </div>
-
-        <div className="rounded-xl border border-navy-200/50 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-[2px]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-400 mb-1">
-            Annual picture
-          </p>
-          <p className="text-xs text-navy-500 mb-3 max-w-3xl leading-relaxed">
-            Fixed vs variable cash vs stated CTC — updates as you edit rows.
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-            <div className="rounded-lg bg-navy-50/50 px-3 py-2 ring-1 ring-navy-100/80">
-              <p className="text-[11px] font-medium text-navy-500">
-                Annual fixed (cash)
-              </p>
-              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
-                {formatCurrency(breakdown.annualFixedCashTotal)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-navy-50/50 px-3 py-2 ring-1 ring-navy-100/80">
-              <p className="text-[11px] font-medium text-navy-500">
-                Annual variable (cash)
-              </p>
-              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
-                {formatCurrency(breakdown.annualVariableCashTotal)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-teal-50/40 px-3 py-2 ring-1 ring-teal-100/70">
-              <p className="text-[11px] font-medium text-teal-800/90">
-                Total cash (fixed + variable)
-              </p>
-              <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-900">
-                {formatCurrency(breakdown.annualCashCompensation)}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white px-3 py-2 ring-1 ring-teal-200/60">
-              <p className="text-[11px] font-medium text-teal-700">
-                Stated CTC (input)
-              </p>
-              <p className="mt-0.5 text-base font-semibold tabular-nums text-teal-800">
-                {formatCurrency(breakdown.statedAnnualCTC)}
-              </p>
-            </div>
-          </div>
-          <p className="text-[11px] text-navy-400 mt-2 leading-relaxed">
-            Full modeled package:{" "}
-            <span className="font-medium text-navy-600 tabular-nums">
-              {formatCurrency(breakdown.modeledAnnualPackage)}
-            </span>
-            {employerContributionsAnnual > 0 ? (
-              <>
-                {" "}
-                · Employer-only annual:{" "}
-                <span className="font-medium text-navy-600 tabular-nums">
-                  {formatCurrency(employerContributionsAnnual)}
-                </span>
-              </>
-            ) : null}
-          </p>
         </div>
       </div>
 
@@ -847,45 +828,60 @@ export function SalaryBreakdownEditablePanel({
           Same editable grid as Salary Breakdown — tap + to add allowance or
           variable lines.
         </p>
-        <div className="overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
-          <Table className="text-[13px] leading-snug">
-            <TableHeader>
-              <TableRow className="border-b border-navy-200/70 bg-navy-50/50 hover:bg-navy-50/50">
-                <TableHead className="text-label text-navy-400 pl-5 py-3 w-[42%] h-auto align-bottom font-semibold">
-                  Component
-                </TableHead>
-                <TableHead className="text-label text-navy-400 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
-                  Monthly
-                </TableHead>
-                <TableHead className="text-label text-navy-400 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
-                  Annual
-                </TableHead>
-                <TableHead className="text-label text-navy-400 pr-5 py-3 h-auto align-bottom font-semibold">
-                  Type
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="[&_tr]:border-navy-100/70 [&_tr:last-child]:border-b-0">
-              <SectionTableHeaderRow
+        <SalaryBreakdownAccordionProvider
+          key={accordionSectionIds.join("\u0001")}
+          sectionIds={accordionSectionIds}
+        >
+          <SalaryBreakdownAccordionToolbar className="mb-1 mt-1" />
+          <div className="mt-3 overflow-hidden rounded-xl border border-navy-100/90 bg-navy-50/[0.2] ring-1 ring-navy-900/[0.04]">
+            <Table className="table-fixed w-full text-[13px] leading-snug">
+              <SalaryBreakdownTableColgroup />
+              <TableHeader>
+                <TableRow className="border-b border-navy-200/70 bg-navy-50/50 hover:bg-navy-50/50">
+                  <TableHead className="text-label text-navy-400 pl-5 py-3 w-[40%] h-auto align-bottom font-semibold">
+                    Component
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 px-2 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
+                    Monthly
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 px-2 text-right tabular-nums py-3 h-auto align-bottom font-semibold">
+                    Annual
+                  </TableHead>
+                  <TableHead className="text-label text-navy-400 pr-5 py-3 text-right h-auto align-bottom font-semibold">
+                    Type
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <SalaryBreakdownAccordionSection
+                sectionId="fixed_core"
                 title="Fixed salary components"
                 subtitle="Basic, HRA, DA — the stable core before allowances."
-              />
-              {earningsBySection.fixed_core.map((row) => (
-                <EditableEarningRow
-                  key={row.id}
-                  row={row}
-                  patchComponent={onPatchComponent}
-                  editableName={false}
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.fixed_core
+                )}
+              >
+                {earningsBySection.fixed_core.map((row) => (
+                  <EditableEarningRow
+                    key={row.id}
+                    row={row}
+                    patchComponent={onPatchComponent}
+                    editableName={false}
+                  />
+                ))}
+                <GroupSubtotalRow
+                  rows={earningsBySection.fixed_core}
+                  label="Subtotal — fixed core"
                 />
-              ))}
-              <GroupSubtotalRow
-                rows={earningsBySection.fixed_core}
-                label="Subtotal — fixed core"
-              />
+              </SalaryBreakdownAccordionSection>
 
-              <SectionTableHeaderRow
+              <SalaryBreakdownAccordionSection
+                sectionId="allowance"
                 title="Allowances"
                 subtitle="Optional rows; add with +."
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.allowance
+                )}
                 actions={
                   <SectionAddControl
                     ariaLabel="Add allowance row"
@@ -893,46 +889,8 @@ export function SalaryBreakdownEditablePanel({
                     onClick={onAddAllowance}
                   />
                 }
-              />
-              {earningsBySection.allowance.map((row) => (
-                <EditableEarningRow
-                  key={row.id}
-                  row={row}
-                  patchComponent={onPatchComponent}
-                  editableName
-                  onRemove={
-                    row.removable ? onRemoveComponent : undefined
-                  }
-                />
-              ))}
-              <GroupSubtotalRow
-                rows={earningsBySection.allowance}
-                label="Subtotal — allowances"
-              />
-
-              <SectionTableHeaderRow
-                title="Variable pay"
-                subtitle="Excluded from monthly in-hand (excluding variable)."
-                actions={
-                  <SectionAddControl
-                    ariaLabel="Add variable or bonus row"
-                    tooltip="Add variable or bonus row"
-                    onClick={onAddVariable}
-                  />
-                }
-              />
-              {earningsBySection.variable_pay.length === 0 ? (
-                <TableRow className="border-navy-100/70 hover:bg-navy-50/30">
-                  <TableCell
-                    colSpan={4}
-                    className="pl-5 py-3 text-xs text-navy-500 leading-relaxed"
-                  >
-                    No variable lines. Use + or set fixed + variable on the
-                    offer card.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                earningsBySection.variable_pay.map((row) => (
+              >
+                {earningsBySection.allowance.map((row) => (
                   <EditableEarningRow
                     key={row.id}
                     row={row}
@@ -942,23 +900,69 @@ export function SalaryBreakdownEditablePanel({
                       row.removable ? onRemoveComponent : undefined
                     }
                   />
-                ))
-              )}
-              <GroupSubtotalRow
-                rows={earningsBySection.variable_pay}
-                label="Subtotal — variable pay"
-              />
+                ))}
+                <GroupSubtotalRow
+                  rows={earningsBySection.allowance}
+                  label="Subtotal — allowances"
+                />
+              </SalaryBreakdownAccordionSection>
+
+              <SalaryBreakdownAccordionSection
+                sectionId="variable_pay"
+                title="Variable pay"
+                subtitle="Excluded from monthly in-hand (excluding variable)."
+                sectionTotals={salaryAccordionSectionTotals(
+                  earningsBySection.variable_pay
+                )}
+                actions={
+                  <SectionAddControl
+                    ariaLabel="Add variable or bonus row"
+                    tooltip="Add variable or bonus row"
+                    onClick={onAddVariable}
+                  />
+                }
+              >
+                {earningsBySection.variable_pay.length === 0 ? (
+                  <TableRow className="border-navy-100/70 hover:bg-navy-50/30">
+                    <TableCell
+                      colSpan={4}
+                      className="pl-5 py-3 text-xs text-navy-500 leading-relaxed"
+                    >
+                      No variable lines. Use + or set fixed + variable on the
+                      offer card.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  earningsBySection.variable_pay.map((row) => (
+                    <EditableEarningRow
+                      key={row.id}
+                      row={row}
+                      patchComponent={onPatchComponent}
+                      editableName
+                      onRemove={
+                        row.removable ? onRemoveComponent : undefined
+                      }
+                    />
+                  ))
+                )}
+                <GroupSubtotalRow
+                  rows={earningsBySection.variable_pay}
+                  label="Subtotal — variable pay"
+                />
+              </SalaryBreakdownAccordionSection>
 
               {nonEarningsGroups.map(({ group, rows }) => (
-                <Fragment key={group}>
-                  <SectionTableHeaderRow
-                    title={GROUP_TITLES[group]}
-                    subtitle={
-                      group === "employer_contributions"
-                        ? "Package value, not paid as monthly salary in this view."
-                        : "Taken from fixed monthly cash in this model."
-                    }
-                  />
+                <SalaryBreakdownAccordionSection
+                  key={group}
+                  sectionId={`group:${group}`}
+                  title={GROUP_TITLES[group]}
+                  subtitle={
+                    group === "employer_contributions"
+                      ? "Package value, not paid as monthly salary in this view."
+                      : "Taken from fixed monthly cash in this model."
+                  }
+                  sectionTotals={salaryAccordionSectionTotals(rows)}
+                >
                   {rows.map((row) => (
                     <EditableSimpleComponentRow
                       key={row.id}
@@ -969,11 +973,11 @@ export function SalaryBreakdownEditablePanel({
                     />
                   ))}
                   <GroupSubtotalRow rows={rows} />
-                </Fragment>
+                </SalaryBreakdownAccordionSection>
               ))}
-            </TableBody>
-          </Table>
-        </div>
+            </Table>
+          </div>
+        </SalaryBreakdownAccordionProvider>
       </div>
 
       <div

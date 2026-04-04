@@ -20,6 +20,8 @@ interface SalaryState {
   activeSalaryHistoryId: string | null;
   setActiveSalaryHistoryId: (id: string | null) => void;
   setInput: (input: Partial<SalaryInput>) => void;
+  /** Updates regime and recomputes tax from the current component table (preserves edits). */
+  setTaxRegime: (taxRegime: TaxRegime) => void;
   calculateBreakdown: () => void;
   /** After mock document parse — sets input + breakdown */
   applyParsedSalaryDocument: (file: File) => Promise<void>;
@@ -60,6 +62,21 @@ export const useSalaryStore = create<SalaryState>((set, get) => ({
     set((state) => ({
       input: { ...state.input, ...partial },
     })),
+
+  setTaxRegime: (taxRegime) =>
+    set((state) => {
+      const nextInput = { ...state.input, taxRegime };
+      return {
+        input: nextInput,
+        breakdown:
+          state.breakdown != null
+            ? recalculateBreakdownFromComponents(
+                state.breakdown.components,
+                buildBreakdownRecalcContext(nextInput)
+              )
+            : state.breakdown,
+      };
+    }),
 
   calculateBreakdown: () => {
     const { input } = get();
