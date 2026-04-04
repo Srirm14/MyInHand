@@ -23,7 +23,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { FeatureCard } from "@/components/shared/feature-card";
 import { buttonVariants } from "@/components/ui/button";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { usePremiumProductAccess } from "@/lib/hooks/use-premium-product-access";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
 import { cn } from "@/lib/utils";
@@ -179,6 +179,7 @@ function SectionEyebrow({ children }: { children: React.ReactNode }) {
 
 export function MarketingLanding() {
   const { toolHref } = useTieredPremiumLinks();
+  const hasPremium = usePremiumProductAccess();
   const user = useAuthStore((s) => s.user);
   const loggedIn = Boolean(user);
   const pricingPremiumHref = loggedIn ? "/profile" : "/login?from=%2Fpaywall";
@@ -303,7 +304,7 @@ export function MarketingLanding() {
               </Link>
             </motion.div>
             <motion.div variants={fadeUp}>
-              {PREMIUM_UNLOCKED ? (
+              {hasPremium ? (
                 <Link
                   href="#pricing"
                   className={cn(
@@ -535,7 +536,7 @@ export function MarketingLanding() {
         </section>
 
         {/* ── PREMIUM TEASER ───────────────────────────────────────── */}
-        {!PREMIUM_UNLOCKED ? (
+        {!hasPremium ? (
           <motion.section
             initial="hidden"
             whileInView="show"
@@ -615,7 +616,7 @@ export function MarketingLanding() {
                 Calculate free
                 <ArrowRight className="ml-2 size-4" />
               </Link>
-              {!PREMIUM_UNLOCKED && (
+              {!hasPremium && (
                 <button
                   type="button"
                   onClick={() => openPremiumPlansModal()}

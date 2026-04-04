@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Button } from "@/components/ui/button";
@@ -15,10 +16,12 @@ import {
   type ProfileUpdateFormData,
 } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
+import { ProfilePageSkeleton } from "@/components/shared/loading-skeletons";
 
 export default function ProfilePage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const authReady = useAuthStore((s) => s.authReady);
   const updateProfile = useAuthStore((s) => s.updateProfile);
   const logout = useAuthStore((s) => s.logout);
 
@@ -43,20 +46,20 @@ export default function ProfilePage() {
     });
   }, [user, router, form]);
 
-  if (!user) {
-    return (
-      <PageShell narrow className="py-16">
-        <p className="text-center text-navy-500">Loading…</p>
-      </PageShell>
-    );
+  if (!authReady || !user) {
+    return <ProfilePageSkeleton />;
   }
 
-  const onSave = (data: ProfileUpdateFormData) => {
-    updateProfile({
+  const onSave = async (data: ProfileUpdateFormData) => {
+    const result = await updateProfile({
       displayName: data.displayName,
       company: data.company ?? "",
       role: data.role || undefined,
     });
+    if (!result.ok) {
+      form.setError("root", { message: result.error });
+      return;
+    }
     form.reset(data);
   };
 
@@ -69,6 +72,18 @@ export default function ProfilePage() {
 
       <div className="mt-8 rounded-2xl border border-navy-200/50 bg-white p-6 md:p-8 shadow-sm space-y-8">
         <div>
+          <p className="text-label text-navy-400 mb-1">Plan</p>
+          <p className="text-sm font-medium text-navy-800 capitalize">
+            {user.planTier}
+          </p>
+          <p className="text-xs text-navy-400 mt-1">
+            Resolved as premium when your plan is premium or when{" "}
+            <code className="text-navy-600">NEXT_PUBLIC_ACCESS_MODE=premium</code>{" "}
+            is set (dev override).
+          </p>
+        </div>
+
+        <div>
           <p className="text-label text-navy-400 mb-1">Email</p>
           <p className="text-sm font-medium text-navy-800">{user.email}</p>
           <p className="text-xs text-navy-400 mt-1">
@@ -77,6 +92,11 @@ export default function ProfilePage() {
         </div>
 
         <form onSubmit={form.handleSubmit(onSave)} className="space-y-5">
+          {form.formState.errors.root && (
+            <p className="text-sm text-danger-600 bg-danger-50 rounded-lg px-3 py-2">
+              {form.formState.errors.root.message}
+            </p>
+          )}
           <div className="space-y-2">
             <Label htmlFor="pf-name">Name</Label>
             <Input
@@ -111,9 +131,17 @@ export default function ProfilePage() {
           <div className="flex flex-wrap gap-3 pt-2">
             <Button
               type="submit"
+              disabled={form.formState.isSubmitting}
               className="rounded-full bg-teal-600 hover:bg-teal-700 px-6"
             >
-              Save changes
+              {form.formState.isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Save changes"
+              )}
             </Button>
             <Button
               type="button"

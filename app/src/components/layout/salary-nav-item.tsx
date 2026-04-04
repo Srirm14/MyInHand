@@ -13,7 +13,10 @@ import { useRouter, usePathname } from "next/navigation";
 import { ChevronDown, Check, Trash2 } from "lucide-react";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
+import { hasPremiumProductAccess } from "@/lib/access/product-access";
+import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
+import { useSalarySessionsListQuery } from "@/lib/supabase/hooks/use-salary-sessions";
 import { formatCTCAsLPA, formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
@@ -43,6 +46,7 @@ function SalaryNavHistoryDropdown({
   hasMeaningfulCtc,
   breakdownExists,
   salaryWorkspaceHref,
+  historySource,
 }: Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -53,6 +57,7 @@ function SalaryNavHistoryDropdown({
   hasMeaningfulCtc: boolean;
   breakdownExists: boolean;
   salaryWorkspaceHref: string;
+  historySource: "cloud" | "local";
 }>) {
   const [pendingDelete, setPendingDelete] = useState<SalaryHistoryEntry | null>(
     null
@@ -95,9 +100,9 @@ function SalaryNavHistoryDropdown({
     router.push("/salary");
   }, [resetSalary, router, onOpenChange]);
 
-  const confirmRemoveEntry = useCallback(() => {
+  const confirmRemoveEntry = useCallback(async () => {
     if (!pendingDelete) return;
-    applyRemove(pendingDelete);
+    await applyRemove(pendingDelete);
   }, [pendingDelete, applyRemove]);
 
   return (
@@ -152,7 +157,7 @@ function SalaryNavHistoryDropdown({
           <Separator className="my-1 bg-navy-100" />
 
           <p className="px-3 pt-2 text-[10px] font-semibold uppercase tracking-wide text-navy-400">
-            Saved on this device
+            {historySource === "cloud" ? "Saved to your account" : "Saved on this device"}
           </p>
           <p className="px-3 pb-1 text-[11px] text-navy-400 leading-snug">
             Last five shown here (newest first).
@@ -163,8 +168,9 @@ function SalaryNavHistoryDropdown({
           <ul className="max-h-[min(50vh,280px)] overflow-y-auto py-1 px-1">
             {recentSalaries.length === 0 ? (
               <li className="px-3 py-3 text-center text-xs text-navy-500 leading-relaxed">
-                No saved entries yet. Run another breakdown to add one—up to 40
-                are kept on this device.
+                {historySource === "cloud"
+                  ? "No saved sessions yet. Run a breakdown to create one in your account."
+                  : "No saved entries yet. Run another breakdown to add one—up to 40 are kept on this device."}
               </li>
             ) : (
               recentSalaries.map((entry) => {
@@ -273,12 +279,14 @@ function SalaryNavHistoryDropdown({
  * Context-aware Salary nav (primary item):
  * - Before a completed run: label `Salary`, link → `/salary`
  * - After breakdown exists: `Salary (25 LPA)` via formatCTCAsLPA, link → `/salary/breakdown`
- * - Premium build (`PREMIUM_UNLOCKED`): label + chevron menu (switch runs, new check).
- *   Default/free build: plain Salary link only—no device-history switcher in nav.
+ * - Premium access (env or `profiles.plan_tier`): label + chevron menu (switch runs, new check).
+ *   Otherwise: plain Salary link only—no history switcher in nav.
  */
 export function SalaryNavItem() {
   const pathname = usePathname();
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const persist = shouldPersistSessions(user);
 
   const annualCTC = useSalaryStore((s) => s.input.annualCTC);
   const input = useSalaryStore((s) => s.input);
@@ -291,6 +299,7 @@ export function SalaryNavItem() {
   );
 
   const salaryContexts = useHistoryStore((s) => s.salaryContexts);
+  const { data: cloudSalaries = [] } = useSalarySessionsListQuery(persist);
 
   const isActive =
     pathname === "/salary" || pathname.startsWith("/salary/");
@@ -299,15 +308,21 @@ export function SalaryNavItem() {
     breakdown != null && annualCTC >= MIN_CTC_FOR_LABEL;
   const ctcLabel = hasMeaningfulCtc ? formatCTCAsLPA(annualCTC) : "";
 
-  const recentSalaries = salaryContexts.slice(0, DROPDOWN_LIMIT);
-  /**
-   * Salary switcher is a premium-build feature only (`NEXT_PUBLIC_ACCESS_MODE=premium`
-   * only). Do not tie to login or history count—otherwise a guest or a user
-   * with breakdown but empty `salaryContexts` sees "Salary (1.2 Cr)" with no chevron.
-   */
-  const hasDropdown = PREMIUM_UNLOCKED;
+  const recentSalaries = (persist ? cloudSalaries : salaryContexts).slice(
+    0,
+    DROPDOWN_LIMIT
+  );
+  const historySource = persist ? "cloud" : "local";
 
-  const salaryHref = breakdown ? "/salary/breakdown" : "/salary";
+  /** Env premium or account premium — same as other premium chrome. */
+  const hasDropdown = hasPremiumProductAccess(user?.planTier);
+
+  const salaryHref =
+    breakdown && activeSalaryHistoryId && persist
+      ? `/salary/breakdown?session=${encodeURIComponent(activeSalaryHistoryId)}`
+      : breakdown
+        ? "/salary/breakdown"
+        : "/salary";
 
   const [menuOpen, setMenuOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -331,12 +346,24 @@ export function SalaryNavItem() {
 
   const handleSelectEntry = useCallback(
     (entry: SalaryHistoryEntry) => {
+      setActiveSalaryHistoryId(entry.id);
+      if (persist) {
+        router.push(
+          `/salary/breakdown?session=${encodeURIComponent(entry.id)}`
+        );
+        return;
+      }
       setInput(coerceSalarySnapshot(entry.snapshot));
       calculateBreakdown();
-      setActiveSalaryHistoryId(entry.id);
       router.push("/salary/breakdown");
     },
-    [setInput, calculateBreakdown, setActiveSalaryHistoryId, router]
+    [
+      setInput,
+      calculateBreakdown,
+      setActiveSalaryHistoryId,
+      router,
+      persist,
+    ]
   );
 
   const linkClass = cn(
@@ -392,6 +419,7 @@ export function SalaryNavItem() {
           hasMeaningfulCtc={hasMeaningfulCtc}
           breakdownExists={breakdown != null}
           salaryWorkspaceHref={salaryHref}
+          historySource={historySource}
         />
       ) : null}
     </div>

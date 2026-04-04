@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Fragment,
   useCallback,
@@ -11,7 +12,7 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
@@ -19,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CITY_TIERS, type CityTier } from "@/lib/constants/city-tiers";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
 import type { OfferDraft } from "@/lib/types/offer.types";
@@ -35,12 +37,22 @@ import { formatCurrency } from "@/lib/utils/format-currency";
 import { cn } from "@/lib/utils";
 import { SalaryBreakdownEditablePanel } from "@/components/shared/salary-breakdown-editable-panel";
 import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { hasPremiumProductAccess } from "@/lib/access/product-access";
+import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
+import {
+  useOfferSessionDetailQuery,
+  useUpsertOfferSessionMutation,
+} from "@/lib/supabase/hooks/use-offer-sessions";
+import {
+  hydrateOfferComparisonFromDetail,
+  type OfferSavePayload,
+} from "@/lib/supabase/queries/offer-sessions";
 import {
   EASE,
   fadeUp,
   staggerContainer,
 } from "@/lib/motion/marketing-motion";
+import { OfferComparisonSkeleton } from "@/components/shared/loading-skeletons";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -102,6 +114,12 @@ function sumEmployerContributionsAnnual(bd: SalaryBreakdown): number {
 }
 
 export function OfferComparisonView() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const user = useAuthStore((s) => s.user);
+  const persistOffers = shouldPersistSessions(user);
+  const urlOfferSession = searchParams.get("session");
+
   const fileRef = useRef<HTMLInputElement>(null);
   const [expandedOfferId, setExpandedOfferId] = useState<string | null>(null);
   const [offerBreakdownEdits, setOfferBreakdownEdits] = useState<
@@ -123,6 +141,41 @@ export function OfferComparisonView() {
     }
     return [emptyOffer("a"), emptyOffer("b")];
   });
+
+  const upsertOfferSession = useUpsertOfferSessionMutation();
+  const [activeOfferSessionId, setActiveOfferSessionId] = useState<string | null>(
+    urlOfferSession
+  );
+
+  const offerDetailQ = useOfferSessionDetailQuery(
+    activeOfferSessionId,
+    Boolean(persistOffers && activeOfferSessionId)
+  );
+  const offerSessionDetail = offerDetailQ.data;
+  const offerSessionHydrating =
+    persistOffers &&
+    Boolean(activeOfferSessionId) &&
+    offerDetailQ.isPending &&
+    !offerDetailQ.data;
+
+  const offerHydratedSig = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (urlOfferSession) setActiveOfferSessionId(urlOfferSession);
+  }, [urlOfferSession]);
+
+  useEffect(() => {
+    if (!persistOffers || !offerSessionDetail) return;
+    const sig = `${offerSessionDetail.session.id}:${offerSessionDetail.session.updated_at}`;
+    if (offerHydratedSig.current === sig) return;
+    offerHydratedSig.current = sig;
+    const { offers: ho, breakdownEdits } =
+      hydrateOfferComparisonFromDetail(offerSessionDetail);
+    if (ho.length >= 2) {
+      setOffers(ho);
+      setOfferBreakdownEdits(breakdownEdits);
+    }
+  }, [offerSessionDetail, persistOffers]);
 
   const comparisons = useMemo(() => {
     return offers.map((o) => {
@@ -277,18 +330,75 @@ export function OfferComparisonView() {
     if (valid.length < 2) return;
     const offersSnap = offers;
     const validSnap = valid;
+    const editsSnap = offerBreakdownEdits;
+    const sessionIdSnap = activeOfferSessionId;
     const timer = window.setTimeout(() => {
-      useHistoryStore.getState().pushOfferComparison(
-        offersSnap,
-        validSnap.map((v) => ({
-          companyName: v.companyName,
-          monthlyInHand: v.monthlyInHand,
-          firstYearValue: v.firstYearValue,
-        }))
+      const first = validSnap[0]!;
+      const bestHand = validSnap.reduce(
+        (a, b) => (b.monthlyInHand > a.monthlyInHand ? b : a),
+        first
       );
+      const bestVal = validSnap.reduce(
+        (a, b) => (b.firstYearValue > a.firstYearValue ? b : a),
+        first
+      );
+      let winnerSummary: string;
+      if (bestHand.companyName === bestVal.companyName) {
+        winnerSummary = `${bestHand.companyName} leads on in-hand & 1Y value`;
+      } else {
+        winnerSummary = `${bestHand.companyName} best in-hand · ${bestVal.companyName} best 1Y value`;
+      }
+
+      if (persistOffers) {
+        const payload: OfferSavePayload = {
+          offers: offersSnap,
+          breakdownEdits: editsSnap,
+          summary: {
+            title: `Compare ${validSnap.length} offers`,
+            offerCount: validSnap.length,
+            winnerSummary,
+          },
+        };
+        void upsertOfferSession
+          .mutateAsync({
+            sessionId: sessionIdSnap,
+            payload,
+          })
+          .then((id) => {
+            setActiveOfferSessionId((prev) => {
+              if (prev !== id) {
+                router.replace(
+                  `/premium/offer-comparison?session=${encodeURIComponent(id)}`,
+                  { scroll: false }
+                );
+              }
+              return id;
+            });
+          });
+      } else {
+        useHistoryStore.getState().pushOfferComparison(
+          offersSnap,
+          validSnap.map((v) => ({
+            companyName: v.companyName,
+            monthlyInHand: v.monthlyInHand,
+            firstYearValue: v.firstYearValue,
+          }))
+        );
+      }
     }, 1000);
     return () => window.clearTimeout(timer);
-  }, [offersFingerprint, valid.length, validSummaryKey, offers, valid]);
+  }, [
+    offersFingerprint,
+    valid.length,
+    validSummaryKey,
+    offers,
+    valid,
+    persistOffers,
+    offerBreakdownEdits,
+    activeOfferSessionId,
+    upsertOfferSession,
+    router,
+  ]);
 
   const update = (id: string, patch: Partial<OfferDraft>) => {
     setOffers((prev) =>
@@ -460,8 +570,21 @@ export function OfferComparisonView() {
     }
   };
 
+  if (offerSessionHydrating) {
+    return <OfferComparisonSkeleton />;
+  }
+
   return (
     <PageShell className="py-6 pb-28 md:py-10 md:pb-10">
+      {persistOffers && upsertOfferSession.isPending ? (
+        <div
+          className="mb-3 flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-wide text-navy-400"
+          aria-live="polite"
+        >
+          <Loader2 className="size-3.5 shrink-0 animate-spin text-teal-600" aria-hidden />
+          Syncing comparison…
+        </div>
+      ) : null}
       <motion.section
         className="overflow-hidden rounded-3xl border border-navy-200/60 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_20px_50px_-24px_rgba(15,23,42,0.1)]"
       >
@@ -618,7 +741,14 @@ export function OfferComparisonView() {
                 onClick={() => fileRef.current?.click()}
                 className="rounded-full"
               >
-                {uploadBusy ? "Parsing…" : "Choose 2–3 files"}
+                {uploadBusy ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                    Parsing…
+                  </>
+                ) : (
+                  "Choose 2–3 files"
+                )}
               </Button>
               {uploadError && (
                 <p className="text-xs text-danger-600">{uploadError}</p>
@@ -1124,7 +1254,9 @@ export function OfferComparisonView() {
         </div>
       </div>
 
-      {!PREMIUM_UNLOCKED && valid.length >= 2 && entryMode === "manual" ? (
+      {!hasPremiumProductAccess(user?.planTier) &&
+      valid.length >= 2 &&
+      entryMode === "manual" ? (
         <div className="mt-10 max-w-3xl">
           <PremiumBlurOfferTeaser compact />
         </div>

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { PremiumPlansModal } from "@/components/features/pricing/premium-plans-modal";
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { usePremiumProductAccess } from "@/lib/hooks/use-premium-product-access";
 import {
   closePremiumPlansModal,
   openPremiumPlansModal,
@@ -17,26 +17,27 @@ export function PremiumPlansModalHost() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const prevPathRef = useRef(pathname);
+  const hasPremium = usePremiumProductAccess();
 
   const fromPremium = searchParams.get("from") === "premium";
 
   useEffect(() => {
-    if (PREMIUM_UNLOCKED) return;
+    if (hasPremium) return;
     if (pathname === "/paywall") {
       openPremiumPlansModal({ fromPremium });
     }
-  }, [pathname, fromPremium]);
+  }, [pathname, fromPremium, hasPremium]);
 
   useEffect(() => {
-    if (PREMIUM_UNLOCKED) return;
+    if (hasPremium) return;
     const prev = prevPathRef.current;
     if (prev === "/paywall" && pathname !== "/paywall") {
       closePremiumPlansModal();
     }
     prevPathRef.current = pathname;
-  }, [pathname]);
+  }, [pathname, hasPremium]);
 
-  if (PREMIUM_UNLOCKED) return null;
+  if (hasPremium) return null;
 
   return <PremiumPlansModal />;
 }

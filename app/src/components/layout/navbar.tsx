@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Crown, User } from "lucide-react";
@@ -8,21 +8,19 @@ import { SalaryNavItem } from "@/components/layout/salary-nav-item";
 import { RecentHistoryNavButton } from "@/components/layout/recent-history-sheet";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
-import {
-  PREMIUM_UNLOCKED,
-  premiumHubHref,
-  premiumToolHref,
-} from "@/lib/config/access-mode";
+import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { InhandLogoMark } from "@/components/layout/inhand-logo-mark";
+import { NavbarAuthSkeleton, NavbarSuspenseFallback } from "@/components/shared/loading-skeletons";
 import { cn } from "@/lib/utils";
 
 function navOfferComparisonActive(
   pathname: string,
-  paywallTool: string | null
+  paywallTool: string | null,
+  premiumUnlocked: boolean
 ) {
   const href = "/premium/offer-comparison";
   const onRoute = pathname === href || pathname.startsWith(`${href}/`);
-  if (PREMIUM_UNLOCKED) return onRoute;
+  if (premiumUnlocked) return onRoute;
   /** Plain `/paywall` (e.g. hub or global pricing modal route) must not imply “offers”. */
   return pathname === "/paywall" && paywallTool === "offers";
 }
@@ -32,16 +30,8 @@ function NavbarInner() {
   const searchParams = useSearchParams();
   const paywallTool = searchParams.get("tool");
   const user = useAuthStore((s) => s.user);
-  const [authReady, setAuthReady] = useState(false);
-
-  useEffect(() => {
-    const markReady = () => setAuthReady(true);
-    const unsub = useAuthStore.persist.onFinishHydration(markReady);
-    if (useAuthStore.persist.hasHydrated()) {
-      queueMicrotask(markReady);
-    }
-    return unsub;
-  }, []);
+  const authReady = useAuthStore((s) => s.authReady);
+  const { premium, toolHref, hubHref } = useTieredPremiumLinks();
 
   const onAuthPath =
     pathname === "/login" ||
@@ -49,7 +39,7 @@ function NavbarInner() {
     pathname === "/forgot-password";
 
   const showProductChrome = !onAuthPath;
-  const showPremiumHeader = authReady && Boolean(user) && PREMIUM_UNLOCKED;
+  const showPremiumHeader = authReady && Boolean(user) && premium;
   const showHistory = showProductChrome && showPremiumHeader;
 
   return (
@@ -80,10 +70,10 @@ function NavbarInner() {
           {/* Offer comparison — paywall when not premium */}
           {showProductChrome && (
             <Link
-              href={premiumToolHref("offers")}
+              href={toolHref("offers")}
               className={cn(
                 "text-sm font-medium transition-colors",
-                navOfferComparisonActive(pathname, paywallTool)
+                navOfferComparisonActive(pathname, paywallTool, premium)
                   ? "text-navy-800 underline decoration-2 underline-offset-[20px] decoration-teal-600"
                   : "text-navy-500 hover:text-navy-800"
               )}
@@ -97,7 +87,7 @@ function NavbarInner() {
         <div className="flex items-center gap-2 md:gap-3">
           {showPremiumHeader && showProductChrome && (
             <Link
-              href={premiumHubHref()}
+              href={hubHref()}
               className={cn(
                 buttonVariants({ variant: "default", size: "sm" }),
                 "inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-teal-800 hover:border-white/20"
@@ -147,10 +137,7 @@ function NavbarInner() {
               </div>
             )
           ) : (
-            <div
-              className="h-9 w-24 rounded-full bg-navy-100 animate-pulse"
-              aria-hidden
-            />
+            <NavbarAuthSkeleton />
           )}
         </div>
       </div>
@@ -160,11 +147,7 @@ function NavbarInner() {
 
 export function Navbar() {
   return (
-    <Suspense
-      fallback={
-        <div className="sticky top-0 z-50 h-16 w-full bg-white border-b border-navy-200/60 shadow-sm" />
-      }
-    >
+    <Suspense fallback={<NavbarSuspenseFallback />}>
       <NavbarInner />
     </Suspense>
   );

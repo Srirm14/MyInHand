@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { userHasPremiumEntitlement } from "@/lib/server/premium-access";
 
-export default function PremiumSectionLayout({
+export default async function PremiumSectionLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  if (!PREMIUM_UNLOCKED) {
+  if (!(await userHasPremiumEntitlement())) {
     redirect("/paywall?from=premium");
   }
   return children;

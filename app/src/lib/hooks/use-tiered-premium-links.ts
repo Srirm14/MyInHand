@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
-import { PREMIUM_UNLOCKED, type PaywallTool } from "@/lib/config/access-mode";
+import { hasPremiumProductAccess } from "@/lib/access/product-access";
+import type { PaywallTool } from "@/lib/config/access-mode";
 
 const TOOL_PATHS: Record<PaywallTool, string> = {
   offers: "/premium/offer-comparison",
@@ -20,7 +21,7 @@ export function useTieredPremiumLinks() {
 
   return useMemo(() => {
     const loggedIn = Boolean(user);
-    const premium = loggedIn && PREMIUM_UNLOCKED;
+    const premium = hasPremiumProductAccess(user?.planTier);
 
     function toolHref(tool: PaywallTool): string {
       if (premium) return TOOL_PATHS[tool];

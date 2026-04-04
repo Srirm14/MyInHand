@@ -1,9 +1,9 @@
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { userHasPremiumEntitlement } from "@/lib/server/premium-access";
 import { PaywallPageShell } from "./paywall-page-shell";
 import { PaywallUnlocked } from "./paywall-unlocked";
 
 export default async function PaywallPage() {
-  if (PREMIUM_UNLOCKED) {
+  if (await userHasPremiumEntitlement()) {
     return <PaywallUnlocked />;
   }
 

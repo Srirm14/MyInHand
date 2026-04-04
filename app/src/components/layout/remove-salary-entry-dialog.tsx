@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +23,7 @@ export function RemoveSalaryEntryDialog({
   entry: SalaryHistoryEntry | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   /** `nav` copy vs `sheet` copy for reconcile hint */
   variant?: "nav" | "sheet";
 }) {
@@ -29,6 +31,22 @@ export function RemoveSalaryEntryDialog({
     variant === "sheet"
       ? "If this was your active salary, we’ll load the next saved entry or take you to a clean salary form."
       : "Your current workspace is unchanged until you pick another entry or start a new check.";
+
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) setBusy(false);
+  }, [open]);
+
+  const handleConfirm = async () => {
+    setBusy(true);
+    try {
+      await Promise.resolve(onConfirm());
+    } finally {
+      setBusy(false);
+      onOpenChange(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -62,6 +80,7 @@ export function RemoveSalaryEntryDialog({
             type="button"
             variant="outline"
             className="h-10 rounded-full px-5"
+            disabled={busy}
             onClick={() => onOpenChange(false)}
           >
             Cancel
@@ -70,12 +89,20 @@ export function RemoveSalaryEntryDialog({
             type="button"
             variant="default"
             className="h-10 rounded-full bg-danger-600 px-5 hover:bg-danger-700"
-            onClick={() => {
-              onConfirm();
-              onOpenChange(false);
-            }}
+            disabled={busy}
+            onClick={() => void handleConfirm()}
           >
-            Remove saved salary
+            {busy ? (
+              <>
+                <Loader2
+                  className="mr-2 size-4 animate-spin"
+                  aria-hidden
+                />
+                Removing…
+              </>
+            ) : (
+              "Remove saved salary"
+            )}
           </Button>
         </div>
       </DialogContent>

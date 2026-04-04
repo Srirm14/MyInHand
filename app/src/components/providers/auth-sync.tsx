@@ -1,16 +1,42 @@
 "use client";
 
 import { useEffect } from "react";
-import { setSessionEmailCookie } from "@/lib/auth/session-cookie";
+import { useQueryClient } from "@tanstack/react-query";
+import { getBrowserSupabase } from "@/lib/supabase/client/browser";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { queryKeys } from "@/lib/supabase/query-keys";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 
-/** Keeps session cookie aligned with persisted user after login / rehydrate. */
+/** Hydrates auth user from Supabase session and keeps TanStack session caches in sync. */
 export function AuthSync() {
-  const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (user?.email) setSessionEmailCookie(user.email);
-  }, [user]);
+    if (!isSupabaseConfigured()) {
+      useAuthStore.getState().markAuthReady();
+      return;
+    }
+
+    const supabase = getBrowserSupabase();
+    void useAuthStore.getState().refreshProfileFromAuthUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session?.user) {
+        useAuthStore.getState().setSessionUser(null);
+        queryClient.removeQueries({ queryKey: queryKeys.salarySessions.root });
+        queryClient.removeQueries({ queryKey: queryKeys.offerSessions.root });
+        useAuthStore.getState().markAuthReady();
+        return;
+      }
+      void useAuthStore.getState().refreshProfileFromAuthUser();
+      queryClient.invalidateQueries({ queryKey: queryKeys.salarySessions.root });
+      queryClient.invalidateQueries({ queryKey: queryKeys.offerSessions.root });
+    });
+
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
 
   return null;
 }

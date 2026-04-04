@@ -1,109 +1,151 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
-import { clearSessionCookie, setSessionEmailCookie } from "@/lib/auth/session-cookie";
-import { getDemoSeedAccounts } from "@/lib/mocks/auth.demo";
-import type { LocalAccountRecord, UserProfile } from "@/lib/types/user.types";
+import { getBrowserSupabase } from "@/lib/supabase/client/browser";
+import { mapProfileToUser } from "@/lib/supabase/auth/map-user";
+import { fetchProfileRow, updateProfileRow } from "@/lib/supabase/queries/profile";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import type { UserProfile } from "@/lib/types/user.types";
 
 interface AuthState {
-  /** Current session user (null when logged out). */
   user: UserProfile | null;
-  /** Demo-only local account book — not for production. */
-  accounts: Record<string, LocalAccountRecord>;
-  login: (email: string, password: string) => { ok: true } | { ok: false; error: string };
+  /** True after first Supabase `getUser` / auth listener pass (or immediately if Supabase disabled). */
+  authReady: boolean;
+  setSessionUser: (user: UserProfile | null) => void;
+  markAuthReady: () => void;
+  refreshProfileFromAuthUser: () => Promise<void>;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
   signup: (
     email: string,
     password: string,
     displayName: string
-  ) => { ok: true } | { ok: false; error: string };
-  logout: () => void;
-  updateProfile: (patch: Partial<Pick<UserProfile, "displayName" | "company" | "role">>) => void;
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  logout: () => Promise<void>;
+  updateProfile: (
+    patch: Partial<Pick<UserProfile, "displayName" | "company" | "role">>
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
-}
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  authReady: false,
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      accounts: {},
+  setSessionUser: (user) => set({ user }),
 
-      login: (email, password) => {
-        const key = normalizeEmail(email);
-        const row = get().accounts[key];
-        if (row?.password !== password) {
-          return { ok: false, error: "Invalid email or password." };
-        }
-        set({ user: { ...row.profile, email: row.profile.email } });
-        setSessionEmailCookie(row.profile.email);
-        return { ok: true };
-      },
+  markAuthReady: () => set({ authReady: true }),
 
-      signup: (email, password, displayName) => {
-        const key = normalizeEmail(email);
-        if (get().accounts[key]) {
-          return { ok: false, error: "An account with this email already exists." };
-        }
-        const profile: UserProfile = {
-          id: crypto.randomUUID(),
-          email: key,
-          displayName: displayName.trim(),
-          company: "",
-          role: undefined,
-        };
-        set((s) => ({
-          accounts: {
-            ...s.accounts,
-            [key]: { password, profile },
-          },
-          user: profile,
-        }));
-        setSessionEmailCookie(key);
-        return { ok: true };
-      },
-
-      logout: () => {
-        set({ user: null });
-        clearSessionCookie();
-      },
-
-      updateProfile: (patch) => {
-        const u = get().user;
-        if (!u) return;
-        const next: UserProfile = {
-          ...u,
-          ...patch,
-          email: u.email,
-          id: u.id,
-        };
-        const key = normalizeEmail(u.email);
-        set((s) => {
-          const row = s.accounts[key];
-          const accounts = row
-            ? {
-                ...s.accounts,
-                [key]: { ...row, profile: next },
-              }
-            : s.accounts;
-          return { user: next, accounts };
-        });
-      },
-    }),
-    {
-      name: "fluid-ledger-auth",
-      partialize: (s) => ({ accounts: s.accounts, user: s.user }),
-      merge: (persistedState, currentState) => {
-        const p = persistedState as Partial<Pick<AuthState, "user" | "accounts">> | undefined;
-        return {
-          ...currentState,
-          user: p?.user ?? currentState.user,
-          accounts: {
-            ...getDemoSeedAccounts(),
-            ...p?.accounts,
-          },
-        };
-      },
+  refreshProfileFromAuthUser: async () => {
+    if (!isSupabaseConfigured()) {
+      set({ user: null, authReady: true });
+      return;
     }
-  )
-);
+    try {
+      const supabase = getBrowserSupabase();
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser) {
+        set({ user: null, authReady: true });
+        return;
+      }
+      const row = await fetchProfileRow(supabase, authUser.id);
+      set({ user: mapProfileToUser(authUser, row), authReady: true });
+    } catch {
+      set({ user: null, authReady: true });
+    }
+  },
+
+  login: async (email, password) => {
+    if (!isSupabaseConfigured()) {
+      return { ok: false, error: "Supabase is not configured." };
+    }
+    try {
+      const supabase = getBrowserSupabase();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (error) return { ok: false, error: error.message };
+      if (!data.user) return { ok: false, error: "No user returned." };
+      const row = await fetchProfileRow(supabase, data.user.id);
+      set({ user: mapProfileToUser(data.user, row), authReady: true });
+      return { ok: true };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Sign in failed.",
+      };
+    }
+  },
+
+  signup: async (email, password, displayName) => {
+    if (!isSupabaseConfigured()) {
+      return { ok: false, error: "Supabase is not configured." };
+    }
+    try {
+      const supabase = getBrowserSupabase();
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: { display_name: displayName.trim() },
+        },
+      });
+      if (error) return { ok: false, error: error.message };
+      if (!data.session?.user) {
+        return {
+          ok: false,
+          error:
+            "Check your email to confirm your account, then sign in.",
+        };
+      }
+      const row = await fetchProfileRow(supabase, data.session.user.id);
+      set({
+        user: mapProfileToUser(data.session.user, row),
+        authReady: true,
+      });
+      return { ok: true };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Sign up failed.",
+      };
+    }
+  },
+
+  logout: async () => {
+    if (isSupabaseConfigured()) {
+      const supabase = getBrowserSupabase();
+      await supabase.auth.signOut();
+    }
+    set({ user: null });
+  },
+
+  updateProfile: async (patch) => {
+    const u = get().user;
+    if (!u) return { ok: false, error: "Not signed in." };
+    if (!isSupabaseConfigured()) {
+      return { ok: false, error: "Supabase is not configured." };
+    }
+    try {
+      const supabase = getBrowserSupabase();
+      const row = await updateProfileRow(supabase, u.id, {
+        display_name: patch.displayName ?? u.displayName,
+        company: patch.company ?? u.company,
+        role: patch.role === undefined ? u.role ?? null : patch.role || null,
+      });
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser) return { ok: false, error: "Session lost." };
+      set({ user: mapProfileToUser(authUser, row) });
+      return { ok: true };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Update failed.",
+      };
+    }
+  },
+}));

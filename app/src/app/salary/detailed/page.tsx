@@ -3,7 +3,7 @@ import { redirectToSalaryUnlessPremiumEnv } from "@/lib/server/redirect-free-tie
 
 export const dynamic = "force-dynamic";
 
-export default function SalaryDetailedInputPage() {
-  redirectToSalaryUnlessPremiumEnv();
+export default async function SalaryDetailedInputPage() {
+  await redirectToSalaryUnlessPremiumEnv();
   return <CtcInputForm />;
 }

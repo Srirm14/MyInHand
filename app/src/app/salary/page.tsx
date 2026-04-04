@@ -1,13 +1,13 @@
 import { CtcInputForm } from "@/components/features/salary/ctc-input-form";
 import { SalaryCalculatorScreen } from "@/components/features/salary-calculator/salary-calculator-screen";
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { userHasPremiumEntitlement } from "@/lib/server/premium-access";
 
 /**
  * Free tier: quick fixed/variable calculator.
- * Premium (env): legacy CTC + name flow → breakdown (same as before).
+ * Premium (env override or DB `plan_tier`): full CTC + name flow → breakdown.
  */
-export default function SalaryInputPage() {
-  if (PREMIUM_UNLOCKED) {
+export default async function SalaryInputPage() {
+  if (await userHasPremiumEntitlement()) {
     return <CtcInputForm />;
   }
   return <SalaryCalculatorScreen />;

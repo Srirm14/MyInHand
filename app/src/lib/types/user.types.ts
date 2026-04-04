@@ -1,3 +1,5 @@
+export type PlanTier = "free" | "premium";
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -5,9 +7,12 @@ export interface UserProfile {
   company: string;
   /** Optional — designation / title */
   role?: string;
+  planTier: PlanTier;
+  /** ISO timestamp from profiles.updated_at */
+  profileUpdatedAt?: string;
 }
 
-/** Stored credential record (demo/local only — replace with server auth in production). */
+/** Stored credential record (legacy demo — removed when using Supabase auth). */
 export interface LocalAccountRecord {
   password: string;
   profile: UserProfile;

@@ -4,6 +4,8 @@ import type { LifestyleExpenses, SurplusResult } from "@/lib/types/lifestyle.typ
 interface LifestyleState {
   expenses: LifestyleExpenses;
   setExpense: (key: keyof LifestyleExpenses, value: number) => void;
+  /** Merge remote JSON into expenses (e.g. after loading a salary session). */
+  hydrateFromJson: (patch: Partial<LifestyleExpenses> | null | undefined) => void;
   calculateSurplus: (monthlyInHand: number) => SurplusResult;
   reset: () => void;
 }
@@ -25,6 +27,14 @@ export const useLifestyleStore = create<LifestyleState>((set, get) => ({
   setExpense: (key, value) =>
     set((state) => ({
       expenses: { ...state.expenses, [key]: Math.max(0, Math.round(value)) },
+    })),
+
+  hydrateFromJson: (patch) =>
+    set((state) => ({
+      expenses: {
+        ...state.expenses,
+        ...(patch ?? {}),
+      },
     })),
 
   calculateSurplus: (monthlyInHand: number): SurplusResult => {

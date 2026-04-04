@@ -13,7 +13,9 @@ import {
   SALARY_HISTORY_MAX_ENTRIES,
 } from "@/lib/stores/use-history-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { hasPremiumProductAccess } from "@/lib/access/product-access";
+import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
+import { useSalarySessionsListQuery } from "@/lib/supabase/hooks/use-salary-sessions";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { formatCTCAsLPA, formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
@@ -21,11 +23,19 @@ import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown
 import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 import { cn } from "@/lib/utils";
+import { SalaryHistoryRowsSkeleton } from "@/components/shared/loading-skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function SalaryHistoryPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const salaryContexts = useHistoryStore((s) => s.salaryContexts);
+  const persist = shouldPersistSessions(user);
+  const {
+    data: cloudList = [],
+    isPending: cloudListPending,
+  } = useSalarySessionsListQuery(persist);
+  const localContexts = useHistoryStore((s) => s.salaryContexts);
+  const salaryContexts = persist ? cloudList : localContexts;
   const historyFull =
     salaryContexts.length >= SALARY_HISTORY_MAX_ENTRIES;
   const setInput = useSalaryStore((s) => s.setInput);
@@ -41,7 +51,7 @@ export default function SalaryHistoryPage() {
     null
   );
 
-  const allowed = Boolean(user) && PREMIUM_UNLOCKED;
+  const allowed = Boolean(user) && hasPremiumProductAccess(user?.planTier);
 
   useEffect(() => {
     if (!allowed) {
@@ -55,18 +65,27 @@ export default function SalaryHistoryPage() {
     router.push("/salary");
   }, [resetSalary, router]);
 
-  const confirmRemoveEntry = useCallback(() => {
+  const confirmRemoveEntry = useCallback(async () => {
     if (!pendingDelete) return;
-    applyRemove(pendingDelete);
+    await applyRemove(pendingDelete);
   }, [pendingDelete, applyRemove]);
 
   if (!allowed) {
     return (
       <PageShell className="py-20">
-        <p className="text-center text-sm text-navy-500">Redirecting…</p>
+        <div
+          className="mx-auto max-w-[220px] space-y-2"
+          aria-busy
+          aria-label="Loading"
+        >
+          <Skeleton className="h-3 w-full rounded-md" />
+          <Skeleton className="h-3 w-[85%] rounded-md" />
+        </div>
       </PageShell>
     );
   }
+
+  const listLoading = persist && cloudListPending;
 
   return (
     <PageShell className="py-8 md:py-10">
@@ -88,9 +107,10 @@ export default function SalaryHistoryPage() {
       <header className="max-w-2xl">
         <h1 className="text-h1 text-navy-800">Saved salaries</h1>
         <p className="mt-2 text-sm leading-relaxed text-navy-500">
-          Up to {SALARY_HISTORY_MAX_ENTRIES} calculations on this device—switch,
-          tidy the list, or start a clean in-hand check. Nothing here changes your
-          bank or payroll data.
+          {persist
+            ? `Up to ${SALARY_HISTORY_MAX_ENTRIES} saved sessions in your account—switch, tidy the list, or start a clean in-hand check.`
+            : `Up to ${SALARY_HISTORY_MAX_ENTRIES} calculations on this device—switch, tidy the list, or start a clean in-hand check.`}{" "}
+          Nothing here changes your bank or payroll data.
         </p>
       </header>
 
@@ -118,7 +138,9 @@ export default function SalaryHistoryPage() {
         </Button>
       </div>
 
-      {salaryContexts.length === 0 ? (
+      {listLoading ? (
+        <SalaryHistoryRowsSkeleton rows={5} />
+      ) : salaryContexts.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-dashed border-navy-200/80 bg-navy-50/30 px-6 py-12 text-center">
           <p className="text-sm font-medium text-navy-700">No saved entries yet</p>
           <p className="mt-2 text-xs text-navy-500 leading-relaxed max-w-sm mx-auto">
@@ -187,9 +209,15 @@ export default function SalaryHistoryPage() {
                       className="h-9 rounded-full px-4 text-xs font-semibold"
                       disabled={active}
                       onClick={() => {
+                        setActiveSalaryHistoryId(entry.id);
+                        if (persist) {
+                          router.push(
+                            `/salary/breakdown?session=${encodeURIComponent(entry.id)}`
+                          );
+                          return;
+                        }
                         setInput(coerceSalarySnapshot(entry.snapshot));
                         calculateBreakdown();
-                        setActiveSalaryHistoryId(entry.id);
                         router.push("/salary/breakdown");
                       }}
                     >

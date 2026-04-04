@@ -1,19 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { AuthPageShell } from "@/components/auth/auth-page-shell";
 import { Button } from "@/components/ui/button";
+import { AuthFormSkeleton } from "@/components/shared/loading-skeletons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { setSessionEmailCookie } from "@/lib/auth/session-cookie";
-import {
-  DEMO_LOGIN_EMAIL,
-  DEMO_LOGIN_PASSWORD,
-} from "@/lib/mocks/auth.demo";
 import { loginSchema, type LoginFormData } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 
@@ -22,10 +19,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/salary";
   const login = useAuthStore((s) => s.login);
-  const [hydrated, setHydrated] = useState(
-    () =>
-      globalThis.window !== undefined && useAuthStore.persist.hasHydrated()
-  );
+  const user = useAuthStore((s) => s.user);
+  const authReady = useAuthStore((s) => s.authReady);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -33,22 +28,31 @@ function LoginForm() {
   });
 
   useEffect(() => {
-    return useAuthStore.persist.onFinishHydration(() => {
-      setHydrated(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const user = useAuthStore.getState().user;
+    if (!authReady) return;
     if (user?.email) {
-      setSessionEmailCookie(user.email);
       router.replace(from.startsWith("/") ? from : "/salary");
     }
-  }, [hydrated, from, router]);
+  }, [authReady, user, from, router]);
 
-  const onSubmit = (data: LoginFormData) => {
-    const result = login(data.email, data.password);
+  if (!authReady) {
+    return (
+      <AuthPageShell
+        footer={
+          <>
+            Don&apos;t have an account?{" "}
+            <Link href="/signup" className="font-semibold text-teal-600 hover:underline">
+              Sign up
+            </Link>
+          </>
+        }
+      >
+        <AuthFormSkeleton fields={2} />
+      </AuthPageShell>
+    );
+  }
+
+  const onSubmit = async (data: LoginFormData) => {
+    const result = await login(data.email, data.password);
     if (!result.ok) {
       form.setError("root", { message: result.error });
       return;
@@ -121,15 +125,18 @@ function LoginForm() {
         </div>
         <Button
           type="submit"
+          disabled={form.formState.isSubmitting}
           className="w-full h-11 rounded-full font-semibold bg-teal-600 hover:bg-teal-700"
         >
-          Sign in
+          {form.formState.isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+              Signing in…
+            </>
+          ) : (
+            "Sign in"
+          )}
         </Button>
-        {process.env.NODE_ENV === "development" && (
-          <p className="text-center text-xs text-navy-400 pt-2">
-            Demo: {DEMO_LOGIN_EMAIL} / {DEMO_LOGIN_PASSWORD}
-          </p>
-        )}
       </form>
     </AuthPageShell>
   );
@@ -138,13 +145,7 @@ function LoginForm() {
 function LoginFallback() {
   return (
     <AuthPageShell>
-      <div className="h-8 w-40 mx-auto rounded-lg bg-navy-100 animate-pulse mb-2" />
-      <div className="h-4 w-full max-w-[280px] mx-auto rounded bg-navy-100 animate-pulse mb-8" />
-      <div className="space-y-5">
-        <div className="h-10 w-full rounded-xl bg-navy-100 animate-pulse" />
-        <div className="h-10 w-full rounded-xl bg-navy-100 animate-pulse" />
-        <div className="h-11 w-full rounded-full bg-navy-100 animate-pulse" />
-      </div>
+      <AuthFormSkeleton fields={2} />
     </AuthPageShell>
   );
 }

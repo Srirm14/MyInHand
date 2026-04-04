@@ -31,6 +31,7 @@ import {
   Scale,
   TrendingUp,
   Upload,
+  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageShell } from "@/components/layout/page-shell";
@@ -55,6 +56,7 @@ import { SaveProgressCta } from "@/components/shared/save-progress-cta";
 import { ExportDropdown } from "@/components/shared/export/export-dropdown";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import { useSalaryBreakdownCloudSync } from "@/lib/hooks/use-salary-breakdown-cloud-sync";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { LucideIcon } from "lucide-react";
 import type {
@@ -73,6 +75,7 @@ import {
   InrMoneyInput,
   splitInrFormattedParts,
 } from "@/components/ui/inr-money-input";
+import { SalaryBreakdownSkeleton } from "@/components/shared/loading-skeletons";
 
 const GROUP_TITLES: Record<SalaryComponentGroup, string> = {
   earnings: "Earnings & salary components",
@@ -121,6 +124,8 @@ export function SalaryBreakdownView() {
   const [docBusy, setDocBusy] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
 
+  const { cloudHydrating, cloudSaving } = useSalaryBreakdownCloudSync();
+
   useSalaryBreakdownScrollRestoration(!!breakdown, {
     skipNextPersistRef: skipBreakdownScrollPersistRef,
   });
@@ -132,12 +137,13 @@ export function SalaryBreakdownView() {
   }, [breakdown, input.annualCTC, calculateBreakdown]);
 
   useEffect(() => {
+    if (cloudHydrating) return;
     if (!breakdown && input.annualCTC < 100_000) {
       skipBreakdownScrollPersistRef.current = true;
       clearSalaryBreakdownScrollSave();
       router.replace("/salary");
     }
-  }, [breakdown, input.annualCTC, router]);
+  }, [breakdown, input.annualCTC, router, cloudHydrating]);
 
   const earningsBySection = useMemo(() => {
     if (!breakdown) {
@@ -262,12 +268,8 @@ export function SalaryBreakdownView() {
     }
   };
 
-  if (!breakdown) {
-    return (
-      <PageShell className="py-20">
-        <p className="text-center text-navy-500">Preparing your breakdown…</p>
-      </PageShell>
-    );
+  if (cloudHydrating || !breakdown) {
+    return <SalaryBreakdownSkeleton />;
   }
 
   const regimeLabel = input.taxRegime === "old" ? "Old Regime" : "New Regime";
@@ -277,6 +279,15 @@ export function SalaryBreakdownView() {
 
   return (
     <PageShell className="py-8 md:py-10">
+      {cloudSaving ? (
+        <div
+          className="mb-3 flex items-center justify-center gap-2 text-[11px] font-medium uppercase tracking-wide text-navy-400"
+          aria-live="polite"
+        >
+          <Loader2 className="size-3.5 shrink-0 animate-spin text-teal-600" aria-hidden />
+          Saving session…
+        </div>
+      ) : null}
       <motion.div
         initial="hidden"
         animate="show"
@@ -338,7 +349,14 @@ export function SalaryBreakdownView() {
               onClick={() => fileRef.current?.click()}
               className="rounded-full border-teal-200 text-teal-800 hover:bg-teal-50"
             >
-              {docBusy ? "Reading…" : "Choose file"}
+              {docBusy ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                  Reading…
+                </>
+              ) : (
+                "Choose file"
+              )}
             </Button>
             {docError && (
               <p className="text-xs text-danger-600 text-right max-w-xs">

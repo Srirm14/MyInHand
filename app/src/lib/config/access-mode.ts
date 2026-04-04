@@ -1,16 +1,14 @@
 /**
- * Access tier:
- * - Env `NEXT_PUBLIC_ACCESS_MODE=premium` → full tools (same on dev and prod).
- * - Env `NEXT_PUBLIC_ACCESS_MODE=default` or **unset** → free tier / paywall paths.
+ * Env-only override (`NEXT_PUBLIC_ACCESS_MODE=premium`).
  *
- * Unset does **not** imply premium in development—so localhost matches production
- * gating unless you explicitly set `premium`.
+ * For **feature gating**, use `hasPremiumProductAccess` / `userHasPremiumEntitlement`
+ * so database `plan_tier` is respected when this is unset.
  */
 export type AccessMode = "default" | "premium";
 
 const raw = process.env.NEXT_PUBLIC_ACCESS_MODE?.toLowerCase().trim();
 
-/** Use in middleware / server — same rules as client `PREMIUM_UNLOCKED`. */
+/** True when env forces premium UX for everyone (dev/staging). */
 export function getPremiumUnlockedFromEnv(): boolean {
   if (raw === "premium") return true;
   return false;
@@ -20,6 +18,11 @@ export const ACCESS_MODE: AccessMode = getPremiumUnlockedFromEnv()
   ? "premium"
   : "default";
 
+/**
+ * **Env-only**: true when `NEXT_PUBLIC_ACCESS_MODE=premium`.
+ * Do not use alone for product access — prefer `hasPremiumProductAccess` (client) or
+ * `userHasPremiumEntitlement` (server).
+ */
 export const PREMIUM_UNLOCKED = ACCESS_MODE === "premium";
 
 export type PaywallTool = "offers" | "forecast" | "emi" | "monthly";

@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getPremiumUnlockedFromEnv } from "@/lib/config/access-mode";
-
-const SESSION_COOKIE = "fl_session_email";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { updateSession } from "@/lib/supabase/middleware/update-session";
 
 const PUBLIC_EXACT = new Set([
   "/",
   "/login",
   "/signup",
   "/forgot-password",
+  "/auth/reset-password",
   "/paywall",
 ]);
 
-/**
- * Salary “deep” routes and monthly plan — not available on free env.
- * Free users are sent to `/salary` (URL + experience), not paywall/login.
- */
 function isPremiumSalaryOrLifestylePath(pathname: string) {
   if (pathname === "/salary/detailed" || pathname.startsWith("/salary/detailed/"))
     return true;
@@ -25,25 +22,34 @@ function isPremiumSalaryOrLifestylePath(pathname: string) {
   return false;
 }
 
-/** Premium tool routes — paywall when env is default; salary deep routes handled above. */
 function requiresPremiumToolAccess(pathname: string) {
   return pathname === "/premium" || pathname.startsWith("/premium/");
 }
 
-/**
- * With env premium: salary deep flows + lifestyle still require a session (same as premium tools).
- */
 function requiresPremiumAccess(pathname: string) {
-  return (
-    requiresPremiumToolAccess(pathname) || isPremiumSalaryOrLifestylePath(pathname)
-  );
+  return requiresPremiumToolAccess(pathname) || isPremiumSalaryOrLifestylePath(pathname);
 }
 
 function isProtectedProfile(pathname: string) {
   return pathname === "/profile" || pathname.startsWith("/profile/");
 }
 
-export function middleware(request: NextRequest) {
+async function hasPremiumPlan(
+  userId: string,
+  supabase: NonNullable<Awaited<ReturnType<typeof updateSession>>["supabase"]>
+): Promise<boolean> {
+  if (getPremiumUnlockedFromEnv()) return true;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("plan_tier")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) return false;
+  const tier = (data as { plan_tier: string } | null)?.plan_tier;
+  return tier === "premium";
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (
@@ -54,42 +60,42 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = request.cookies.get(SESSION_COOKIE)?.value;
+  const { response, user, supabase } = await updateSession(request);
   const premiumEnv = getPremiumUnlockedFromEnv();
 
-  // Default/free env: no detailed input, breakdown, or lifestyle — always `/salary`.
-  if (!premiumEnv && isPremiumSalaryOrLifestylePath(pathname)) {
-    return NextResponse.redirect(new URL("/salary", request.url));
-  }
-
   if (requiresPremiumAccess(pathname)) {
-    if (!session) {
+    if (!isSupabaseConfigured() || !user) {
       const login = new URL("/login", request.url);
       login.searchParams.set("from", pathname);
       return NextResponse.redirect(login);
     }
-    if (!premiumEnv) {
-      const paywall = new URL("/paywall", request.url);
-      paywall.searchParams.set("from", "premium");
-      return NextResponse.redirect(paywall);
+    if (!premiumEnv && supabase) {
+      const ok = await hasPremiumPlan(user.id, supabase);
+      if (!ok) {
+        const paywall = new URL("/paywall", request.url);
+        paywall.searchParams.set("from", "premium");
+        return NextResponse.redirect(paywall);
+      }
     }
   }
 
-  if (isProtectedProfile(pathname) && !session) {
-    const login = new URL("/login", request.url);
-    login.searchParams.set("from", pathname);
-    return NextResponse.redirect(login);
+  if (isProtectedProfile(pathname)) {
+    if (!isSupabaseConfigured() || !user) {
+      const login = new URL("/login", request.url);
+      login.searchParams.set("from", pathname);
+      return NextResponse.redirect(login);
+    }
   }
 
-  if (session && (pathname === "/login" || pathname === "/signup")) {
+  if (user && (pathname === "/login" || pathname === "/signup")) {
     return NextResponse.redirect(new URL("/salary", request.url));
   }
 
   if (PUBLIC_EXACT.has(pathname)) {
-    return NextResponse.next();
+    return response;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

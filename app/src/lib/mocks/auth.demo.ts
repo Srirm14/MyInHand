@@ -19,6 +19,7 @@ export function getDemoSeedAccounts(): Record<string, LocalAccountRecord> {
         displayName: "Demo User",
         company: "Acme India Pvt Ltd",
         role: "Product Manager",
+        planTier: "premium",
       },
     },
   };

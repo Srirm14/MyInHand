@@ -13,8 +13,12 @@ import {
 import { RemoveOfferComparisonEntryDialog } from "@/components/layout/remove-offer-comparison-entry-dialog";
 import { RemoveSalaryEntryDialog } from "@/components/layout/remove-salary-entry-dialog";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import { useRecentActivityEntries } from "@/lib/hooks/use-recent-activity-entries";
 import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
+import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
+import { useDeleteOfferSessionMutation } from "@/lib/supabase/hooks/use-offer-sessions";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type {
@@ -26,6 +30,7 @@ import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { cn } from "@/lib/utils";
+import { RecentHistoryRowsSkeleton } from "@/components/shared/loading-skeletons";
 
 export function RecentHistoryNavButton() {
   const [open, setOpen] = useState(false);
@@ -56,10 +61,13 @@ function RecentHistorySheet({
 }) {
   const router = useRouter();
   const { toolHref } = useTieredPremiumLinks();
-  const entries = useHistoryStore((s) => s.entries);
+  const user = useAuthStore((s) => s.user);
+  const cloud = shouldPersistSessions(user);
+  const { entries, isLoading } = useRecentActivityEntries(cloud);
   const removeOfferComparisonEntry = useHistoryStore(
     (s) => s.removeOfferComparisonEntry
   );
+  const deleteOfferSession = useDeleteOfferSessionMutation();
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
   const setActiveSalaryHistoryId = useSalaryStore(
@@ -79,18 +87,31 @@ function RecentHistorySheet({
   const handleSelect = useCallback(
     (entry: HistoryEntry) => {
       if (entry.kind === "salary") {
-        setInput(coerceSalarySnapshot(entry.snapshot));
-        calculateBreakdown();
         setActiveSalaryHistoryId(entry.id);
-        router.push("/salary/breakdown");
+        if (cloud) {
+          router.push(
+            `/salary/breakdown?session=${encodeURIComponent(entry.id)}`
+          );
+        } else {
+          setInput(coerceSalarySnapshot(entry.snapshot));
+          calculateBreakdown();
+          router.push("/salary/breakdown");
+        }
       } else {
-        queueOfferRestore(entry.offersSnapshot);
-        router.push(toolHref("offers"));
+        if (entry.hydrateFromServer) {
+          router.push(
+            `/premium/offer-comparison?session=${encodeURIComponent(entry.id)}`
+          );
+        } else {
+          queueOfferRestore(entry.offersSnapshot);
+          router.push(toolHref("offers"));
+        }
       }
       onOpenChange(false);
     },
     [
       calculateBreakdown,
+      cloud,
       onOpenChange,
       queueOfferRestore,
       router,
@@ -100,15 +121,19 @@ function RecentHistorySheet({
     ]
   );
 
-  const confirmSheetSalaryDelete = useCallback(() => {
+  const confirmSheetSalaryDelete = useCallback(async () => {
     if (!pendingSalaryDelete) return;
-    applyRemove(pendingSalaryDelete);
+    await applyRemove(pendingSalaryDelete);
   }, [pendingSalaryDelete, applyRemove]);
 
-  const confirmSheetOfferDelete = useCallback(() => {
+  const confirmSheetOfferDelete = useCallback(async () => {
     if (!pendingOfferDelete) return;
-    removeOfferComparisonEntry(pendingOfferDelete.id);
-  }, [pendingOfferDelete, removeOfferComparisonEntry]);
+    if (pendingOfferDelete.hydrateFromServer) {
+      await deleteOfferSession.mutateAsync(pendingOfferDelete.id);
+    } else {
+      removeOfferComparisonEntry(pendingOfferDelete.id);
+    }
+  }, [pendingOfferDelete, removeOfferComparisonEntry, deleteOfferSession]);
 
   return (
     <>
@@ -123,14 +148,18 @@ function RecentHistorySheet({
               Recent activity
             </SheetTitle>
             <SheetDescription className="text-xs text-navy-500">
-              Your last five salary runs and offer comparisons on this device.
+              {cloud
+                ? "Your last five salary sessions and offer comparisons from your account."
+                : "Your last five salary runs and offer comparisons on this device."}{" "}
               Remove saved salaries here or from the Salary menu—same list—or
               remove offer comparisons with the trash control.
             </SheetDescription>
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto px-3 py-3">
-            {entries.length === 0 ? (
+            {isLoading ? (
+              <RecentHistoryRowsSkeleton rows={5} />
+            ) : entries.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center px-4 py-16">
                 <div className="flex size-12 items-center justify-center rounded-2xl bg-navy-50 text-navy-300 mb-4">
                   <Clock className="size-6" />

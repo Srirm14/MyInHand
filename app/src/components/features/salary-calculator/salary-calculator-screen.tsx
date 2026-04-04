@@ -15,7 +15,7 @@ import {
   type SimpleSalaryInput,
 } from "@/lib/simple-salary-calculator/types";
 import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
-import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import { usePremiumProductAccess } from "@/lib/hooks/use-premium-product-access";
 import type {
   PlanningToolId,
   PremiumPlanningToolMeta,
@@ -34,6 +34,7 @@ function paywallHrefForTool(id: PlanningToolId | null): string {
 }
 
 export function SalaryCalculatorScreen() {
+  const hasPremium = usePremiumProductAccess();
   const [input, setInput] = useState<SimpleSalaryInput>(defaultSimpleSalaryInput);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [upgradeTool, setUpgradeTool] = useState<PremiumPlanningToolMeta | null>(
@@ -66,7 +67,7 @@ export function SalaryCalculatorScreen() {
     setStoreInput,
   ]);
 
-  const premiumLocked = !PREMIUM_UNLOCKED;
+  const premiumLocked = !hasPremium;
 
   const openUpgrade = (tool: PremiumPlanningToolMeta | null) => {
     setUpgradeTool(tool);

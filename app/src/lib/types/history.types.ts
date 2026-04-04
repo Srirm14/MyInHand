@@ -22,6 +22,8 @@ export interface OfferComparisonHistoryEntry {
   offerCount: number;
   winnerSummary: string;
   offersSnapshot: OfferDraft[];
+  /** When true, `id` is a cloud session — resume via `?session=` instead of local snapshots. */
+  hydrateFromServer?: boolean;
 }
 
 export type HistoryEntry = SalaryHistoryEntry | OfferComparisonHistoryEntry;

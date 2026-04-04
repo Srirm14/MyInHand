@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import {
   Bolt,
   Car,
@@ -21,8 +21,11 @@ import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { DonutGauge } from "@/components/shared/donut-gauge";
 import { LifestylePlanningSliderCard } from "@/components/shared/lifestyle-planning-slider-card";
 import { buttonVariants } from "@/components/ui/button";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
+import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
+import { useUpsertSalaryPlanningMutation } from "@/lib/supabase/hooks/use-salary-sessions";
 import { SaveProgressCta } from "@/components/shared/save-progress-cta";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { cn } from "@/lib/utils";
@@ -30,6 +33,11 @@ import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 
 export function MonthlyPlanView() {
   const { toolHref, hubHref, premium } = useTieredPremiumLinks();
+  const user = useAuthStore((s) => s.user);
+  const persist = shouldPersistSessions(user);
+  const activeSalarySessionId = useSalaryStore((s) => s.activeSalaryHistoryId);
+  const upsertPlanning = useUpsertSalaryPlanningMutation();
+
   const breakdown = useSalaryStore((s) => s.breakdown);
   const monthlyInHand = breakdown?.monthlyInHand ?? 0;
   const hasBreakdown = Boolean(breakdown);
@@ -37,6 +45,17 @@ export function MonthlyPlanView() {
   const expenses = useLifestyleStore((s) => s.expenses);
   const setExpense = useLifestyleStore((s) => s.setExpense);
   const calculateSurplus = useLifestyleStore((s) => s.calculateSurplus);
+
+  useEffect(() => {
+    if (!persist || !activeSalarySessionId) return;
+    const t = window.setTimeout(() => {
+      upsertPlanning.mutate({
+        salarySessionId: activeSalarySessionId,
+        lifestyle: useLifestyleStore.getState().expenses,
+      });
+    }, 900);
+    return () => window.clearTimeout(t);
+  }, [expenses, persist, activeSalarySessionId, upsertPlanning]);
 
   const result = calculateSurplus(monthlyInHand);
 

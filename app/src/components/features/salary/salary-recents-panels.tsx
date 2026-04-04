@@ -6,17 +6,32 @@ import { Button } from "@/components/ui/button";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import { useOfferSessionsListQuery } from "@/lib/supabase/hooks/use-offer-sessions";
+import { useSalarySessionsListQuery } from "@/lib/supabase/hooks/use-salary-sessions";
+import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { formatRelativeTime } from "@/lib/utils/format-relative-time";
 import { cn } from "@/lib/utils";
+import type { HistoryEntry } from "@/lib/types/history.types";
+import { SalaryRecentsPanelsSkeleton } from "@/components/shared/loading-skeletons";
 
 const MAX_ROWS = 3;
 
 export function SalaryRecentsPanels() {
   const router = useRouter();
-  const entries = useHistoryStore((s) => s.entries);
+  const user = useAuthStore((s) => s.user);
+  const cloud = shouldPersistSessions(user);
+  const localEntries = useHistoryStore((s) => s.entries);
+  const salaryListQ = useSalarySessionsListQuery(cloud);
+  const offerListQ = useOfferSessionsListQuery(cloud);
+  const { data: cloudSalaries = [] } = salaryListQ;
+  const { data: cloudOffers = [] } = offerListQ;
+  const cloudRecentsLoading =
+    cloud && (salaryListQ.isPending || offerListQ.isPending);
+
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
   const setActiveSalaryHistoryId = useSalaryStore(
@@ -25,10 +40,24 @@ export function SalaryRecentsPanels() {
   const queueRestore = useOfferComparisonRestoreStore((s) => s.queueRestore);
   const { toolHref } = useTieredPremiumLinks();
 
-  const salaryRows = entries.filter((e) => e.kind === "salary").slice(0, MAX_ROWS);
-  const offerRows = entries
-    .filter((e) => e.kind === "offer_comparison")
-    .slice(0, MAX_ROWS);
+  const salaryRows = (
+    cloud
+      ? cloudSalaries
+      : localEntries.filter((e): e is Extract<HistoryEntry, { kind: "salary" }> => e.kind === "salary")
+  ).slice(0, MAX_ROWS);
+
+  const offerRows = (
+    cloud
+      ? cloudOffers
+      : localEntries.filter(
+          (e): e is Extract<HistoryEntry, { kind: "offer_comparison" }> =>
+            e.kind === "offer_comparison"
+        )
+  ).slice(0, MAX_ROWS);
+
+  if (cloudRecentsLoading) {
+    return <SalaryRecentsPanelsSkeleton />;
+  }
 
   if (salaryRows.length === 0 && offerRows.length === 0) {
     return (
@@ -64,6 +93,13 @@ export function SalaryRecentsPanels() {
                 <button
                   type="button"
                   onClick={() => {
+                    setActiveSalaryHistoryId(e.id);
+                    if (cloud) {
+                      router.push(
+                        `/salary/breakdown?session=${encodeURIComponent(e.id)}`
+                      );
+                      return;
+                    }
                     setInput(
                       coerceSalarySnapshot({
                         ...e.snapshot,
@@ -72,7 +108,6 @@ export function SalaryRecentsPanels() {
                       })
                     );
                     calculateBreakdown();
-                    setActiveSalaryHistoryId(e.id);
                     router.push("/salary/breakdown");
                   }}
                   className={cn(
@@ -127,8 +162,14 @@ export function SalaryRecentsPanels() {
                 <button
                   type="button"
                   onClick={() => {
-                    queueRestore(e.offersSnapshot);
-                    router.push(toolHref("offers"));
+                    if (e.hydrateFromServer) {
+                      router.push(
+                        `/premium/offer-comparison?session=${encodeURIComponent(e.id)}`
+                      );
+                    } else {
+                      queueRestore(e.offersSnapshot);
+                      router.push(toolHref("offers"));
+                    }
                   }}
                   className={cn(
                     "w-full text-left rounded-xl border border-navy-200/60 bg-white px-4 py-3 shadow-sm",

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Info, LineChart, Upload } from "lucide-react";
+import { ArrowRight, Info, LineChart, Loader2, Upload } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
 import { SalaryRecentsPanels } from "@/components/features/salary/salary-recents-panels";
@@ -21,6 +21,13 @@ import { CITY_TIERS } from "@/lib/constants/city-tiers";
 import { ctcInputSchema, type CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import {
+  useCreateSalarySessionMutation,
+  useSalarySessionsListQuery,
+} from "@/lib/supabase/hooks/use-salary-sessions";
+import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
+import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
 import {
   useHistoryStore,
   SALARY_HISTORY_MAX_ENTRIES,
@@ -41,6 +48,10 @@ type EntryMode = "manual" | "document";
 export function CtcInputForm() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const user = useAuthStore((s) => s.user);
+  const persist = shouldPersistSessions(user);
+  const createSalarySession = useCreateSalarySessionMutation();
+  const { data: cloudSalaryList = [] } = useSalarySessionsListQuery(persist);
   const { premium, hubHref } = useTieredPremiumLinks();
   const input = useSalaryStore((s) => s.input);
   const setInput = useSalaryStore((s) => s.setInput);
@@ -53,7 +64,8 @@ export function CtcInputForm() {
   const [docParsing, setDocParsing] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
 
-  const salaryHistoryCount = useHistoryStore((s) => s.salaryContexts.length);
+  const localSalaryCount = useHistoryStore((s) => s.salaryContexts.length);
+  const salaryHistoryCount = persist ? cloudSalaryList.length : localSalaryCount;
   const historyLimitReached =
     salaryHistoryCount >= SALARY_HISTORY_MAX_ENTRIES;
 
@@ -94,18 +106,38 @@ export function CtcInputForm() {
     input.taxRegime,
   ]);
 
-  const pushSalaryHistory = () => {
+  const pushSalaryHistory = async () => {
     const { input: nextInput, breakdown } = useSalaryStore.getState();
     if (!breakdown) return;
-    const id = useHistoryStore
-      .getState()
-      .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);
-    if (id != null) {
-      useSalaryStore.getState().setActiveSalaryHistoryId(id);
+    if (persist) {
+      try {
+        const row = await createSalarySession.mutateAsync({
+          input: nextInput,
+          breakdown,
+          planning: {
+            lifestyle: useLifestyleStore.getState().expenses,
+          },
+        });
+        useSalaryStore.getState().setActiveSalaryHistoryId(row.id);
+      } catch {
+        const id = useHistoryStore
+          .getState()
+          .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);
+        if (id != null) {
+          useSalaryStore.getState().setActiveSalaryHistoryId(id);
+        }
+      }
+    } else {
+      const id = useHistoryStore
+        .getState()
+        .pushSalaryCalculation(nextInput, breakdown.monthlyInHand);
+      if (id != null) {
+        useSalaryStore.getState().setActiveSalaryHistoryId(id);
+      }
     }
   };
 
-  const onSubmit = (data: CTCInputFormData) => {
+  const onSubmit = async (data: CTCInputFormData) => {
     if (historyLimitReached) return;
     setInput({
       fullName: data.fullName,
@@ -122,9 +154,14 @@ export function CtcInputForm() {
       documentFileName: undefined,
     });
     calculateBreakdown();
-    pushSalaryHistory();
+    await pushSalaryHistory();
     clearSalaryBreakdownScrollSave();
-    router.push("/salary/breakdown");
+    const sid = useSalaryStore.getState().activeSalaryHistoryId;
+    router.push(
+      persist && sid
+        ? `/salary/breakdown?session=${encodeURIComponent(sid)}`
+        : "/salary/breakdown"
+    );
   };
 
   const onDocumentSelected = async (fileList: FileList | null) => {
@@ -135,9 +172,14 @@ export function CtcInputForm() {
     setDocParsing(true);
     try {
       await applyParsedSalaryDocument(file);
-      pushSalaryHistory();
+      await pushSalaryHistory();
       clearSalaryBreakdownScrollSave();
-      router.push("/salary/breakdown");
+      const sid = useSalaryStore.getState().activeSalaryHistoryId;
+      router.push(
+        persist && sid
+          ? `/salary/breakdown?session=${encodeURIComponent(sid)}`
+          : "/salary/breakdown"
+      );
     } catch {
       setDocError(
         "We couldn’t parse that file. Try a clear PDF or image, or use manual entry."
@@ -250,7 +292,14 @@ export function CtcInputForm() {
               onClick={() => fileRef.current?.click()}
               className="w-full h-12 rounded-full text-base font-semibold"
             >
-              {docParsing ? "Reading document…" : "Choose file"}
+              {docParsing ? (
+                <>
+                  <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
+                  Reading document…
+                </>
+              ) : (
+                "Choose file"
+              )}
             </Button>
             {docError && (
               <p className="text-sm text-danger-600 text-center">{docError}</p>
@@ -355,11 +404,20 @@ export function CtcInputForm() {
 
             <Button
               type="submit"
-              disabled={historyLimitReached}
+              disabled={historyLimitReached || form.formState.isSubmitting}
               className="mt-10 h-12 w-full rounded-full text-base font-semibold shadow-md hover:shadow-lg"
             >
-              Show estimated breakdown
-              <ArrowRight className="ml-2 size-4" />
+              {form.formState.isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
+                  Saving & opening…
+                </>
+              ) : (
+                <>
+                  Show estimated breakdown
+                  <ArrowRight className="ml-2 size-4" />
+                </>
+              )}
             </Button>
           </form>
         )}

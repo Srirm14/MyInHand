@@ -6,7 +6,7 @@ import { PageShell } from "@/components/layout/page-shell";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-/** Shown at /paywall when NEXT_PUBLIC_ACCESS_MODE=premium (tools are not gated). */
+/** Shown at /paywall when the user already has premium (env override or account plan). */
 export function PaywallUnlocked() {
   return (
     <PageShell narrow className="py-20 md:py-28">
@@ -14,11 +14,10 @@ export function PaywallUnlocked() {
         <div className="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-white text-teal-600 shadow-sm">
           <Sparkles className="size-8" />
         </div>
-        <h1 className="text-h1 text-navy-800">Premium access is on</h1>
+        <h1 className="text-h1 text-navy-800">You already have premium access</h1>
         <p className="mt-4 text-navy-600 leading-relaxed max-w-md mx-auto">
-          This environment is set to <strong>premium</strong> mode. Offer
-          comparison, wealth forecast, and EMI tools are available directly —
-          no paywall gate.
+          Offer comparison, wealth forecast, EMI tools, and related flows are
+          available from the app — head straight to a tool below.
         </p>
         <Link
           href="/premium/offer-comparison"

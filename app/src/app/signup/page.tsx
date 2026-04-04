@@ -1,15 +1,16 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Loader2 } from "lucide-react";
 import { AuthPageShell } from "@/components/auth/auth-page-shell";
 import { Button } from "@/components/ui/button";
+import { AuthFormSkeleton } from "@/components/shared/loading-skeletons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { setSessionEmailCookie } from "@/lib/auth/session-cookie";
 import { signupSchema, type SignupFormData } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 
@@ -18,10 +19,8 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/salary";
   const signup = useAuthStore((s) => s.signup);
-  const [hydrated, setHydrated] = useState(
-    () =>
-      globalThis.window !== undefined && useAuthStore.persist.hasHydrated()
-  );
+  const user = useAuthStore((s) => s.user);
+  const authReady = useAuthStore((s) => s.authReady);
 
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -29,27 +28,43 @@ function SignupForm() {
   });
 
   useEffect(() => {
-    return useAuthStore.persist.onFinishHydration(() => {
-      setHydrated(true);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!hydrated) return;
-    const user = useAuthStore.getState().user;
+    if (!authReady) return;
     if (user?.email) {
-      setSessionEmailCookie(user.email);
       router.replace(from.startsWith("/") ? from : "/salary");
     }
-  }, [hydrated, from, router]);
+  }, [authReady, user, from, router]);
+
+  if (!authReady) {
+    return (
+      <AuthPageShell
+        footer={
+          <>
+            Already have an account?{" "}
+            <Link
+              href={
+                from && from !== "/salary"
+                  ? `/login?from=${encodeURIComponent(from)}`
+                  : "/login"
+              }
+              className="font-semibold text-teal-600 hover:underline"
+            >
+              Sign in
+            </Link>
+          </>
+        }
+      >
+        <AuthFormSkeleton fields={3} />
+      </AuthPageShell>
+    );
+  }
 
   const loginHref =
     from && from !== "/salary"
       ? `/login?from=${encodeURIComponent(from)}`
       : "/login";
 
-  const onSubmit = (data: SignupFormData) => {
-    const result = signup(data.email, data.password, data.displayName);
+  const onSubmit = async (data: SignupFormData) => {
+    const result = await signup(data.email, data.password, data.displayName);
     if (!result.ok) {
       form.setError("root", { message: result.error });
       return;
@@ -129,9 +144,17 @@ function SignupForm() {
         </div>
         <Button
           type="submit"
+          disabled={form.formState.isSubmitting}
           className="w-full h-11 rounded-full font-semibold bg-teal-600 hover:bg-teal-700"
         >
-          Create account
+          {form.formState.isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+              Creating account…
+            </>
+          ) : (
+            "Create account"
+          )}
         </Button>
       </form>
     </AuthPageShell>
@@ -141,13 +164,7 @@ function SignupForm() {
 function SignupFallback() {
   return (
     <AuthPageShell>
-      <div className="h-8 w-48 mx-auto rounded-lg bg-navy-100 animate-pulse mb-8" />
-      <div className="space-y-5">
-        <div className="h-10 w-full rounded-xl bg-navy-100 animate-pulse" />
-        <div className="h-10 w-full rounded-xl bg-navy-100 animate-pulse" />
-        <div className="h-10 w-full rounded-xl bg-navy-100 animate-pulse" />
-        <div className="h-11 w-full rounded-full bg-navy-100 animate-pulse" />
-      </div>
+      <AuthFormSkeleton fields={3} />
     </AuthPageShell>
   );
 }
