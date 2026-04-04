@@ -32,6 +32,7 @@ import {
   TrendingUp,
   Upload,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { PageShell } from "@/components/layout/page-shell";
 import { StatCard } from "@/components/shared/stat-card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -63,6 +64,11 @@ import type {
 } from "@/lib/types/salary.types";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { cn } from "@/lib/utils";
+import {
+  fadeUp,
+  staggerContainer,
+  VIEWPORT,
+} from "@/lib/motion/marketing-motion";
 import {
   InrMoneyInput,
   splitInrFormattedParts,
@@ -271,27 +277,37 @@ export function SalaryBreakdownView() {
 
   return (
     <PageShell className="py-8 md:py-10">
-      <Link
-        href="/salary"
-        onClick={() => {
-          skipBreakdownScrollPersistRef.current = true;
-          clearSalaryBreakdownScrollSave();
-        }}
-        className={cn(
-          buttonVariants({ variant: "ghost" }),
-          "group -ml-1.5 mb-1 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"
-        )}
-        aria-label="Back to salary inputs"
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={staggerContainer(0.06)}
       >
-        <ChevronLeft
-          className="size-3.5 opacity-70 transition-transform group-hover:-translate-x-0.5"
-          strokeWidth={2}
-          aria-hidden
-        />
-        Back to salary inputs
-      </Link>
+        <motion.div variants={fadeUp}>
+          <Link
+            href="/salary"
+            onClick={() => {
+              skipBreakdownScrollPersistRef.current = true;
+              clearSalaryBreakdownScrollSave();
+            }}
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "group -ml-1.5 mb-1 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-teal-700 hover:bg-teal-50 hover:text-teal-800"
+            )}
+            aria-label="Back to salary inputs"
+          >
+            <ChevronLeft
+              className="size-3.5 opacity-70 transition-transform group-hover:-translate-x-0.5"
+              strokeWidth={2}
+              aria-hidden
+            />
+            Back to salary inputs
+          </Link>
+        </motion.div>
 
-      <div className="mt-1 mb-5 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm">
+        <motion.div
+          variants={fadeUp}
+          className="mt-1 mb-5 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm"
+        >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
@@ -331,9 +347,10 @@ export function SalaryBreakdownView() {
             )}
           </div>
         </div>
-      </div>
+        </motion.div>
 
-      <div
+      <motion.div
+        variants={fadeUp}
         className={cn(
           "mb-6 rounded-xl border px-4 py-2.5 text-[13px] leading-snug",
           isDocument
@@ -383,9 +400,12 @@ export function SalaryBreakdownView() {
               : "Summaries and tax follow this table — edit any row to steer the model."}
           </span>
         ) : null}
-      </div>
+      </motion.div>
 
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+      <motion.div
+        variants={fadeUp}
+        className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10"
+      >
         <header className="min-w-0 max-w-2xl">
           <h1 className="text-h1 text-navy-800">Salary Breakdown</h1>
           <p className="mt-2 max-w-lg text-sm leading-relaxed text-navy-500">
@@ -414,7 +434,8 @@ export function SalaryBreakdownView() {
             </p>
           </div>
         </aside>
-      </div>
+      </motion.div>
+      </motion.div>
 
       <div
         className={cn(
@@ -422,43 +443,57 @@ export function SalaryBreakdownView() {
           totalsPulseClass
         )}
       >
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Monthly in-hand · excl. variable"
-            amount={breakdown.monthlyInHandExcludingVariable}
-            sublabel={`~${formatCurrency(annualInHandExclVar)} / yr`}
-            sentiment="positive"
-            icon={Banknote}
-            className={cn(
-              "transition-shadow duration-500",
-              totalsJustUpdated && "shadow-md shadow-teal-900/[0.06]"
-            )}
-          />
-          <StatCard
-            label="Monthly in-hand · incl. variable"
-            amount={breakdown.monthlyInHandIncludingVariable}
-            sublabel="÷12 spread — illustrative only"
-            sentiment="positive"
-            icon={TrendingUp}
-            className="transition-shadow duration-500"
-          />
-          <StatCard
-            label="Annual income tax (TDS)"
-            amount={breakdown.annualIncomeTax}
-            sublabel={`${regimeLabel} · ÷12 for monthly TDS`}
-            sentiment="negative"
-            icon={PiggyBank}
-            className="transition-shadow duration-500"
-          />
-          <StatCard
-            label="Monthly deductions"
-            amount={breakdown.totalMonthlyDeductions}
-            sublabel={`Employer CTC ~${formatCurrency(employerMonthly * 12)} / yr`}
-            sentiment="neutral"
-            icon={Receipt}
-            className="transition-shadow duration-500"
-          />
-        </div>
+        <motion.div
+          className="grid gap-5 md:grid-cols-2 xl:grid-cols-4"
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT}
+          variants={staggerContainer(0.08)}
+        >
+          <motion.div variants={fadeUp}>
+            <StatCard
+              label="Monthly in-hand · excl. variable"
+              amount={breakdown.monthlyInHandExcludingVariable}
+              sublabel={`~${formatCurrency(annualInHandExclVar)} / yr`}
+              sentiment="positive"
+              icon={Banknote}
+              className={cn(
+                "transition-shadow duration-500",
+                totalsJustUpdated && "shadow-md shadow-teal-900/[0.06]"
+              )}
+            />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard
+              label="Monthly in-hand · incl. variable"
+              amount={breakdown.monthlyInHandIncludingVariable}
+              sublabel="÷12 spread — illustrative only"
+              sentiment="positive"
+              icon={TrendingUp}
+              className="transition-shadow duration-500"
+            />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard
+              label="Annual income tax (TDS)"
+              amount={breakdown.annualIncomeTax}
+              sublabel={`${regimeLabel} · ÷12 for monthly TDS`}
+              sentiment="negative"
+              icon={PiggyBank}
+              className="transition-shadow duration-500"
+            />
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <StatCard
+              label="Monthly deductions"
+              amount={breakdown.totalMonthlyDeductions}
+              sublabel={`Employer CTC ~${formatCurrency(employerMonthly * 12)} / yr`}
+              sentiment="neutral"
+              icon={Receipt}
+              className="transition-shadow duration-500"
+            />
+          </motion.div>
+        </motion.div>
 
         <div className="rounded-2xl border border-navy-200/50 bg-white px-5 py-4 shadow-sm">
           <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-400 mb-1">

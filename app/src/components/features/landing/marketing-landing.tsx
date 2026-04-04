@@ -10,6 +10,13 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  EASE,
+  VIEWPORT,
+  fadeIn,
+  fadeUp,
+  staggerContainer,
+} from "@/lib/motion/marketing-motion";
 import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
 import { SalaryPricingSection } from "@/components/features/pricing/salary-pricing-section";
 import { PageShell } from "@/components/layout/page-shell";
@@ -20,33 +27,6 @@ import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
 import { cn } from "@/lib/utils";
-
-// ─── Animation primitives ────────────────────────────────────────────────────
-
-const EASE = [0.22, 1, 0.36, 1] as const;
-const VIEWPORT = { once: true, margin: "-64px" } as const;
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 28 },
-  show: (i = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, delay: i * 0.07, ease: EASE },
-  }),
-};
-
-const fadeIn = {
-  hidden: { opacity: 0 },
-  show: (i = 0) => ({
-    opacity: 1,
-    transition: { duration: 0.5, delay: i * 0.07, ease: EASE },
-  }),
-};
-
-const staggerContainer = (stagger = 0.08) => ({
-  hidden: {},
-  show: { transition: { staggerChildren: stagger } },
-});
 
 // ─── Static data ─────────────────────────────────────────────────────────────
 

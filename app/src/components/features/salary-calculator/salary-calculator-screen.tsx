@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { PageShell } from "@/components/layout/page-shell";
 import { FixedVariableInHandPanel } from "./fixed-variable-in-hand-panel";
 import { SalaryCalculatorPremiumTeaser } from "./salary-calculator-premium-teaser";
@@ -20,6 +21,10 @@ import type {
   PremiumPlanningToolMeta,
 } from "@/lib/config/premium-planning-tools";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
+import {
+  fadeUp,
+  staggerContainer,
+} from "@/lib/motion/marketing-motion";
 
 function paywallHrefForTool(id: PlanningToolId | null): string {
   if (id === "wealth_forecast") return "/paywall?tool=forecast";
@@ -80,14 +85,31 @@ export function SalaryCalculatorScreen() {
       />
 
       <PageShell className="relative py-8 md:py-12">
-        <header className="mb-8 max-w-3xl md:mb-10">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-700">
+        <motion.header
+          className="mb-8 max-w-3xl md:mb-10"
+          initial="hidden"
+          animate="show"
+          variants={staggerContainer(0.06)}
+        >
+          <motion.p
+            variants={fadeUp}
+            custom={0}
+            className="text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-700"
+          >
             Calculator
-          </p>
-          <h1 className="mt-2 font-display text-3xl font-bold tracking-tight text-navy-800 md:text-4xl">
+          </motion.p>
+          <motion.h1
+            variants={fadeUp}
+            custom={1}
+            className="mt-2 font-display text-3xl font-bold tracking-tight text-navy-800 md:text-4xl"
+          >
             <span className="text-teal-700">Salary</span> calculator
-          </h1>
-          <p className="mt-3 text-sm text-navy-500 leading-relaxed md:text-base">
+          </motion.h1>
+          <motion.p
+            variants={fadeUp}
+            custom={2}
+            className="mt-3 text-sm text-navy-500 leading-relaxed md:text-base"
+          >
             Enter <strong className="font-semibold text-navy-700">guaranteed</strong>{" "}
             fixed pay and optional{" "}
             <strong className="font-semibold text-navy-700">variable</strong> pay.
@@ -97,52 +119,72 @@ export function SalaryCalculatorScreen() {
               regime-aware TDS
             </strong>{" "}
             tied to your Old / New regime selection.
-          </p>
-        </header>
+          </motion.p>
+        </motion.header>
 
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] xl:items-start xl:gap-10 2xl:gap-12">
-          <div className="flex min-w-0 flex-col gap-8">
-            <SalaryCalculatorForm value={input} onChange={setInput} />
-            <SalaryCalculatorPremiumTeaser
-              locked={premiumLocked}
-              onRequestUnlock={() => openUpgrade(null)}
-            />
-          </div>
+          <motion.div
+            className="flex min-w-0 flex-col gap-8"
+            initial="hidden"
+            animate="show"
+            variants={staggerContainer(0.1)}
+          >
+            <motion.div variants={fadeUp}>
+              <SalaryCalculatorForm value={input} onChange={setInput} />
+            </motion.div>
+            <motion.div variants={fadeUp}>
+              <SalaryCalculatorPremiumTeaser
+                locked={premiumLocked}
+                onRequestUnlock={() => openUpgrade(null)}
+              />
+            </motion.div>
+          </motion.div>
 
-          <aside className="flex min-w-0 w-full max-w-full flex-col gap-4 xl:max-w-[420px] xl:justify-self-end">
-            <FixedVariableInHandPanel
-              taxRegime={input.taxRegime}
-              monthlyInHandFixedOnly={summary.monthlyInHandFixedOnly}
-              monthlyInHandIncludingVariable={
-                summary.monthlyInHandIncludingVariable
-              }
-              annualInHandFixedOnly={summary.annualInHandFixedOnly}
-              annualInHandIncludingVariable={
-                summary.annualInHandIncludingVariable
-              }
-              monthlyIncomeTaxFixedBasis={summary.monthlyIncomeTaxFixedBasis}
-              monthlyIncomeTaxIncludingVariable={
-                summary.monthlyIncomeTaxIncludingVariable
-              }
-              annualIncomeTaxFixedBasis={summary.annualIncomeTaxFixedBasis}
-              annualIncomeTaxIncludingVariable={
-                summary.annualIncomeTaxIncludingVariable
-              }
-              effectiveTaxRateFixedBasis={summary.effectiveTaxRateFixedBasis}
-              effectiveTaxRateIncludingVariable={
-                summary.effectiveTaxRateIncludingVariable
-              }
-              annualVariablePay={input.annualVariablePay}
-            />
-            <SalaryCompositionPanel
-              takeHomeShare={summary.compositionTakeHome}
-              employeeDeductionsShare={summary.compositionEmployeeDeductions}
-              employerPfShare={summary.compositionEmployerPf}
-            />
+          <motion.aside
+            className="flex min-w-0 w-full max-w-full flex-col gap-4 xl:max-w-[420px] xl:justify-self-end"
+            initial="hidden"
+            animate="show"
+            variants={staggerContainer(0.12)}
+          >
+            <motion.div variants={fadeUp}>
+              <FixedVariableInHandPanel
+                taxRegime={input.taxRegime}
+                monthlyInHandFixedOnly={summary.monthlyInHandFixedOnly}
+                monthlyInHandIncludingVariable={
+                  summary.monthlyInHandIncludingVariable
+                }
+                annualInHandFixedOnly={summary.annualInHandFixedOnly}
+                annualInHandIncludingVariable={
+                  summary.annualInHandIncludingVariable
+                }
+                monthlyIncomeTaxFixedBasis={summary.monthlyIncomeTaxFixedBasis}
+                monthlyIncomeTaxIncludingVariable={
+                  summary.monthlyIncomeTaxIncludingVariable
+                }
+                annualIncomeTaxFixedBasis={summary.annualIncomeTaxFixedBasis}
+                annualIncomeTaxIncludingVariable={
+                  summary.annualIncomeTaxIncludingVariable
+                }
+                effectiveTaxRateFixedBasis={summary.effectiveTaxRateFixedBasis}
+                effectiveTaxRateIncludingVariable={
+                  summary.effectiveTaxRateIncludingVariable
+                }
+                annualVariablePay={input.annualVariablePay}
+              />
+            </motion.div>
+            <motion.div variants={fadeUp}>
+              <SalaryCompositionPanel
+                takeHomeShare={summary.compositionTakeHome}
+                employeeDeductionsShare={summary.compositionEmployeeDeductions}
+                employerPfShare={summary.compositionEmployerPf}
+              />
+            </motion.div>
             {premiumLocked ? (
-              <PremiumBlurOfferTeaser compact className="shadow-sm" />
+              <motion.div variants={fadeUp}>
+                <PremiumBlurOfferTeaser compact className="shadow-sm" />
+              </motion.div>
             ) : null}
-          </aside>
+          </motion.aside>
         </div>
 
         <PremiumFeatureSection

@@ -1,10 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Calculator, ChevronDown, Plus, Trash2, Upload } from "lucide-react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown, Plus, Trash2, Upload } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
-import { SectionHeader } from "@/components/shared/section-header";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { Button } from "@/components/ui/button";
@@ -29,6 +37,11 @@ import { cn } from "@/lib/utils";
 import { SalaryBreakdownEditablePanel } from "@/components/shared/salary-breakdown-editable-panel";
 import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
 import { PREMIUM_UNLOCKED } from "@/lib/config/access-mode";
+import {
+  EASE,
+  fadeUp,
+  staggerContainer,
+} from "@/lib/motion/marketing-motion";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -98,6 +111,8 @@ export function OfferComparisonView() {
   const [entryMode, setEntryMode] = useState<OfferEntryMode>("manual");
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [comparisonRevealed, setComparisonRevealed] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const [offers, setOffers] = useState<OfferDraft[]>(() => {
     const pending =
@@ -159,6 +174,12 @@ export function OfferComparisonView() {
     });
   }, [offers, offerBreakdownEdits]);
 
+  const readyCount = useMemo(
+    () => comparisons.filter(Boolean).length,
+    [comparisons]
+  );
+  const canCompare = readyCount >= 2;
+
   const valid = comparisons.filter(Boolean) as NonNullable<
     (typeof comparisons)[number]
   >[];
@@ -168,6 +189,34 @@ export function OfferComparisonView() {
       : null;
   const bestValue =
     valid.length > 0 ? Math.max(...valid.map((v) => v.firstYearValue)) : null;
+
+  const leaderInHand =
+    valid.length > 0
+      ? valid.reduce((a, b) =>
+          b.monthlyInHand > a.monthlyInHand ? b : a
+        )
+      : null;
+
+  useLayoutEffect(() => {
+    if (comparisons.filter(Boolean).length >= 2) {
+      setComparisonRevealed(true);
+    }
+    // Intentionally once on mount: honour restored / prefilled offers without requiring an extra click.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial paint only
+  }, []);
+
+  const runComparison = useCallback(() => {
+    if (!canCompare) return;
+    setComparisonRevealed(true);
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }, 100);
+    });
+  }, [canCompare]);
 
   const peerMaxVariableCashAnnual = useMemo(() => {
     const list = comparisons.filter(Boolean) as NonNullable<
@@ -305,7 +354,7 @@ export function OfferComparisonView() {
           monthly = Math.round(annual / 12);
         }
         const name =
-          patch.name !== undefined ? patch.name.trim() || c.name : c.name;
+          patch.name === undefined ? c.name : patch.name.trim() || c.name;
         return {
           ...c,
           name,
@@ -382,6 +431,12 @@ export function OfferComparisonView() {
     [offers]
   );
 
+  useEffect(() => {
+    if (canCompare && anyFromDocument) {
+      setComparisonRevealed(true);
+    }
+  }, [canCompare, anyFromDocument]);
+
   const onOfferFiles = async (list: FileList | null) => {
     const files = Array.from(list ?? []).slice(0, 3);
     if (fileRef.current) fileRef.current.value = "";
@@ -407,77 +462,165 @@ export function OfferComparisonView() {
   };
 
   return (
-    <PageShell className="py-8 md:py-10">
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
-        <SectionHeader
-          className="mb-0 min-w-0 flex-1"
-          title="Offer comparison"
-          subtitle="Same engine as Salary Breakdown. Compare offers in the summary table, then open the right control on any row to inspect and edit line items — totals and verdict stay in sync per offer. Up to three offers; mock document upload available (verify each card)."
-        />
-        <div
-          className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center lg:w-auto lg:max-w-none lg:shrink-0 lg:justify-end"
-          role="toolbar"
-          aria-label="Offer entry and navigation"
+    <PageShell className="py-6 pb-28 md:py-10 md:pb-10">
+      <motion.div
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.48, ease: EASE }}
+        className="mb-4"
+      >
+        <Link
+          href="/premium"
+          className={cn(
+            buttonVariants({ variant: "ghost" }),
+            "inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm font-semibold text-teal-800 hover:bg-teal-50"
+          )}
         >
-          <div className="inline-flex h-9 w-full rounded-xl border border-navy-200/90 bg-navy-50/50 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] sm:w-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setEntryMode("manual");
-                setUploadError(null);
-              }}
-              className={cn(
-                "inline-flex h-full flex-1 cursor-pointer items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
-                entryMode === "manual"
-                  ? "border border-teal-600/25 bg-teal-100 text-teal-900 shadow-sm"
-                  : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
-              )}
-            >
-              Manual
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEntryMode("upload");
-                setUploadError(null);
-              }}
-              className={cn(
-                "inline-flex h-full flex-1 cursor-pointer items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
-                entryMode === "upload"
-                  ? "border border-teal-600/25 bg-teal-100 text-teal-900 shadow-sm"
-                  : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
-              )}
-            >
-              Upload offers
-            </button>
-          </div>
-          <div className="flex w-full gap-2 sm:w-auto sm:items-center">
-            <Button
-              type="button"
-              variant="outline"
-              size="lg"
-              className="h-9 flex-1 rounded-full border-navy-200 px-4 text-sm font-semibold text-navy-800 hover:bg-navy-50 sm:flex-initial"
-              disabled={offers.length >= 3}
-              onClick={addOffer}
-            >
-              <Plus className="size-4 shrink-0" data-icon="inline-start" />
-              Add offer
-            </Button>
-            <Link
-              href="/premium"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "lg" }),
-                "h-9 flex-1 items-center justify-center rounded-full border-navy-200 px-4 text-sm font-semibold text-teal-800 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-900 sm:inline-flex sm:w-auto sm:flex-initial"
-              )}
-            >
-              Hub
-            </Link>
-          </div>
-        </div>
-      </div>
+          ← Premium hub
+        </Link>
+      </motion.div>
+
+      <motion.section
+        className="overflow-hidden rounded-3xl border border-navy-200/60 bg-white shadow-[0_1px_0_rgba(15,23,42,0.04),0_20px_50px_-24px_rgba(15,23,42,0.1)]"
+      >
+        <div className="min-w-0">
+            <div className="sticky top-16 z-20 border-b border-navy-100/90 bg-white/95 px-4 py-4 backdrop-blur-md supports-[backdrop-filter]:bg-white/88 md:px-6">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-6">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-700">
+                    Premium · Offer comparison
+                  </p>
+                  <h1 className="font-display text-lg font-bold tracking-tight text-navy-800 md:text-xl">
+                    Compare offers fairly
+                  </h1>
+                  <div className="space-y-1" aria-live="polite">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-navy-400">
+                      Status
+                    </p>
+                    <p className="text-sm font-semibold tabular-nums text-navy-800">
+                      {readyCount} of {offers.length} offers ready
+                      {!canCompare ? (
+                        <span className="block pt-0.5 text-xs font-normal text-navy-500 sm:inline sm:pl-1">
+                          Complete two cards (company + CTC) to compare.
+                        </span>
+                      ) : !comparisonRevealed ? (
+                        <span className="block pt-0.5 text-xs font-normal text-teal-800/90 sm:inline sm:pl-1">
+                          Tap Compare offers for the summary table.
+                        </span>
+                      ) : null}
+                    </p>
+                    {leaderInHand && valid.length >= 2 ? (
+                      <p className="text-xs leading-snug text-navy-600">
+                        Top in-hand:{" "}
+                        <span className="font-semibold text-teal-800">
+                          {leaderInHand.companyName}
+                        </span>{" "}
+                        at{" "}
+                        <span className="font-semibold tabular-nums text-navy-800">
+                          {formatCurrency(leaderInHand.monthlyInHand)}
+                        </span>
+                        /mo
+                      </p>
+                    ) : null}
+                  </div>
+                  <p className="hidden text-xs leading-relaxed text-navy-500 sm:block sm:max-w-2xl">
+                    Same Salary Breakdown engine for every offer — summary stays
+                    in this panel with your inputs.
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2 md:pt-1">
+                  <Button
+                    type="button"
+                    size="lg"
+                    disabled={!canCompare}
+                    onClick={runComparison}
+                    title={
+                      !canCompare
+                        ? "Enter company name and CTC (min ₹1L) for at least two offers"
+                        : undefined
+                    }
+                    className={cn(
+                      "h-11 min-w-[10rem] rounded-full px-5 text-sm font-semibold shadow-sm",
+                      "bg-teal-600 text-white hover:bg-teal-700",
+                      !canCompare && "pointer-events-none opacity-45",
+                      "hidden sm:inline-flex"
+                    )}
+                  >
+                    {comparisonRevealed ? "View comparison" : "Compare offers"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6 p-4 md:p-6">
+              <div
+                className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between"
+                role="toolbar"
+                aria-label="Offer entry and navigation"
+              >
+                <div className="inline-flex h-9 w-full rounded-xl border border-navy-200/90 bg-navy-50/50 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEntryMode("manual");
+                      setUploadError(null);
+                    }}
+                    className={cn(
+                      "inline-flex h-full flex-1 cursor-pointer items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
+                      entryMode === "manual"
+                        ? "border border-teal-600/25 bg-teal-100 text-teal-900 shadow-sm"
+                        : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
+                    )}
+                  >
+                    Manual
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEntryMode("upload");
+                      setUploadError(null);
+                    }}
+                    className={cn(
+                      "inline-flex h-full flex-1 cursor-pointer items-center justify-center rounded-lg px-3 text-xs font-semibold transition-colors sm:min-w-[6.25rem] sm:flex-none",
+                      entryMode === "upload"
+                        ? "border border-teal-600/25 bg-teal-100 text-teal-900 shadow-sm"
+                        : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
+                    )}
+                  >
+                    Upload offers
+                  </button>
+                </div>
+                <div className="flex w-full gap-2 sm:w-auto sm:items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="lg"
+                    className="h-9 flex-1 rounded-full border-navy-200 px-4 text-sm font-semibold text-navy-800 hover:bg-navy-50 sm:flex-initial"
+                    disabled={offers.length >= 3}
+                    onClick={addOffer}
+                  >
+                    <Plus className="size-4 shrink-0" data-icon="inline-start" />
+                    Add offer
+                  </Button>
+                  <Link
+                    href="/premium"
+                    className={cn(
+                      buttonVariants({ variant: "outline", size: "lg" }),
+                      "h-9 flex-1 items-center justify-center rounded-full border-navy-200 px-4 text-sm font-semibold text-teal-800 hover:border-teal-200 hover:bg-teal-50 hover:text-teal-900 sm:inline-flex sm:w-auto sm:flex-initial"
+                    )}
+                  >
+                    Hub
+                  </Link>
+                </div>
+              </div>
 
       {entryMode === "upload" && (
-        <div className="mt-8 rounded-2xl border border-teal-200/60 bg-teal-50/40 p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: EASE }}
+          className="rounded-2xl border border-teal-200/60 bg-teal-50/40 p-6"
+        >
           <div className="flex items-start gap-3">
             <Upload className="size-5 text-teal-600 shrink-0 mt-0.5" />
             <div className="flex-1 space-y-3">
@@ -509,25 +652,36 @@ export function OfferComparisonView() {
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      {anyFromDocument && (
-        <p className="mt-6 text-xs text-teal-800 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
+      {anyFromDocument ? (
+        <p className="text-xs text-teal-800 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
           This comparison includes document-parsed offers — double-check CTC, regime, and city tier in each card.
         </p>
-      )}
+      ) : null}
 
-      <div
+      <motion.div
         className={cn(
-          "mt-10 grid gap-6",
+          "grid gap-5 md:gap-6",
           offers.length === 2 ? "lg:grid-cols-2" : "lg:grid-cols-3"
         )}
+        initial="hidden"
+        animate="show"
+        variants={staggerContainer(0.07)}
       >
-        {offers.map((o) => (
-          <div
+        {offers.map((o, offerIndex) => {
+          const preview = comparisons[offerIndex];
+          return (
+          <motion.div
             key={o.id}
-            className="rounded-2xl border border-navy-200/50 bg-white p-5 shadow-sm space-y-4"
+            variants={fadeUp}
+            className={cn(
+              "rounded-2xl border bg-white p-5 shadow-sm space-y-4 transition-[border-color,box-shadow] duration-300",
+              preview
+                ? "border-teal-200/70 shadow-[0_0_0_1px_rgba(13,148,136,0.06)]"
+                : "border-navy-200/50"
+            )}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="text-label text-navy-400">
@@ -640,19 +794,82 @@ export function OfferComparisonView() {
             <p className="text-[11px] text-navy-400 leading-snug">
               ESOP counted at 25% liquid equivalent for first-year score only.
             </p>
-          </div>
-        ))}
-      </div>
 
-      {valid.length === 0 && (
-        <p className="mt-8 text-center text-sm text-navy-500">
-          Name each company and ensure CTC is at least ₹1,00,000 to see the
-          comparison table.
-        </p>
-      )}
+            <div className="border-t border-navy-100/80 pt-3">
+              {preview ? (
+                <p className="text-[11px] leading-snug text-navy-600">
+                  <span className="font-medium text-navy-500">Live preview</span>
+                  {" · "}
+                  Est. in-hand{" "}
+                  <span className="font-semibold tabular-nums text-teal-800">
+                    {formatCurrency(preview.monthlyInHand)}
+                  </span>
+                  /mo · tax{" "}
+                  <span className="tabular-nums text-navy-700">
+                    {formatCurrency(preview.annualTax)}
+                  </span>
+                  /yr
+                </p>
+              ) : (
+                <p className="text-[11px] leading-snug text-navy-400">
+                  Add company name and CTC (min ₹1L) — preview appears here when
+                  this card is complete.
+                </p>
+              )}
+            </div>
+          </motion.div>
+        );
+        })}
+      </motion.div>
 
-      {valid.length > 0 && (
-        <div className="mt-12 space-y-3">
+      <div className="border-t border-navy-100/80 pt-6">
+        <AnimatePresence mode="wait">
+          {!comparisonRevealed ? (
+            <motion.div
+              key="await-compare"
+              role="region"
+              aria-label="Comparison results placeholder"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, ease: EASE }}
+              className="rounded-2xl border border-dashed border-navy-200/80 bg-gradient-to-b from-navy-50/40 to-white px-5 py-10 text-center md:px-8"
+            >
+              <p className="text-sm font-semibold text-navy-800">
+                Comparison summary
+              </p>
+              <p className="mx-auto mt-2 max-w-md text-xs leading-relaxed text-navy-500">
+                {canCompare
+                  ? "Both offers are ready. Tap Compare offers to open the side-by-side table — it appears right here, still inside this module."
+                  : `Complete at least two offer cards (${readyCount} of ${offers.length} ready). Each card shows a live in-hand preview when its fields are valid.`}
+              </p>
+            </motion.div>
+          ) : valid.length === 0 ? (
+            <motion.p
+              key="no-valid"
+              role="status"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.35, ease: EASE }}
+              className="rounded-2xl border border-navy-200/60 bg-navy-50/30 px-4 py-6 text-center text-sm text-navy-600"
+            >
+              Name each company and set CTC to at least ₹1,00,000 (with balanced
+              fixed + variable if used) to populate the comparison table.
+            </motion.p>
+          ) : (
+            <motion.div
+              key="results"
+              ref={resultsRef}
+              id="offer-comparison-results"
+              role="region"
+              aria-label="Offer comparison results"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.45, ease: EASE }}
+              className="space-y-3"
+            >
           <div>
             <h2 className="text-h3 text-navy-800">Decision summary</h2>
             <p className="mt-1 text-xs text-navy-500 max-w-2xl leading-relaxed">
@@ -681,10 +898,10 @@ export function OfferComparisonView() {
                     Verdict
                   </th>
                   <th
-                    className="w-[4.75rem] px-2 py-3 font-semibold text-right"
+                    className="min-w-[5.75rem] px-2 py-3 text-right text-[10px] font-bold uppercase tracking-wide text-navy-400"
                     scope="col"
                   >
-                    <span className="sr-only">Breakdown and edit</span>
+                    Details
                   </th>
                 </tr>
               </thead>
@@ -769,12 +986,14 @@ export function OfferComparisonView() {
                           <button
                             type="button"
                             className={cn(
-                              "ml-auto flex flex-col items-center justify-center gap-0.5 rounded-xl px-2.5 py-2 min-w-[3.35rem]",
-                              "bg-teal-50/80 ring-1 ring-teal-100/90 text-teal-900 shadow-sm",
-                              "transition-all duration-200 hover:bg-teal-50 hover:ring-teal-200/90",
-                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400 focus-visible:ring-offset-1",
+                              "ml-auto inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5",
+                              "border-navy-200/90 bg-white text-navy-800 shadow-sm",
+                              "text-[11px] font-semibold tracking-tight",
+                              "transition-[color,background-color,border-color,box-shadow] duration-200",
+                              "hover:border-navy-300 hover:bg-navy-50/90",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/90 focus-visible:ring-offset-1",
                               open &&
-                                "bg-teal-100/45 ring-teal-300/60 shadow-md"
+                                "border-teal-200/90 bg-teal-50/60 text-teal-900 shadow-[0_1px_2px_rgba(13,148,136,0.08)]"
                             )}
                             aria-expanded={open}
                             aria-controls={`offer-detail-${v.id}`}
@@ -786,22 +1005,21 @@ export function OfferComparisonView() {
                               );
                             }}
                           >
-                            <Calculator
-                              className="size-4 text-teal-700/90"
-                              strokeWidth={2}
-                              aria-hidden
-                            />
+                            <span aria-hidden className="select-none">
+                              {open ? "Hide" : "Open"}
+                            </span>
                             <ChevronDown
                               className={cn(
-                                "size-4 text-teal-800 transition-transform duration-200 -mt-0.5",
-                                open && "rotate-180"
+                                "size-3.5 shrink-0 text-navy-500 transition-transform duration-200",
+                                open && "rotate-180 text-teal-800"
                               )}
+                              strokeWidth={2.25}
                               aria-hidden
                             />
                             <span className="sr-only">
                               {open
-                                ? `Collapse ${v.companyName} breakdown and editing`
-                                : `Expand ${v.companyName} for breakdown and line edits`}
+                                ? `Collapse ${v.companyName} pay breakdown and line edits`
+                                : `Expand ${v.companyName} pay breakdown and line edits`}
                             </span>
                           </button>
                         </td>
@@ -889,8 +1107,49 @@ export function OfferComparisonView() {
               </p>
             </div>
           </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+            </div>
+          </div>
+      </motion.section>
+
+      <div
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-40 border-t border-navy-200/80 bg-white/95 px-4 py-3 backdrop-blur-md supports-[backdrop-filter]:bg-white/90 lg:hidden",
+          "pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+        )}
+      >
+        <div className="mx-auto flex max-w-7xl items-center gap-3">
+          <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-navy-500">
+            <span className="tabular-nums font-semibold text-navy-700">
+              {readyCount}/{offers.length}
+            </span>{" "}
+            offers ready
+            {leaderInHand && comparisonRevealed ? (
+              <span className="hidden text-navy-400 sm:inline">
+                {" "}
+                · Lead: {leaderInHand.companyName}
+              </span>
+            ) : null}
+          </span>
+          <Button
+            type="button"
+            size="lg"
+            disabled={!canCompare}
+            onClick={runComparison}
+            className={cn(
+              "h-11 shrink-0 rounded-full px-5 text-sm font-semibold shadow-md",
+              "bg-teal-600 text-white hover:bg-teal-700",
+              !canCompare && "pointer-events-none opacity-45"
+            )}
+          >
+            {comparisonRevealed ? "View comparison" : "Compare offers"}
+          </Button>
         </div>
-      )}
+      </div>
 
       {!PREMIUM_UNLOCKED && valid.length >= 2 && entryMode === "manual" ? (
         <div className="mt-10 max-w-3xl">
