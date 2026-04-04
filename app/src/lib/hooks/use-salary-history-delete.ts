@@ -13,6 +13,7 @@ import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { isSalaryInputEquivalent } from "@/lib/utils/salary-context-match";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import { appToast } from "@/lib/notify/app-notify";
+import { clearLocalSalarySessionCookie } from "@/lib/persistence/workspace-session-cookies";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 
 const LIST_LIMIT = 40;
@@ -59,6 +60,7 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
             router.push("/salary/breakdown");
           } else {
             resetSalary();
+            clearLocalSalarySessionCookie();
             clearSalaryBreakdownScrollSave();
             router.push("/salary");
           }

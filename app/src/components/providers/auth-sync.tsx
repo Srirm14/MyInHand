@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { queryKeys } from "@/lib/supabase/query-keys";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
+import { clearAllWorkspaceSessionCookies } from "@/lib/persistence/workspace-session-cookies";
 
 /** Hydrates auth user from Supabase session and keeps TanStack session caches in sync. */
 export function AuthSync() {
@@ -25,6 +26,7 @@ export function AuthSync() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || !session?.user) {
+        clearAllWorkspaceSessionCookies();
         useAuthStore.getState().setSessionUser(null);
         useSalaryStore.getState().reset();
         queryClient.removeQueries({ queryKey: queryKeys.salarySessions.root });

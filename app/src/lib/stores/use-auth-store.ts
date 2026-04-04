@@ -3,6 +3,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client/browser";
 import { mapProfileToUser } from "@/lib/supabase/auth/map-user";
 import { fetchProfileRow, updateProfileRow } from "@/lib/supabase/queries/profile";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { clearAllWorkspaceSessionCookies } from "@/lib/persistence/workspace-session-cookies";
 import type { UserProfile } from "@/lib/types/user.types";
 
 interface AuthState {
@@ -115,6 +116,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: async () => {
+    clearAllWorkspaceSessionCookies();
     if (isSupabaseConfigured()) {
       const supabase = getBrowserSupabase();
       await supabase.auth.signOut();

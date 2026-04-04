@@ -52,7 +52,10 @@ export function useSalaryBreakdownCloudSync() {
     }
   }, [urlSession, persist, setActive]);
 
-  const effectiveId = activeId;
+  /** URL wins on first paint so the detail query runs without waiting for `setActive` in an effect. */
+  const effectiveId =
+    persist && urlSession ? urlSession : activeId;
+
   const { data: detail, isPending, isError } = useSalarySessionDetailQuery(
     effectiveId,
     Boolean(persist && effectiveId)

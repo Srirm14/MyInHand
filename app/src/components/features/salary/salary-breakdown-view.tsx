@@ -16,7 +16,7 @@ import {
 } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import { useTotalsSectionFlash } from "@/lib/hooks/use-totals-section-flash";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   Banknote,
@@ -58,6 +58,8 @@ import { ExportDropdown } from "@/components/shared/export/export-dropdown";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useSalaryBreakdownCloudSync } from "@/lib/hooks/use-salary-breakdown-cloud-sync";
+import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import type { LucideIcon } from "lucide-react";
 import type {
@@ -100,6 +102,9 @@ const TAG_LABELS: Record<string, string> = {
 
 export function SalaryBreakdownView() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlSession = searchParams.get("session");
+  const authReady = useAuthStore((s) => s.authReady);
   const { toolHref } = useTieredPremiumLinks();
   const input = useSalaryStore((s) => s.input);
   const breakdown = useSalaryStore((s) => s.breakdown);
@@ -139,6 +144,12 @@ export function SalaryBreakdownView() {
   }, [breakdown, input.annualCTC, calculateBreakdown]);
 
   useEffect(() => {
+    if (!authReady) return;
+    const userNow = useAuthStore.getState().user;
+    // Cloud `?session=` loads async; do not bounce to /salary before tier + query resolve.
+    if (urlSession && shouldPersistSessions(userNow)) {
+      return;
+    }
     if (cloudHydrating) return;
     if (cloudDetailReady && useSalaryStore.getState().breakdown == null) return;
     const st = useSalaryStore.getState();
@@ -147,7 +158,15 @@ export function SalaryBreakdownView() {
       clearSalaryBreakdownScrollSave();
       router.replace("/salary");
     }
-  }, [breakdown, input.annualCTC, router, cloudHydrating, cloudDetailReady]);
+  }, [
+    breakdown,
+    input.annualCTC,
+    router,
+    cloudHydrating,
+    cloudDetailReady,
+    authReady,
+    urlSession,
+  ]);
 
   const earningsBySection = useMemo(() => {
     if (!breakdown) {

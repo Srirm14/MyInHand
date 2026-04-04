@@ -38,6 +38,10 @@ const COPY = {
       title: "Saved",
       description: "Offer comparison synced in the background.",
     },
+    workspaceReset: {
+      title: "Workspace cleared",
+      description: "Starting a fresh offer comparison.",
+    },
   },
   monthlyPlan: {
     autosaved: {
@@ -158,6 +162,12 @@ export const appToast = {
         "offer",
         COPY.offerComparison.autosaved.title,
         COPY.offerComparison.autosaved.description
+      ),
+
+    workspaceReset: () =>
+      showSuccess(
+        COPY.offerComparison.workspaceReset.title,
+        COPY.offerComparison.workspaceReset.description
       ),
   },
 

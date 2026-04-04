@@ -12,17 +12,23 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Loader2, Plus, Trash2, Upload } from "lucide-react";
+import { ChevronDown, Loader2, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
 import { CurrencyDisplay } from "@/components/shared/currency-display";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CITY_TIERS, type CityTier } from "@/lib/constants/city-tiers";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-comparison-restore-store";
+import type { OfferComparisonHistoryEntry } from "@/lib/types/history.types";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { SalaryBreakdown, SalaryComponent } from "@/lib/types/salary.types";
 import { mockParseOfferDocument } from "@/lib/mocks/parse-offer-document.mock";
@@ -57,6 +63,12 @@ import {
   staggerContainer,
 } from "@/lib/motion/marketing-motion";
 import { OfferComparisonSkeleton } from "@/components/shared/loading-skeletons";
+import {
+  clearOfferWorkspaceCookie,
+  getOfferWorkspaceCookie,
+  isLikelyUuid,
+  setOfferWorkspaceCookie,
+} from "@/lib/persistence/workspace-session-cookies";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -88,6 +100,12 @@ function normalizeOfferDraft(raw: OfferDraft): OfferDraft {
     fixedAnnual: raw.fixedAnnual ?? base.fixedAnnual,
     variableAnnual: raw.variableAnnual ?? base.variableAnnual,
   };
+}
+
+function offersLookUnused(list: OfferDraft[]): boolean {
+  return list.every(
+    (o) => !o.companyName.trim() && o.annualCTC < 100_000
+  );
 }
 
 type OfferEntryMode = "manual" | "upload";
@@ -178,10 +196,28 @@ export function OfferComparisonView() {
     !offerDetailQ.data;
 
   const offerHydratedSig = useRef<string | null>(null);
+  const localOfferRestoredRef = useRef(false);
+  const offerCookieDeepLinkDoneRef = useRef(false);
 
   useEffect(() => {
     if (urlOfferSession) setActiveOfferSessionId(urlOfferSession);
   }, [urlOfferSession]);
+
+  useEffect(() => {
+    if (!persistOffers) return;
+    if (urlOfferSession && isLikelyUuid(urlOfferSession)) {
+      setOfferWorkspaceCookie(urlOfferSession);
+      return;
+    }
+    if (offerCookieDeepLinkDoneRef.current) return;
+    const id = getOfferWorkspaceCookie();
+    if (!id || !isLikelyUuid(id)) return;
+    offerCookieDeepLinkDoneRef.current = true;
+    router.replace(
+      `/premium/offer-comparison?session=${encodeURIComponent(id)}`,
+      { scroll: false }
+    );
+  }, [persistOffers, urlOfferSession, router]);
 
   useEffect(() => {
     offerSaveFlight.reset();
@@ -353,6 +389,39 @@ export function OfferComparisonView() {
   validForAutosaveRef.current = valid;
   activeOfferSessionRef.current = activeOfferSessionId;
 
+  useEffect(() => {
+    if (persistOffers) return;
+
+    function tryRestore() {
+      if (localOfferRestoredRef.current) return;
+      if (!useHistoryStore.persist.hasHydrated()) return;
+      if (!offersLookUnused(offersForAutosaveRef.current)) return;
+
+      const cookieId = getOfferWorkspaceCookie();
+      if (!cookieId) return;
+
+      const entry = useHistoryStore.getState().entries.find(
+        (e): e is OfferComparisonHistoryEntry =>
+          e.kind === "offer_comparison" && e.id === cookieId
+      );
+      if (!entry || entry.offersSnapshot.length < 2) {
+        clearOfferWorkspaceCookie();
+        return;
+      }
+
+      localOfferRestoredRef.current = true;
+      const norm = entry.offersSnapshot.map(normalizeOfferDraft);
+      setOffers(norm.slice(0, 3));
+      setOfferBreakdownEdits({});
+    }
+
+    const unsub = useHistoryStore.persist.onFinishHydration(() => {
+      tryRestore();
+    });
+    tryRestore();
+    return unsub;
+  }, [persistOffers]);
+
   const validSummaryKey = useMemo(
     () =>
       valid
@@ -434,6 +503,7 @@ export function OfferComparisonView() {
             appToast.offerComparison.autosaved();
             lastSavedOfferFingerprint.current = fp;
             const id = detail.session.id;
+            setOfferWorkspaceCookie(id);
             const previousId = activeOfferSessionRef.current;
             setActiveOfferSessionId(id);
             if (previousId !== id) {
@@ -446,7 +516,7 @@ export function OfferComparisonView() {
             }
           });
       } else {
-        useHistoryStore.getState().pushOfferComparison(
+        const pushedId = useHistoryStore.getState().pushOfferComparison(
           offersSnap,
           validSnap.map((v) => ({
             companyName: v.companyName,
@@ -454,6 +524,7 @@ export function OfferComparisonView() {
             firstYearValue: v.firstYearValue,
           }))
         );
+        if (pushedId) setOfferWorkspaceCookie(pushedId);
       }
     });
   }, [
@@ -638,6 +709,22 @@ export function OfferComparisonView() {
     }
   };
 
+  const handleResetWorkspace = useCallback(() => {
+    clearOfferWorkspaceCookie();
+    offerCookieDeepLinkDoneRef.current = false;
+    localOfferRestoredRef.current = false;
+    setActiveOfferSessionId(null);
+    offerHydratedSig.current = null;
+    lastSavedOfferFingerprint.current = null;
+    offerSaveFlight.reset();
+    setOffers([emptyOffer(crypto.randomUUID()), emptyOffer(crypto.randomUUID())]);
+    setOfferBreakdownEdits({});
+    setComparisonRevealed(false);
+    setExpandedOfferId(null);
+    router.replace("/premium/offer-comparison", { scroll: false });
+    appToast.offerComparison.workspaceReset();
+  }, [router, offerSaveFlight]);
+
   if (offerSessionHydrating) {
     return <OfferComparisonSkeleton />;
   }
@@ -702,6 +789,21 @@ export function OfferComparisonView() {
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-2 md:pt-1">
+                  <Tooltip>
+                    <TooltipTrigger
+                      type="button"
+                      onClick={handleResetWorkspace}
+                      className={cn(
+                        "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full",
+                        "border border-navy-200/80 bg-white text-navy-600 shadow-sm transition-colors",
+                        "hover:bg-navy-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400"
+                      )}
+                      aria-label="Reset workspace"
+                    >
+                      <RotateCcw className="size-4" aria-hidden />
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Reset workspace</TooltipContent>
+                  </Tooltip>
                   <Button
                     type="button"
                     size="lg"

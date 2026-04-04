@@ -33,7 +33,7 @@ interface HistoryState {
       monthlyInHand: number;
       firstYearValue: number;
     }[]
-  ) => void;
+  ) => string | undefined;
 }
 
 export const useHistoryStore = create<HistoryState>()(
@@ -88,7 +88,7 @@ export const useHistoryStore = create<HistoryState>()(
       },
 
       pushOfferComparison: (offers, validCompanies) => {
-        if (validCompanies.length < 2) return;
+        if (validCompanies.length < 2) return undefined;
 
         const first = validCompanies[0]!;
         const bestHand = validCompanies.reduce(
@@ -106,9 +106,10 @@ export const useHistoryStore = create<HistoryState>()(
           winnerSummary = `${bestHand.companyName} best in-hand · ${bestVal.companyName} best 1Y value`;
         }
 
+        const id = crypto.randomUUID();
         const entry: HistoryEntry = {
           kind: "offer_comparison",
-          id: crypto.randomUUID(),
+          id,
           at: Date.now(),
           title: `Compare ${validCompanies.length} offers`,
           offerCount: validCompanies.length,
@@ -119,6 +120,7 @@ export const useHistoryStore = create<HistoryState>()(
         set((s) => ({
           entries: [entry, ...s.entries].slice(0, MAX_MIXED_ENTRIES),
         }));
+        return id;
       },
     }),
     {
