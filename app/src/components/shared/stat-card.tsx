@@ -31,6 +31,15 @@ export function StatCard({
     neutral: "bg-navy-300",
   }[sentiment];
 
+  const iconWrapClass = {
+    positive:
+      "rounded-lg bg-teal-100/85 p-1.5 text-teal-700 ring-1 ring-inset ring-teal-200/60",
+    negative:
+      "rounded-lg bg-danger-50 p-1.5 text-danger-600 ring-1 ring-inset ring-danger-100/80",
+    neutral:
+      "rounded-lg bg-navy-100/80 p-1.5 text-navy-600 ring-1 ring-inset ring-navy-200/55",
+  }[sentiment];
+
   return (
     <div
       className={cn(
@@ -44,11 +53,8 @@ export function StatCard({
           {label}
         </p>
         {Icon ? (
-          <div
-            className="shrink-0 text-navy-300"
-            aria-hidden
-          >
-            <Icon className="size-5 sm:size-6" strokeWidth={1.75} />
+          <div className={cn("shrink-0", iconWrapClass)} aria-hidden>
+            <Icon className="size-5 sm:size-6" strokeWidth={2} />
           </div>
         ) : null}
       </div>
