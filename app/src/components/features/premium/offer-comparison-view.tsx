@@ -134,6 +134,9 @@ const VERDICT_FILTER_SEQUENCE: OfferVerdictFilterId[] = [
   "highest_1y",
 ];
 
+/** Pixels to leave above the filter card when scrolling after Compare (avoids landing “below” the strip). */
+const SCROLL_ABOVE_SUMMARY_PX = 50;
+
 /** Subtle teal / emerald tints so expanded accordions are orienting, not loud. */
 const OFFER_PANEL_TINTS = [
   "from-teal-50/[0.42] via-white to-teal-50/15",
@@ -185,7 +188,7 @@ export function OfferComparisonView() {
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [comparisonRevealed, setComparisonRevealed] = useState(false);
-  const comparisonTableRef = useRef<HTMLDivElement>(null);
+  const comparisonSummaryAnchorRef = useRef<HTMLDivElement>(null);
 
   const [offers, setOffers] = useState<OfferDraft[]>(() => {
     const pending =
@@ -353,16 +356,29 @@ export function OfferComparisonView() {
 
   const runComparison = useCallback(() => {
     if (!canCompare) return;
+    const alreadyShown = comparisonRevealed;
     setComparisonRevealed(true);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        comparisonTableRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
+
+    const scrollToFilterStripTop = () => {
+      const el = comparisonSummaryAnchorRef.current;
+      if (!el) return;
+      const top =
+        el.getBoundingClientRect().top + window.scrollY - SCROLL_ABOVE_SUMMARY_PX;
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: "smooth",
       });
-    });
-  }, [canCompare]);
+    };
+
+    if (alreadyShown) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(scrollToFilterStripTop);
+      });
+      return;
+    }
+
+    window.setTimeout(scrollToFilterStripTop, 400);
+  }, [canCompare, comparisonRevealed]);
 
   const peerMaxVariableCashAnnual = useMemo(() => {
     const list = comparisons.filter(Boolean) as NonNullable<
@@ -855,7 +871,7 @@ export function OfferComparisonView() {
                       "hidden sm:inline-flex"
                     )}
                   >
-                    {comparisonRevealed ? "View comparison" : "Compare offers"}
+                    Compare offers
                   </Button>
                 </div>
             </div>
@@ -1130,7 +1146,7 @@ export function OfferComparisonView() {
       </motion.div>
 
       <div className="border-t border-navy-100/80 pt-6">
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           {!comparisonRevealed ? (
             <motion.div
               key="await-compare"
@@ -1176,7 +1192,10 @@ export function OfferComparisonView() {
               transition={{ duration: 0.45, ease: EASE }}
               className="space-y-3"
             >
-            <div className="rounded-xl border border-navy-200/65 bg-gradient-to-br from-white via-white to-navy-50/35 px-3 py-3 shadow-sm shadow-navy-900/[0.03] sm:px-4 sm:py-3.5">
+            <div
+              ref={comparisonSummaryAnchorRef}
+              className="rounded-xl border border-navy-200/65 bg-gradient-to-br from-white via-white to-navy-50/35 px-3 py-3 shadow-sm shadow-navy-900/[0.03] sm:px-4 sm:py-3.5"
+            >
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <span
                   className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 ring-1 ring-teal-100/80"
@@ -1219,10 +1238,7 @@ export function OfferComparisonView() {
                 {OFFER_VERDICT_FILTER_FORMULA_LINE[verdictFilter]}
               </p>
             </div>
-          <div
-            ref={comparisonTableRef}
-            className="overflow-x-auto rounded-2xl border border-navy-200/50 bg-white shadow-sm scroll-mt-4"
-          >
+          <div className="overflow-x-auto rounded-2xl border border-navy-200/50 bg-white shadow-sm">
             <table className="w-full min-w-[780px] text-sm">
               <thead>
                 <tr className="border-b border-navy-100 text-left text-label text-navy-400">
@@ -1536,7 +1552,7 @@ export function OfferComparisonView() {
               !canCompare && "pointer-events-none opacity-45"
             )}
           >
-            {comparisonRevealed ? "View comparison" : "Compare offers"}
+            Compare offers
           </Button>
         </div>
       </div>
