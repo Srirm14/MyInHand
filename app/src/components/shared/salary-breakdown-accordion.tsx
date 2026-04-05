@@ -192,7 +192,12 @@ export function SalaryBreakdownAccordionSection({
   title: string;
   subtitle?: ReactNode;
   actions?: ReactNode;
-  /** Shown in the header always (collapsed or open) — section cash totals. */
+  /**
+   * Section cash totals in the header row. When the section is collapsed, these
+   * give a quick scan of monthly/annual sums. When expanded, the same numbers
+   * appear on each line under the table’s Monthly/Annual columns, so the header
+   * totals are hidden to avoid redundant noise.
+   */
   sectionTotals?: { monthly: number; annual: number };
   children: ReactNode;
 }>) {
@@ -200,7 +205,8 @@ export function SalaryBreakdownAccordionSection({
   const open = isOpen(sectionId);
   const panelId = `breakdown-acc-${sectionId}`;
   const triggerId = `${panelId}-trigger`;
-  const showTotals = sectionTotals != null;
+  const totals = sectionTotals;
+  const showHeaderTotals = totals != null && !open;
 
   return (
     <>
@@ -240,24 +246,24 @@ export function SalaryBreakdownAccordionSection({
           <TableCell
             className="bg-white/40 px-2 py-3 align-middle text-right tabular-nums transition-colors"
             aria-label={
-              showTotals ? `${title} section monthly total` : undefined
+              showHeaderTotals ? `${title} section monthly total` : undefined
             }
           >
-            {showTotals ? (
+            {showHeaderTotals ? (
               <span className="text-[11px] font-semibold text-navy-800 sm:text-xs">
-                {formatCurrency(sectionTotals.monthly)}
+                {formatCurrency(totals.monthly)}
               </span>
             ) : null}
           </TableCell>
           <TableCell
             className="bg-white/30 px-2 py-3 align-middle text-right tabular-nums transition-colors"
             aria-label={
-              showTotals ? `${title} section annual total` : undefined
+              showHeaderTotals ? `${title} section annual total` : undefined
             }
           >
-            {showTotals ? (
+            {showHeaderTotals ? (
               <span className="text-[10px] font-medium text-navy-600 sm:text-[11px]">
-                {formatCurrency(sectionTotals.annual)}
+                {formatCurrency(totals.annual)}
               </span>
             ) : null}
           </TableCell>
