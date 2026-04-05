@@ -7,7 +7,7 @@ import { FixedVariableInHandPanel } from "./fixed-variable-in-hand-panel";
 import { SalaryCalculatorPremiumTeaser } from "./salary-calculator-premium-teaser";
 import { PremiumFeatureSection } from "./premium-feature-section";
 import { SalaryCalculatorForm } from "./salary-calculator-form";
-import { OldRegimeTaxReferenceCard } from "./old-regime-tax-reference-card";
+import { SimpleRegimeTaxReferenceCard } from "./simple-regime-tax-reference-card";
 import { SalaryCompositionPanel } from "./salary-composition-panel";
 import { UpgradeSheet } from "./upgrade-sheet";
 import { calculateSimpleSalarySummary } from "@/lib/simple-salary-calculator/calculate-simple-salary";
@@ -203,11 +203,9 @@ export function SalaryCalculatorScreen() {
                 annualVariablePay={input.annualVariablePay}
               />
             </motion.div>
-            {input.taxRegime === "old" ? (
-              <motion.div variants={fadeUp}>
-                <OldRegimeTaxReferenceCard />
-              </motion.div>
-            ) : null}
+            <motion.div variants={fadeUp}>
+              <SimpleRegimeTaxReferenceCard regime={input.taxRegime} />
+            </motion.div>
             <motion.div variants={fadeUp}>
               <SalaryCompositionPanel
                 takeHomeShare={summary.compositionTakeHome}

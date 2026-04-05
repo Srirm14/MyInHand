@@ -188,6 +188,28 @@ export function RegimeTaxSlabReferenceCard({
                 AY 2026-27 · resident slabs = in-app TDS basis
               </p>
 
+              {!viz ? (
+                <p className="mt-2 text-[9px] leading-snug text-navy-500">
+                  {isOld ? (
+                    <>
+                      <span className="font-medium text-navy-600">
+                        Old regime
+                      </span>{" "}
+                      — four taxable-income slabs (deductions in real life are
+                      wider than this calculator path).
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-medium text-navy-600">
+                        New regime
+                      </span>{" "}
+                      — seven concessional slabs; no separate deduction stack in
+                      this model beyond std. deduction.
+                    </>
+                  )}
+                </p>
+              ) : null}
+
               <div className="mt-3 min-w-0">
           {viz ? (
             <>
@@ -335,23 +357,35 @@ export function RegimeTaxSlabReferenceCard({
               </div>
             </>
           ) : (
-            <div className="rounded-md bg-white/60 px-2.5 py-2 ring-1 ring-navy-900/[0.04]">
-              <div className="mb-1.5 flex items-baseline justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-navy-500">
-                <span>Slab (₹/yr)</span>
-                <span>Rate</span>
+            <div
+              className={cn(
+                "flex min-h-[16.5rem] flex-col rounded-lg bg-white/75 px-3 py-2.5 shadow-sm shadow-navy-900/[0.04]",
+                "ring-1 ring-navy-900/[0.06]"
+              )}
+            >
+              <div className="mb-2 flex items-baseline justify-between gap-3 border-b border-navy-100/90 pb-2">
+                <span className="text-[9px] font-semibold uppercase tracking-wide text-navy-500">
+                  Slab (₹/yr)
+                </span>
+                <span className="text-[9px] font-semibold uppercase tracking-wide text-navy-500">
+                  Rate
+                </span>
               </div>
               <ul
                 className={cn(
-                  "space-y-0.5 overflow-y-auto",
-                  "max-h-[8.75rem] sm:max-h-[9.25rem]"
+                  "min-h-[9.75rem] flex-1 space-y-px overflow-y-auto overscroll-contain",
+                  "max-h-[10.5rem] sm:max-h-[11rem]"
                 )}
               >
                 {slabs.map((slab, i) => (
                   <li
                     key={`ref-${slab.min}-${slab.max}-${slab.rate}`}
-                    className="flex items-center justify-between gap-2 py-1 text-[10px] leading-snug"
+                    className={cn(
+                      "flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-[10px] leading-snug",
+                      i % 2 === 1 ? "bg-navy-50/45" : "bg-transparent"
+                    )}
                   >
-                    <span className="min-w-0 font-medium text-navy-800 tabular-nums">
+                    <span className="min-w-0 font-medium tabular-nums text-navy-800">
                       {slabIncomeLabel(slab, i)}
                     </span>
                     <span className="shrink-0 font-semibold tabular-nums text-navy-700">
@@ -360,9 +394,32 @@ export function RegimeTaxSlabReferenceCard({
                   </li>
                 ))}
               </ul>
-              <p className="mt-1.5 text-[9px] leading-snug text-navy-500">
-                Estimate salary to see utilization.
-              </p>
+              <div className="mt-auto shrink-0 border-t border-navy-100/90 pt-2.5">
+                <p className="text-[10px] leading-snug text-navy-600">
+                  {engineNotes === "simple" ? (
+                    <>
+                      <span className="font-semibold text-navy-700">
+                        FY 2025-26 reference.
+                      </span>{" "}
+                      In-hand and tax above follow these slabs after ₹
+                      {formatIndianNumber(STANDARD_DEDUCTION)} standard deduction.
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-navy-700">
+                        Premium breakdown.
+                      </span>{" "}
+                      Set cash earnings in the table to see taxable income, annual
+                      tax, and slab utilization in this card.
+                    </>
+                  )}
+                </p>
+                <p className="mt-1.5 text-[9px] leading-snug text-navy-400">
+                  {engineNotes === "simple"
+                    ? "Slab rates shown are before cess; your summary applies 4% cess and eligible rebate."
+                    : "Regime updates this reference; utilization appears when the breakdown has cash earnings."}
+                </p>
+              </div>
             </div>
           )}
               </div>
