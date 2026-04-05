@@ -154,7 +154,12 @@ function AnnualPictureStatTile({
   const t = ANNUAL_PICTURE_WAVE_TONE[tone];
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
+    <div
+      className={cn(
+        "relative flex min-h-0 flex-col overflow-hidden",
+        className
+      )}
+    >
       <div
         className="pointer-events-none absolute inset-0 overflow-hidden"
         aria-hidden
@@ -274,7 +279,9 @@ function AnnualPictureStatTile({
           </>
         )}
       </div>
-      <div className="relative z-[1]">{children}</div>
+      <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
+        {children}
+      </div>
     </div>
   );
 }
@@ -839,12 +846,17 @@ export function SalaryBreakdownView() {
               Fixed vs variable cash, then how it compares to your stated CTC. Figures
               follow the table — change a row and totals refresh together.
             </p>
-            <div className="grid flex-1 grid-cols-2 gap-3 text-sm sm:gap-4">
+            <div
+              className={cn(
+                "grid min-h-0 flex-1 grid-cols-2 gap-3 text-sm sm:gap-4",
+                "lg:[grid-template-rows:repeat(2,minmax(0,1fr))]"
+              )}
+            >
               <AnnualPictureStatTile
                 fluidVariant={0}
-                className="rounded-lg bg-navy-50/50 px-4 py-3.5 ring-1 ring-navy-100/80"
+                className="h-full min-h-[6.75rem] rounded-lg bg-navy-50/50 px-4 py-3.5 ring-1 ring-navy-100/80 lg:min-h-0"
               >
-                <div className="flex min-h-[6.75rem] flex-col">
+                <div className="flex h-full min-h-0 flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <p className="min-w-0 flex-1 text-xs font-medium leading-snug text-navy-600">
                       Annual fixed (cash)
@@ -859,16 +871,16 @@ export function SalaryBreakdownView() {
                   <p className="mt-1 text-lg font-semibold tabular-nums leading-tight text-navy-900">
                     {formatCurrency(breakdown.annualFixedCashTotal)}
                   </p>
-                  <p className="mt-auto pt-3 text-[10px] leading-snug text-navy-500">
+                  <p className="mt-auto min-h-[2.5rem] pt-3 text-[10px] leading-snug text-navy-500 line-clamp-2">
                     {annualPictureHints.fixed}
                   </p>
                 </div>
               </AnnualPictureStatTile>
               <AnnualPictureStatTile
                 fluidVariant={1}
-                className="rounded-lg bg-navy-50/50 px-4 py-3.5 ring-1 ring-navy-100/80"
+                className="h-full min-h-[6.75rem] rounded-lg bg-navy-50/50 px-4 py-3.5 ring-1 ring-navy-100/80 lg:min-h-0"
               >
-                <div className="flex min-h-[6.75rem] flex-col">
+                <div className="flex h-full min-h-0 flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <p className="min-w-0 flex-1 text-xs font-medium leading-snug text-navy-600">
                       Annual variable (cash)
@@ -883,16 +895,16 @@ export function SalaryBreakdownView() {
                   <p className="mt-1 text-lg font-semibold tabular-nums leading-tight text-navy-900">
                     {formatCurrency(breakdown.annualVariableCashTotal)}
                   </p>
-                  <p className="mt-auto pt-3 text-[10px] leading-snug text-navy-500">
+                  <p className="mt-auto min-h-[2.5rem] pt-3 text-[10px] leading-snug text-navy-500 line-clamp-2">
                     {annualPictureHints.variable}
                   </p>
                 </div>
               </AnnualPictureStatTile>
               <AnnualPictureStatTile
                 fluidVariant={2}
-                className="rounded-lg bg-teal-50/40 px-4 py-3.5 ring-1 ring-teal-100/70"
+                className="h-full min-h-[6.75rem] rounded-lg bg-teal-50/40 px-4 py-3.5 ring-1 ring-teal-100/70 lg:min-h-0"
               >
-                <div className="flex min-h-[6.75rem] flex-col">
+                <div className="flex h-full min-h-0 flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <p className="min-w-0 flex-1 text-xs font-medium leading-snug text-teal-900/90">
                       Total cash (fixed + variable)
@@ -907,16 +919,16 @@ export function SalaryBreakdownView() {
                   <p className="mt-1 text-lg font-semibold tabular-nums leading-tight text-navy-900">
                     {formatCurrency(breakdown.annualCashCompensation)}
                   </p>
-                  <p className="mt-auto pt-3 text-[10px] leading-snug text-teal-900/75">
+                  <p className="mt-auto min-h-[2.5rem] pt-3 text-[10px] leading-snug text-teal-900/75 line-clamp-2">
                     {annualPictureHints.total}
                   </p>
                 </div>
               </AnnualPictureStatTile>
               <AnnualPictureStatTile
                 fluidVariant={3}
-                className="rounded-lg bg-white px-4 py-3.5 ring-1 ring-teal-200/60"
+                className="h-full min-h-[6.75rem] rounded-lg bg-white px-4 py-3.5 ring-1 ring-teal-200/60 lg:min-h-0"
               >
-                <div className="flex min-h-[6.75rem] flex-col">
+                <div className="flex h-full min-h-0 flex-col">
                   <div className="flex items-start justify-between gap-2">
                     <p className="min-w-0 flex-1 text-xs font-medium leading-snug text-teal-800">
                       Stated CTC (your input)
@@ -931,7 +943,7 @@ export function SalaryBreakdownView() {
                   <p className="mt-1 text-lg font-semibold tabular-nums leading-tight text-teal-900">
                     {formatCurrency(breakdown.statedAnnualCTC)}
                   </p>
-                  <p className="mt-auto pt-3 text-[10px] leading-snug text-teal-800/80">
+                  <p className="mt-auto min-h-[2.5rem] pt-3 text-[10px] leading-snug text-teal-800/80 line-clamp-2">
                     {annualPictureHints.stated}
                   </p>
                 </div>
