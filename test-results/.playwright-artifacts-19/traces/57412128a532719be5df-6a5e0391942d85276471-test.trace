@@ -1,0 +1,55 @@
+{"version":8,"type":"context-options","origin":"testRunner","browserName":"","playwrightVersion":"1.59.1","options":{},"platform":"darwin","wallTime":1775400223363,"monotonicTime":175702.317,"sdkLanguage":"javascript"}
+{"type":"before","callId":"hook@1","stepId":"hook@1","startTime":175703.217,"class":"Test","method":"hook","title":"Before Hooks","params":{},"stack":[]}
+{"type":"before","callId":"hook@2","stepId":"hook@2","parentId":"hook@1","startTime":175703.591,"class":"Test","method":"hook","title":"beforeEach hook","params":{},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/02-free-calculator.spec.ts","line":210,"column":8}]}
+{"type":"before","callId":"fixture@23","stepId":"fixture@23","parentId":"hook@2","startTime":175707.922,"class":"Test","method":"fixture","title":"Fixture \"context\"","params":{},"stack":[]}
+{"type":"before","callId":"pw:api@24","stepId":"pw:api@24","parentId":"fixture@23","startTime":175708.465,"class":"Test","method":"pw:api","title":"Create context","params":{"recordVideo":"Object","selectorEngines":"[]","testIdAttributeName":"data-testid","acceptDownloads":"accept","bypassCSP":"false","colorScheme":"light","deviceScaleFactor":"1","hasTouch":"false","ignoreHTTPSErrors":"false","isMobile":"false","javaScriptEnabled":"true","locale":"en-US","offline":"false","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.7727.15 Safari/537.36","viewport":"Object","baseURL":"http://localhost:3000","serviceWorkers":"allow","noDefaultViewport":"false","extraHTTPHeaders":"undefined","storageState":"undefined","reducedMotion":"undefined","forcedColors":"undefined","contrast":"undefined","clientCertificates":"undefined"},"stack":[]}
+{"type":"after","callId":"pw:api@24","endTime":175713.244,"annotations":[]}
+{"type":"after","callId":"fixture@23","endTime":175714.406,"annotations":[]}
+{"type":"before","callId":"fixture@25","stepId":"fixture@25","parentId":"hook@2","startTime":175714.552,"class":"Test","method":"fixture","title":"Fixture \"page\"","params":{},"stack":[]}
+{"type":"before","callId":"pw:api@26","stepId":"pw:api@26","parentId":"fixture@25","startTime":175715.138,"class":"Test","method":"pw:api","title":"Create page","params":{},"stack":[]}
+{"type":"after","callId":"pw:api@26","endTime":175751.645,"annotations":[]}
+{"type":"after","callId":"fixture@25","endTime":175751.789,"annotations":[]}
+{"type":"before","callId":"pw:api@27","stepId":"pw:api@27","parentId":"hook@2","startTime":175753.008,"class":"Test","method":"pw:api","title":"Navigate to \"/salary\"","params":{"url":"/salary","waitUntil":"load","timeout":"15000"},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/02-free-calculator.spec.ts","line":211,"column":16}]}
+{"type":"after","callId":"pw:api@27","endTime":176074.354,"annotations":[]}
+{"type":"before","callId":"pw:api@28","stepId":"pw:api@28","parentId":"hook@2","startTime":176074.975,"class":"Test","method":"pw:api","title":"Wait for load state \"networkidle\"","params":{"info":"Object"},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/02-free-calculator.spec.ts","line":212,"column":16}]}
+{"type":"after","callId":"pw:api@28","endTime":176517.626,"annotations":[]}
+{"type":"after","callId":"hook@2","endTime":176517.683,"annotations":[]}
+{"type":"after","callId":"hook@1","endTime":176517.743,"annotations":[]}
+{"type":"before","callId":"pw:api@29","stepId":"pw:api@29","startTime":176520.138,"class":"Test","method":"pw:api","title":"Is visible getByRole('button', { name: /add.*deduction|add row|custom/i }).first()","params":{"selector":"internal:role=button[name=/add.*deduction|add row|custom/i] >> nth=0","strict":"true"},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/02-free-calculator.spec.ts","line":230,"column":22}],"group":"getter"}
+{"type":"after","callId":"pw:api@29","endTime":176534.222,"annotations":[]}
+{"type":"before","callId":"pw:api@30","stepId":"pw:api@30","startTime":176535.702,"class":"Test","method":"pw:api","title":"Click getByRole('button', { name: /add.*deduction|add row|custom/i }).first()","params":{"selector":"internal:role=button[name=/add.*deduction|add row|custom/i] >> nth=0","strict":"true","timeout":"8000"},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/02-free-calculator.spec.ts","line":231,"column":20}]}
+{"type":"after","callId":"pw:api@30","endTime":177402.319,"annotations":[]}
+{"type":"before","callId":"expect@31","stepId":"expect@31","startTime":177406.162,"class":"Test","method":"expect","title":"Expect \"not toContainText\"","params":{"expected":"Object"},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/helpers/index.ts","line":129,"column":42,"function":"assertNoError"}]}
+{"type":"after","callId":"expect@31","endTime":177414.309,"annotations":[]}
+{"type":"before","callId":"expect@32","stepId":"expect@32","startTime":177415.175,"class":"Test","method":"expect","title":"Expect \"not toContainText\"","params":{"expected":"Object"},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/helpers/index.ts","line":130,"column":42,"function":"assertNoError"}]}
+{"type":"after","callId":"expect@32","endTime":177420.721,"annotations":[]}
+{"type":"before","callId":"pw:api@33","stepId":"pw:api@33","startTime":177421.63,"class":"Test","method":"pw:api","title":"Query count getByRole('spinbutton')","params":{"selector":"internal:role=spinbutton"},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/02-free-calculator.spec.ts","line":235,"column":44}]}
+{"type":"after","callId":"pw:api@33","endTime":177425.321,"annotations":[]}
+{"type":"before","callId":"expect@34","stepId":"expect@34","startTime":177425.624,"class":"Test","method":"expect","title":"Expect \"toHaveCount\"","params":{},"stack":[{"file":"/Users/sriram.v/Desktop/Inhand/tests/e2e/02-free-calculator.spec.ts","line":234,"column":50}]}
+{"type":"after","callId":"expect@34","endTime":177430.696,"annotations":[]}
+{"type":"before","callId":"hook@35","stepId":"hook@35","startTime":177430.95,"class":"Test","method":"hook","title":"After Hooks","params":{},"stack":[]}
+{"type":"before","callId":"fixture@36","stepId":"fixture@36","parentId":"hook@35","startTime":177431.339,"class":"Test","method":"fixture","title":"Fixture \"page\"","params":{},"stack":[]}
+{"type":"after","callId":"fixture@36","endTime":177431.371,"annotations":[]}
+{"type":"before","callId":"fixture@37","stepId":"fixture@37","parentId":"hook@35","startTime":177431.506,"class":"Test","method":"fixture","title":"Fixture \"context\"","params":{},"stack":[]}
+{"type":"before","callId":"pw:api@38","stepId":"pw:api@38","parentId":"fixture@37","startTime":178907.957,"class":"Test","method":"pw:api","title":"Close context","params":{"reason":"Test ended."},"stack":[]}
+{"type":"after","callId":"pw:api@38","endTime":179055.984,"annotations":[]}
+{"type":"after","callId":"fixture@37","endTime":179056.121,"annotations":[]}
+{"type":"before","callId":"fixture@43","stepId":"fixture@43","parentId":"hook@35","startTime":179057.171,"class":"Test","method":"fixture","title":"Fixture \"baseURL\"","params":{},"stack":[{"file":"project#chromium","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@43","endTime":179057.195,"annotations":[]}
+{"type":"before","callId":"fixture@44","stepId":"fixture@44","parentId":"hook@35","startTime":179057.244,"class":"Test","method":"fixture","title":"Fixture \"userAgent\"","params":{},"stack":[{"file":"project#chromium","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@44","endTime":179057.252,"annotations":[]}
+{"type":"before","callId":"fixture@46","stepId":"fixture@46","parentId":"hook@35","startTime":179057.341,"class":"Test","method":"fixture","title":"Fixture \"viewport\"","params":{},"stack":[{"file":"project#chromium","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@46","endTime":179057.347,"annotations":[]}
+{"type":"before","callId":"fixture@53","stepId":"fixture@53","parentId":"hook@35","startTime":179057.962,"class":"Test","method":"fixture","title":"Fixture \"isMobile\"","params":{},"stack":[{"file":"project#chromium","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@53","endTime":179057.973,"annotations":[]}
+{"type":"before","callId":"fixture@57","stepId":"fixture@57","parentId":"hook@35","startTime":179058.153,"class":"Test","method":"fixture","title":"Fixture \"hasTouch\"","params":{},"stack":[{"file":"project#chromium","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@57","endTime":179058.16,"annotations":[]}
+{"type":"before","callId":"fixture@59","stepId":"fixture@59","parentId":"hook@35","startTime":179058.246,"class":"Test","method":"fixture","title":"Fixture \"deviceScaleFactor\"","params":{},"stack":[{"file":"project#chromium","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@59","endTime":179058.253,"annotations":[]}
+{"type":"before","callId":"fixture@67","stepId":"fixture@67","parentId":"hook@35","startTime":179058.636,"class":"Test","method":"fixture","title":"Fixture \"navigationTimeout\"","params":{},"stack":[{"file":"project#chromium","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@67","endTime":179058.643,"annotations":[]}
+{"type":"before","callId":"fixture@68","stepId":"fixture@68","parentId":"hook@35","startTime":179058.683,"class":"Test","method":"fixture","title":"Fixture \"actionTimeout\"","params":{},"stack":[{"file":"project#chromium","line":1,"column":1}],"group":"configuration"}
+{"type":"after","callId":"fixture@68","endTime":179058.689,"annotations":[]}
+{"type":"after","callId":"hook@35","endTime":179058.768,"annotations":[]}
+{"type":"before","callId":"attach@fcbfd1447d332577d07b8dbed68a035b","stepId":"attach@fcbfd1447d332577d07b8dbed68a035b","startTime":179391.84,"class":"Test","method":"test.attach","title":"Attach \"trace\"","params":{},"stack":[]}
+{"type":"after","callId":"attach@fcbfd1447d332577d07b8dbed68a035b","endTime":179391.884,"attachments":[]}
