@@ -342,7 +342,7 @@ Conventions:
 | 1 | ≥2 valid offers stable for debounce window | `PATCH` existing `offer_session_id` or `POST` on first save |
 | 2 | User opens tool | `GET /v1/offer-sessions/:id` on mount if id in URL or stored in client |
 
-**Deep link (recommended):** `/premium/offer-comparison?session=<uuid>` so refresh restores without relying on in-memory restore store only.
+**Deep link (recommended):** `/salary/premium/offer-comparison?session=<uuid>` so refresh restores without relying on in-memory restore store only (see **`docs/adr/ADR-003-salary-session-client-persistence.md`** for salary cookie + global hydrate; offer sessions follow the same client pattern).
 
 ---
 
@@ -361,7 +361,7 @@ Current app: `useAuthStore.updateProfile` only — replace with mutation + optim
 
 | Scenario | Behavior |
 |----------|----------|
-| Salary breakdown with `?session=id` or last active id in `sessionStorage` | `GET` session on mount; show skeleton until resolved |
+| Salary breakdown with `?session=id` or last active id in `inhand_last_salary_session` cookie (see ADR-003) | `GET` session on mount; show skeleton until resolved |
 | No id, anonymous | Client-only calculator path; no GET |
 | Offer comparison | `GET` offer session if id present |
 

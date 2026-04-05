@@ -220,6 +220,8 @@ export function OfferComparisonView() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [comparisonRevealed, setComparisonRevealed] = useState(false);
   const comparisonSummaryAnchorRef = useRef<HTMLDivElement>(null);
+  /** Set when user taps Compare on first reveal; cleared after scroll tied to results enter animation. */
+  const scrollToSummaryAfterResultsAnimationRef = useRef(false);
 
   const [offers, setOffers] = useState<OfferDraft[]>(() => {
     const pending =
@@ -385,31 +387,31 @@ export function OfferComparisonView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initial paint only
   }, []);
 
+  const scrollComparisonSummaryIntoView = useCallback(() => {
+    const el = comparisonSummaryAnchorRef.current;
+    if (!el) return;
+    const top =
+      el.getBoundingClientRect().top + window.scrollY - SCROLL_ABOVE_SUMMARY_PX;
+    window.scrollTo({
+      top: Math.max(0, top),
+      behavior: "smooth",
+    });
+  }, []);
+
   const runComparison = useCallback(() => {
     if (!canCompare) return;
     const alreadyShown = comparisonRevealed;
     setComparisonRevealed(true);
 
-    const scrollToFilterStripTop = () => {
-      const el = comparisonSummaryAnchorRef.current;
-      if (!el) return;
-      const top =
-        el.getBoundingClientRect().top + window.scrollY - SCROLL_ABOVE_SUMMARY_PX;
-      window.scrollTo({
-        top: Math.max(0, top),
-        behavior: "smooth",
-      });
-    };
-
     if (alreadyShown) {
       requestAnimationFrame(() => {
-        requestAnimationFrame(scrollToFilterStripTop);
+        requestAnimationFrame(scrollComparisonSummaryIntoView);
       });
       return;
     }
 
-    window.setTimeout(scrollToFilterStripTop, 400);
-  }, [canCompare, comparisonRevealed]);
+    scrollToSummaryAfterResultsAnimationRef.current = true;
+  }, [canCompare, comparisonRevealed, scrollComparisonSummaryIntoView]);
 
   const peerMaxVariableCashAnnual = useMemo(() => {
     const list = comparisons.filter(Boolean) as NonNullable<
@@ -1310,6 +1312,11 @@ export function OfferComparisonView() {
               exit={{ opacity: 0, y: 10 }}
               transition={{ duration: 0.45, ease: EASE }}
               className="space-y-3"
+              onAnimationComplete={() => {
+                if (!scrollToSummaryAfterResultsAnimationRef.current) return;
+                scrollToSummaryAfterResultsAnimationRef.current = false;
+                scrollComparisonSummaryIntoView();
+              }}
             >
             <div
               ref={comparisonSummaryAnchorRef}

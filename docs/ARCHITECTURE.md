@@ -21,6 +21,9 @@
 - **`SALARY_COMPONENTS.md`** — Breakdown IA, component model, tooltip/badge rules, grouping.
 - **`DESIGN_SYSTEM.md`** — Colors, typography, card/form/nav patterns.
 - **`PRODUCT_FLOW.md`** — Screen definitions, access tiers, CTA behavior.
+- **`salary-pdf-upload.md`** — Client PDF parse → review → breakdown (`lib/salary/pdf/`, tests).
+- **`adr/ADR-003-salary-session-client-persistence.md`** — `inhand_last_salary_session` cookie + global salary workspace hydrate.
+- **`adr/ADR-004-next-api-routes-auth.md`** — Future `app/.../route.ts` under `/api`: middleware bypass, required auth conventions.
 
 ## Folder Structure (app grows with features; see tree below)
 
@@ -146,7 +149,7 @@ src/
 │       ├── offer-breakdown-recalc-context.ts
 │       └── utils.ts                  # cn() tailwind merge (also at lib/utils.ts)
 │
-├── middleware.ts                     # Session refresh; /profile; /salary/detailed; /salary/premium/** (session + premium)
+├── middleware.ts                     # Session refresh; /profile; /salary/detailed; /salary/premium/** (session + premium); /api bypass — see ADR-004
 └── styles/globals.css                # Tailwind tokens + custom utility classes
 ```
 
@@ -193,6 +196,7 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 | `/profile` | Signed-in (middleware) |
 | `/paywall` | Public |
 | Legacy `/lifestyle`, `/salary/breakdown`, `/premium/*` | **Permanent redirect** to `/salary/premium/...` (`next.config.ts`) |
+| `/api/*` (App Router **Route Handlers**, if added under `app/src/app/api/`) | **Not** gated by `middleware.ts` — each handler enforces auth / public access per **ADR-004** |
 
 ## Nav Architecture
 

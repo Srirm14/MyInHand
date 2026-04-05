@@ -29,10 +29,10 @@ Restart the dev server after changing `.env.local`.
 - `/salary/detailed` — Detailed CTC + document upload + recents → breakdown  
 - `/salary/breakdown` — KPI row, component breakup, plan cards (EMI, forecast, monthly plan)  
 - `/lifestyle` — Monthly plan (spending + surplus)  
-- `/premium` — Redirects to `/premium/offer-comparison` (no separate hub page)  
-- `/premium/offer-comparison` — **Manual** or **upload** 2–3 offers; same CTC split pattern as `/salary` per card (mock parse)  
-- `/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  
-- `/premium/emi-analyzer` — EMI + DTI vs in-hand & monthly plan  
+- `/salary/premium/offer-comparison` — **Manual** or **upload** 2–3 offers; same CTC split pattern as `/salary` per card (PDF parse where configured)  
+- `/salary/premium/wealth-forecast` — 5/10/20 yr projection (sliders + table)  
+- `/salary/premium/emi-analyzer` — EMI + DTI vs in-hand & monthly plan  
+- Legacy `/premium/*` and `/salary/breakdown` (non-premium paths) — **`next.config.ts`** redirects to the canonical **`/salary/premium/*`** routes (no separate `/premium` hub page)  
 - `/paywall` — **Free tier:** opens the same global **Premium plans** modal as in-app CTAs (page is a minimal shell). **Premium env:** handled by the paywall page (unlocked redirect). Closing the modal while on `/paywall` returns to `/salary`.
 
 ## Premium plans modal (free tier)

@@ -16,7 +16,7 @@
 - shadcn/ui v4 initialized (13 primitives)
 - Folder structure per ARCHITECTURE.md
 - Root layout: Plus Jakarta Sans + Inter, AuthSync provider, Navbar, Footer
-- Middleware: route protection for /profile and /premium/*
+- Middleware: route protection for `/profile`, `/salary/detailed`, `/salary/premium/*`, etc. (see **`ARCHITECTURE.md`**)
 
 ---
 

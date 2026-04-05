@@ -23,6 +23,7 @@ Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode
 - **Premium gate:** env `NEXT_PUBLIC_ACCESS_MODE=premium` + session cookie where middleware requires it. Unset env = free tier (not premium) in development too.
 - **Premium plans UI (free tier):** Shared **`PremiumPlansModal`** mounted via **`PremiumPlansModalHost`** in root layout. Open from anywhere with **`openPremiumPlansModal()`** / **`closePremiumPlansModal()`** from `use-premium-plans-modal-store` (or the store hook). **`/paywall`** is a thin route that syncs the same modal open; closing from paywall navigates back to **`/salary`**. **`PremiumBlurOfferTeaser`** (marketing, calculator aside, offer comparison when manual + 2+ valid offers) blurs faux metrics and opens that modal.
 - **Auth & cloud data:** **Supabase** (email/password, session cookies via `@supabase/ssr`). **`use-auth-store`** mirrors `profiles` + `auth.users`. Salary/offer sessions use **TanStack Query** + partial PATCH autosave when Supabase is configured; **`CloudSalaryWorkspaceSync`** + **`inhand_last_salary_session`** restore active session on reload; see **`docs/inhand-client-sync-ux.md`**, **ADR-002**, **ADR-003**.
+- **Future App Route Handlers (`app/src/app/api/**/route.ts`):** Middleware **skips** `/api` (no automatic session refresh on that path). Read **`docs/adr/ADR-004-next-api-routes-auth.md`** before adding endpoints; enforce auth or document public access in the handler.
 
 ## Planning Rules
 
