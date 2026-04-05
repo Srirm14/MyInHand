@@ -5,7 +5,7 @@ export type TaxRegime = "old" | "new";
 /** Manual CTC: single total vs fixed + variable (total = fixed + variable). */
 export type CompensationMode = "total_only" | "fixed_variable";
 
-/** Manual CTC path uses estimates; upload path uses mock parser until a real doc API exists. */
+/** Manual CTC path uses estimates; upload path uses client-side PDF parsing (PDF.js). */
 export type SalaryResultSource = "manual_estimated" | "document_parsed";
 
 export interface SalaryInput {
@@ -66,6 +66,13 @@ export interface SalaryComponent {
   isCustom?: boolean;
   /** Row can be removed from the table */
   removable?: boolean;
+  /**
+   * Document-import flow: row was not on the PDF and illustrative defaults were skipped —
+   * prompt the user to confirm or enter an amount.
+   */
+  needsVerification?: boolean;
+  /** User confirmed a zero / missing line is correct (clears needs-verification without changing amounts). */
+  verificationDismissed?: boolean;
 }
 
 /** Set when user edits any line after the initial breakdown was built */

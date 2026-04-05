@@ -12,8 +12,7 @@ export function buildOfferBreakdownRecalcContext(o: OfferDraft): BreakdownRecalc
     regime: o.taxRegime,
     variableAnnual:
       o.compensationMode === "fixed_variable" ? (o.variableAnnual ?? 0) : 0,
-    baseLineSource:
-      salaryResultSource === "document_parsed" ? "parsed" : "estimated",
+    baseLineSource: "estimated",
     salaryResultSource,
     documentFileName: o.documentFileName,
   };

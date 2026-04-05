@@ -10,7 +10,9 @@ import {
   calculateSalaryBreakdown,
   recalculateBreakdownFromComponents,
 } from "@/lib/utils/calculate-salary";
-import { mockParseSalaryDocument } from "@/lib/mocks/parse-salary-document.mock";
+import type { CompensationPdfParseResult } from "@/lib/salary/pdf/salary-pdf-parse.types";
+import type { SalaryPdfReviewSelection } from "@/lib/salary/pdf/apply-salary-pdf-to-state";
+import { buildSalaryStateFromPdfReview } from "@/lib/salary/pdf/apply-salary-pdf-to-state";
 import { buildBreakdownRecalcContext } from "@/lib/stores/salary-breakdown-recalc-context";
 
 interface SalaryState {
@@ -23,13 +25,22 @@ interface SalaryState {
   /** Updates regime and recomputes tax from the current component table (preserves edits). */
   setTaxRegime: (taxRegime: TaxRegime) => void;
   calculateBreakdown: () => void;
-  /** After mock document parse — sets input + breakdown */
-  applyParsedSalaryDocument: (file: File) => Promise<void>;
+  /** After PDF review — sets input + breakdown from structured parse */
+  applySalaryPdfReview: (
+    parse: CompensationPdfParseResult,
+    selection: SalaryPdfReviewSelection,
+    env: { cityTier: CityTier; taxRegime: TaxRegime }
+  ) => void;
   /** User edits a monthly cell in breakup table */
   updateBreakdownComponentMonthly: (id: string, monthlyValue: number) => void;
   patchBreakdownComponent: (
     id: string,
-    patch: { monthlyValue?: number; annualValue?: number; name?: string }
+    patch: {
+      monthlyValue?: number;
+      annualValue?: number;
+      name?: string;
+      verificationDismissed?: boolean;
+    }
   ) => void;
   addBreakdownAllowanceRow: () => void;
   addBreakdownVariableRow: () => void;
@@ -101,12 +112,12 @@ export const useSalaryStore = create<SalaryState>((set, get) => ({
     set({ breakdown });
   },
 
-  applyParsedSalaryDocument: async (file) => {
-    const { input: current } = get();
-    const { input, breakdown } = await mockParseSalaryDocument(file, {
-      cityTier: current.cityTier,
-      taxRegime: current.taxRegime,
-    });
+  applySalaryPdfReview: (parse, selection, env) => {
+    const { input, breakdown } = buildSalaryStateFromPdfReview(
+      parse,
+      selection,
+      env
+    );
     set({ input, breakdown });
   },
 
@@ -117,28 +128,55 @@ export const useSalaryStore = create<SalaryState>((set, get) => ({
   patchBreakdownComponent: (id, patch) => {
     const { breakdown, input } = get();
     if (!breakdown) return;
+
+    const amountTouch =
+      patch.monthlyValue !== undefined || patch.annualValue !== undefined;
+    const nameTouch = patch.name !== undefined;
+    const verifyTouch = patch.verificationDismissed === true;
+    if (!amountTouch && !nameTouch && !verifyTouch) return;
+
     const next = breakdown.components.map((c) => {
       if (c.id !== id) return c;
-      let monthly = c.monthlyValue;
-      let annual = c.annualValue;
-      if (patch.monthlyValue !== undefined) {
-        monthly = Math.max(0, Math.round(patch.monthlyValue));
-        annual = monthly * 12;
-      } else if (patch.annualValue !== undefined) {
-        annual = Math.max(0, Math.round(patch.annualValue));
-        monthly = Math.round(annual / 12);
+
+      if (verifyTouch && !amountTouch && !nameTouch) {
+        return {
+          ...c,
+          verificationDismissed: true,
+          needsVerification: false,
+        };
       }
-      const name =
-        patch.name !== undefined
-          ? (patch.name.trim() || c.name)
-          : c.name;
-      return {
-        ...c,
-        name,
-        monthlyValue: monthly,
-        annualValue: annual,
-        lineSource: "user_edited" as const,
-      };
+
+      let nextC: SalaryComponent = { ...c };
+
+      if (amountTouch) {
+        let monthly = c.monthlyValue;
+        let annual = c.annualValue;
+        if (patch.monthlyValue !== undefined) {
+          monthly = Math.max(0, Math.round(patch.monthlyValue));
+          annual = monthly * 12;
+        } else if (patch.annualValue !== undefined) {
+          annual = Math.max(0, Math.round(patch.annualValue));
+          monthly = Math.round(annual / 12);
+        }
+        nextC = {
+          ...nextC,
+          monthlyValue: monthly,
+          annualValue: annual,
+          lineSource: "user_edited",
+          needsVerification: false,
+          verificationDismissed: true,
+        };
+      }
+
+      if (nameTouch) {
+        nextC = {
+          ...nextC,
+          name: patch.name!.trim() || c.name,
+          ...(!amountTouch ? { lineSource: "user_edited" as const } : {}),
+        };
+      }
+
+      return nextC;
     });
     set({
       breakdown: recalculateBreakdownFromComponents(

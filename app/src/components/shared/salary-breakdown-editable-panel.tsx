@@ -154,6 +154,9 @@ function provenanceLine(row: SalaryComponent): string {
   if (row.lineSource === "user_edited") {
     return "You set this figure; linked lines may still move until you adjust them too.";
   }
+  if (row.needsVerification) {
+    return "Not detected on your upload — enter if it applies, or leave at zero.";
+  }
   if (row.lineSource === "parsed") {
     return "Carried from your upload — spot-check against the file.";
   }

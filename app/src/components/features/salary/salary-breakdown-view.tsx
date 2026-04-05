@@ -19,6 +19,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   BadgePercent,
   Briefcase,
+  Check,
   Calendar,
   CalendarDays,
   ChevronLeft,
@@ -65,6 +66,15 @@ import { useSalaryBreakdownCloudSync } from "@/lib/hooks/use-salary-breakdown-cl
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
+import { SalaryPdfReviewDialog } from "@/components/features/salary/salary-pdf-review-dialog";
+import type { SalaryPdfReviewSelection } from "@/lib/salary/pdf/apply-salary-pdf-to-state";
+import { parseCompensationPdf } from "@/lib/salary/pdf/parse-compensation-pdf";
+import type { CompensationPdfParseResult } from "@/lib/salary/pdf/salary-pdf-parse.types";
+import { SalaryPdfParseError } from "@/lib/salary/pdf/salary-pdf-parse.types";
+import {
+  assertValidSalaryPdfFile,
+  toUserFacingPdfError,
+} from "@/lib/salary/pdf/validate-pdf-upload";
 import type {
   SalaryBreakdownSection,
   SalaryComponent,
@@ -328,14 +338,16 @@ export function SalaryBreakdownView() {
   const removeBreakdownComponent = useSalaryStore(
     (s) => s.removeBreakdownComponent
   );
-  const applyParsedSalaryDocument = useSalaryStore(
-    (s) => s.applyParsedSalaryDocument
-  );
+  const applySalaryPdfReview = useSalaryStore((s) => s.applySalaryPdfReview);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const skipBreakdownScrollPersistRef = useRef(false);
   const [docBusy, setDocBusy] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
+  const [pdfParse, setPdfParse] = useState<CompensationPdfParseResult | null>(
+    null
+  );
+  const [pdfReviewOpen, setPdfReviewOpen] = useState(false);
 
   const { cloudHydrating, cloudSaving, cloudDetailReady } =
     useSalaryBreakdownCloudSync();
@@ -522,17 +534,33 @@ export function SalaryBreakdownView() {
     const file = list?.[0];
     if (!file) return;
     setDocError(null);
+    setPdfParse(null);
     setDocBusy(true);
     try {
-      await applyParsedSalaryDocument(file);
-    } catch {
+      assertValidSalaryPdfFile(file);
+      const buffer = await file.arrayBuffer();
+      const parsed = await parseCompensationPdf(buffer, file.name);
+      setPdfParse(parsed);
+      setPdfReviewOpen(true);
+    } catch (err) {
       setDocError(
-        "We couldn’t read that file. Try a clear PDF or image, or adjust rows manually below."
+        err instanceof SalaryPdfParseError
+          ? err.message
+          : toUserFacingPdfError(err)
       );
     } finally {
       setDocBusy(false);
       if (fileRef.current) fileRef.current.value = "";
     }
+  };
+
+  const onBreakdownPdfReviewApply = (selection: SalaryPdfReviewSelection) => {
+    if (!pdfParse) return;
+    applySalaryPdfReview(pdfParse, selection, {
+      cityTier: input.cityTier,
+      taxRegime: input.taxRegime,
+    });
+    setPdfParse(null);
   };
 
   if (cloudHydrating || !breakdown) {
@@ -543,8 +571,18 @@ export function SalaryBreakdownView() {
   const source = breakdown.meta?.resultSource ?? "manual_estimated";
   const isDocument = source === "document_parsed";
   const editBasis = breakdown.meta?.breakdownEditBasis;
+  const verificationRowCount = breakdown.components.filter(
+    (c) => c.needsVerification
+  ).length;
 
   return (
+    <>
+      <SalaryPdfReviewDialog
+        open={pdfReviewOpen}
+        onOpenChange={setPdfReviewOpen}
+        parse={pdfParse}
+        onApply={onBreakdownPdfReviewApply}
+      />
     <PageShell className="py-8 md:py-10">
       {cloudSaving ? (
         <div
@@ -596,8 +634,8 @@ export function SalaryBreakdownView() {
                 Replace from file
               </p>
               <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-navy-500">
-                Mock-parse a PDF or image (same flow as the salary page). Spot-check
-                amounts after upload.
+                Upload a text-based compensation PDF — we parse with PDF.js and open a
+                review sheet before replacing this breakdown.
               </p>
             </div>
           </div>
@@ -605,7 +643,7 @@ export function SalaryBreakdownView() {
             <input
               ref={fileRef}
               type="file"
-              accept=".pdf,.png,.jpg,.jpeg,image/*,application/pdf"
+              accept="application/pdf,.pdf"
               className="hidden"
               onChange={(e) => onStructureUpload(e.target.files)}
             />
@@ -661,6 +699,14 @@ export function SalaryBreakdownView() {
               {" "}
               Verify line items on your original. Same tax engine as manual entry.
             </span>
+            {verificationRowCount > 0 ? (
+              <span className="mt-1.5 block text-[12px] font-medium leading-snug text-amber-950">
+                {verificationRowCount} row
+                {verificationRowCount === 1 ? "" : "s"} with an amber edge were
+                not detected in the file — enter amounts if they apply, or leave at
+                zero.
+              </span>
+            ) : null}
           </>
         ) : (
           <>
@@ -681,7 +727,7 @@ export function SalaryBreakdownView() {
             )}
           >
             {editBasis === "user_edited_after_parse"
-              ? "Summaries and tax follow this table; other lines still auto-fill where you haven’t overridden them."
+              ? "Summaries and tax follow this table. Amber “Needs verification” rows weren’t read from the file — confirm or edit them."
               : "Summaries and tax follow this table — edit any row to steer the model."}
           </span>
         ) : null}
@@ -1157,6 +1203,11 @@ export function SalaryBreakdownView() {
                       onMonthlyChange={(id, v) =>
                         patchBreakdownComponent(id, { monthlyValue: v })
                       }
+                      onDismissVerification={(id) =>
+                        patchBreakdownComponent(id, {
+                          verificationDismissed: true,
+                        })
+                      }
                     />
                   ))}
                   <GroupSubtotalRow rows={rows} />
@@ -1278,6 +1329,7 @@ export function SalaryBreakdownView() {
 
       <SaveProgressCta returnTo={SALARY_PREMIUM_BREAKDOWN} className="mt-12" />
     </PageShell>
+    </>
   );
 }
 
@@ -1354,6 +1406,9 @@ function sectionInHandNote(row: SalaryComponent): string {
 function provenanceLine(row: SalaryComponent): string {
   if (row.lineSource === "user_edited") {
     return "You set this figure; linked lines may still move until you adjust them too.";
+  }
+  if (row.needsVerification) {
+    return "Not detected on your upload — enter if it applies, or leave at zero.";
   }
   if (row.lineSource === "parsed") {
     return "Carried from your upload — spot-check against the file.";
@@ -1447,7 +1502,12 @@ function SectionAddControl({
 
 type PatchFn = (
   id: string,
-  patch: { monthlyValue?: number; annualValue?: number; name?: string }
+  patch: {
+    monthlyValue?: number;
+    annualValue?: number;
+    name?: string;
+    verificationDismissed?: boolean;
+  }
 ) => void;
 
 function EditableEarningRow({
@@ -1499,6 +1559,7 @@ function EditableEarningRow({
   const inrFieldClass =
     row.type === "tax-free" ? "[&_input]:text-emerald-800" : undefined;
   const userTouched = row.lineSource === "user_edited";
+  const needsVerify = Boolean(row.needsVerification);
 
   return (
     <TableRow
@@ -1506,6 +1567,8 @@ function EditableEarningRow({
         "group/erow border-b border-navy-100/60 align-top transition-[background-color,box-shadow] duration-200",
         "hover:bg-white/80",
         userTouched && "shadow-[inset_3px_0_0_0_rgba(13,148,136,0.3)]",
+        needsVerify &&
+          "bg-amber-50/35 shadow-[inset_3px_0_0_0_rgba(245,158,11,0.55)]",
         row.isCustom && "bg-teal-50/[0.18]"
       )}
     >
@@ -1569,6 +1632,28 @@ function EditableEarningRow({
               >
                 {sourceLabel}
               </span>
+              {needsVerify ? (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950">
+                  Needs verification
+                </span>
+              ) : null}
+              {needsVerify ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    type="button"
+                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-300/90 bg-white text-amber-900 shadow-sm transition-colors hover:bg-amber-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80"
+                    aria-label="Confirm this line is correct, including zero"
+                    onClick={() =>
+                      patchComponent(row.id, { verificationDismissed: true })
+                    }
+                  >
+                    <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[14rem] text-xs">
+                    Confirm this line matches your offer (zero is OK).
+                  </TooltipContent>
+                </Tooltip>
+              ) : null}
               {row.isCustom ? (
                 <span className="text-[10px] font-medium text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full">
                   Custom row
@@ -1640,9 +1725,11 @@ function EditableEarningRow({
 function EditableSimpleComponentRow({
   row,
   onMonthlyChange,
+  onDismissVerification,
 }: {
   row: SalaryComponent;
   onMonthlyChange: (id: string, monthly: number) => void;
+  onDismissVerification?: (id: string) => void;
 }) {
   const isDeduction = row.type === "deduction";
   const typeBadge = {
@@ -1670,13 +1757,16 @@ function EditableSimpleComponentRow({
     parsed: "From doc",
     user_edited: "Adjusted",
   }[row.lineSource];
+  const needsVerify = Boolean(row.needsVerification);
 
   return (
     <TableRow
       className={cn(
         "group/srow border-b border-navy-100/60 align-top transition-[background-color,box-shadow] duration-200 hover:bg-white/70",
         row.lineSource === "user_edited" &&
-          "shadow-[inset_3px_0_0_0_rgba(13,148,136,0.3)]"
+          "shadow-[inset_3px_0_0_0_rgba(13,148,136,0.3)]",
+        needsVerify &&
+          "bg-amber-50/35 shadow-[inset_3px_0_0_0_rgba(245,158,11,0.55)]"
       )}
     >
       <TableCell className="pl-5 py-3.5">
@@ -1704,7 +1794,7 @@ function EditableSimpleComponentRow({
             <p className="text-[11px] leading-snug text-navy-500/95">
               {row.description}
             </p>
-            <div className="flex flex-wrap gap-1 pt-1">
+            <div className="flex flex-wrap items-center gap-1 pt-1">
               <span
                 className={cn(
                   "text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full",
@@ -1713,6 +1803,26 @@ function EditableSimpleComponentRow({
               >
                 {sourceLabel}
               </span>
+              {needsVerify ? (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950">
+                  Needs verification
+                </span>
+              ) : null}
+              {needsVerify ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    type="button"
+                    className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-amber-300/90 bg-white text-amber-900 shadow-sm transition-colors hover:bg-amber-100/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/80"
+                    aria-label="Confirm this line is correct, including zero"
+                    onClick={() => onDismissVerification?.(row.id)}
+                  >
+                    <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[14rem] text-xs">
+                    Confirm this line matches your offer (zero is OK).
+                  </TooltipContent>
+                </Tooltip>
+              ) : null}
               {row.tags?.map((t) => (
                 <span
                   key={t}

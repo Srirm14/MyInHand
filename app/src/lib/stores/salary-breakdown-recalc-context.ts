@@ -11,8 +11,7 @@ export function buildBreakdownRecalcContext(input: SalaryInput): BreakdownRecalc
       input.compensationMode === "fixed_variable"
         ? (input.variableAnnual ?? 0)
         : 0,
-    baseLineSource:
-      salaryResultSource === "document_parsed" ? "parsed" : "estimated",
+    baseLineSource: "estimated",
     salaryResultSource,
     documentFileName: input.documentFileName,
   };

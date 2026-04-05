@@ -19,10 +19,13 @@ export interface CalculateSalaryOptions {
   variableAnnual?: number;
 }
 
-function lineSourceFromMeta(
-  meta: SalaryBreakdownMeta | undefined
-): ComponentLineSource {
-  return meta?.resultSource === "document_parsed" ? "parsed" : "estimated";
+/**
+ * Initial breakdown rows are always "estimated" until explicitly marked parsed
+ * (e.g. PDF field mapping) or user_edited. Document flow relied on "parsed" for
+ * every row before, which hid what actually came from the file.
+ */
+function lineSourceFromMeta(_meta: SalaryBreakdownMeta | undefined): ComponentLineSource {
+  return "estimated";
 }
 
 function comp(
@@ -301,6 +304,25 @@ export function calculateSalaryBreakdown(
   components.push(
     comp(
       {
+        id: "esop_estimate",
+        name: "ESOPs / equity (illustrative value)",
+        description:
+          "Not monthly salary cash — enter an estimated grant value or remove if none",
+        monthlyValue: 0,
+        annualValue: 0,
+        type: "earning",
+        group: "earnings",
+        section: "variable_pay",
+        removable: true,
+        tags: ["conditional", "one_time"],
+      },
+      src
+    )
+  );
+
+  components.push(
+    comp(
+      {
         id: "employer_pf",
         name: "Employer PF contribution",
         description: "Company PF (CTC — not monthly cash in-hand)",
@@ -397,7 +419,21 @@ function rowById(prev: SalaryComponent[], id: string) {
 }
 
 function isRowOverridden(row: SalaryComponent | undefined) {
-  return row?.lineSource === "user_edited";
+  return (
+    row?.lineSource === "user_edited" || row?.lineSource === "parsed"
+  );
+}
+
+/** Preserve user_edited / parsed badges through recalculation (parsed values act as overrides). */
+function outputLineSource(
+  prev: SalaryComponent[],
+  id: string,
+  base: ComponentLineSource
+): ComponentLineSource {
+  const row = rowById(prev, id);
+  if (row?.lineSource === "user_edited") return "user_edited";
+  if (row?.lineSource === "parsed") return "parsed";
+  return base;
 }
 
 function monthlyOf(prev: SalaryComponent[], id: string) {
@@ -416,6 +452,42 @@ function hasRow(prev: SalaryComponent[], id: string) {
   return prev.some((c) => c.id === id);
 }
 
+/** Skip illustrative private-sector defaults when the user came from a PDF import. */
+function documentSkipsIllustrativeDefaults(ctx: BreakdownRecalcContext): boolean {
+  return ctx.salaryResultSource === "document_parsed";
+}
+
+const DOCUMENT_VERIFY_COMPONENT_IDS = new Set<string>([
+  "meal_allowance",
+  "telecom_reimbursement",
+  "gratuity_accrual",
+  "employer_pf",
+  "employee_pf",
+  "professional_tax",
+]);
+
+function attachDocumentVerificationHints(
+  components: SalaryComponent[],
+  ctx: BreakdownRecalcContext,
+  prev: SalaryComponent[]
+): SalaryComponent[] {
+  if (ctx.salaryResultSource !== "document_parsed") {
+    return components.map((c) => {
+      const dismissed = rowById(prev, c.id)?.verificationDismissed === true;
+      return { ...c, needsVerification: false, verificationDismissed: dismissed };
+    });
+  }
+  return components.map((c) => {
+    const dismissed = rowById(prev, c.id)?.verificationDismissed === true;
+    if (!DOCUMENT_VERIFY_COMPONENT_IDS.has(c.id)) {
+      return { ...c, needsVerification: false, verificationDismissed: dismissed };
+    }
+    const flagged =
+      c.lineSource === "estimated" && c.monthlyValue === 0 && !dismissed;
+    return { ...c, needsVerification: flagged, verificationDismissed: dismissed };
+  });
+}
+
 function customAllowances(prev: SalaryComponent[]) {
   return prev.filter((c) => c.isCustom && c.section === "allowance");
 }
@@ -431,7 +503,11 @@ function cloneCustomFromPrev(
 ): SalaryComponent {
   const p = rowById(prev, row.id)!;
   const ls: ComponentLineSource =
-    p.lineSource === "user_edited" ? "user_edited" : base;
+    p.lineSource === "user_edited"
+      ? "user_edited"
+      : p.lineSource === "parsed"
+        ? "parsed"
+        : base;
   return comp({ ...p, lineSource: ls }, base);
 }
 
@@ -445,9 +521,6 @@ export function recalculateBreakdownFromComponents(
 ): SalaryBreakdown {
   const tierConfig = CITY_TIERS.find((t) => t.value === ctx.cityTier)!;
   const base = ctx.baseLineSource;
-
-  const lineSrc = (id: string): ComponentLineSource =>
-    isRowOverridden(rowById(prev, id)) ? "user_edited" : base;
 
   let monthlyBasic: number;
   let annualBasic: number;
@@ -484,6 +557,7 @@ export function recalculateBreakdownFromComponents(
 
   const DEF_MEAL = 3000;
   const DEF_TELE = 2000;
+  const docPlain = documentSkipsIllustrativeDefaults(ctx);
 
   let monthlyMeal = 0;
   let annualMeal = 0;
@@ -492,8 +566,8 @@ export function recalculateBreakdownFromComponents(
       monthlyMeal = monthlyOf(prev, "meal_allowance");
       annualMeal = monthlyMeal * 12;
     } else {
-      monthlyMeal = DEF_MEAL;
-      annualMeal = DEF_MEAL * 12;
+      monthlyMeal = docPlain ? 0 : DEF_MEAL;
+      annualMeal = monthlyMeal * 12;
     }
   }
 
@@ -504,8 +578,8 @@ export function recalculateBreakdownFromComponents(
       monthlyTelecom = monthlyOf(prev, "telecom_reimbursement");
       annualTelecom = monthlyTelecom * 12;
     } else {
-      monthlyTelecom = DEF_TELE;
-      annualTelecom = DEF_TELE * 12;
+      monthlyTelecom = docPlain ? 0 : DEF_TELE;
+      annualTelecom = monthlyTelecom * 12;
     }
   }
 
@@ -540,7 +614,17 @@ export function recalculateBreakdownFromComponents(
     0
   );
 
-  const variableBlockAnnual = variableAnnualStandard + customVarAnnualSum;
+  let monthlyEsop = 0;
+  let annualEsop = 0;
+  if (hasRow(prev, "esop_estimate")) {
+    if (isRowOverridden(rowById(prev, "esop_estimate"))) {
+      monthlyEsop = monthlyOf(prev, "esop_estimate");
+      annualEsop = monthlyEsop * 12;
+    }
+  }
+
+  const variableBlockAnnual =
+    variableAnnualStandard + customVarAnnualSum + annualEsop;
 
   const pfBase = Math.min(monthlyBasic, EPF_WAGE_CEILING);
 
@@ -549,6 +633,9 @@ export function recalculateBreakdownFromComponents(
   if (isRowOverridden(rowById(prev, "employee_pf"))) {
     monthlyPFEmployee = monthlyOf(prev, "employee_pf");
     annualPFEmployee = monthlyPFEmployee * 12;
+  } else if (docPlain) {
+    monthlyPFEmployee = 0;
+    annualPFEmployee = 0;
   } else {
     monthlyPFEmployee = Math.round(pfBase * EPF_RATE);
     annualPFEmployee = monthlyPFEmployee * 12;
@@ -559,6 +646,9 @@ export function recalculateBreakdownFromComponents(
   if (isRowOverridden(rowById(prev, "employer_pf"))) {
     monthlyPFEmployer = monthlyOf(prev, "employer_pf");
     annualPFEmployer = monthlyPFEmployer * 12;
+  } else if (docPlain) {
+    monthlyPFEmployer = 0;
+    annualPFEmployer = 0;
   } else {
     monthlyPFEmployer = Math.round(pfBase * EPF_RATE);
     annualPFEmployer = monthlyPFEmployer * 12;
@@ -569,6 +659,9 @@ export function recalculateBreakdownFromComponents(
   if (isRowOverridden(rowById(prev, "gratuity_accrual"))) {
     monthlyGratuity = monthlyOf(prev, "gratuity_accrual");
     annualGratuityAccrual = monthlyGratuity * 12;
+  } else if (docPlain) {
+    monthlyGratuity = 0;
+    annualGratuityAccrual = 0;
   } else {
     annualGratuityAccrual = Math.round(annualBasic * 0.0481);
     monthlyGratuity = Math.round(annualGratuityAccrual / 12);
@@ -624,6 +717,9 @@ export function recalculateBreakdownFromComponents(
   if (isRowOverridden(rowById(prev, "professional_tax"))) {
     monthlyProfTax = monthlyOf(prev, "professional_tax");
     annualProfTax = monthlyProfTax * 12;
+  } else if (docPlain) {
+    monthlyProfTax = 0;
+    annualProfTax = 0;
   } else {
     monthlyProfTax = PROFESSIONAL_TAX_MONTHLY;
     annualProfTax = monthlyProfTax * 12;
@@ -643,7 +739,7 @@ export function recalculateBreakdownFromComponents(
         section: "fixed_core",
         removable: false,
         tags: copyTags(prev, "basic", ["recurring"]),
-        lineSource: lineSrc("basic"),
+        lineSource: outputLineSource(prev, "basic", base),
       },
       base
     ),
@@ -659,7 +755,7 @@ export function recalculateBreakdownFromComponents(
         section: "fixed_core",
         removable: false,
         tags: copyTags(prev, "hra", ["tax_sensitive", "recurring"]),
-        lineSource: lineSrc("hra"),
+        lineSource: outputLineSource(prev, "hra", base),
       },
       base
     ),
@@ -677,7 +773,7 @@ export function recalculateBreakdownFromComponents(
         section: "fixed_core",
         removable: false,
         tags: copyTags(prev, "da", ["conditional", "recurring"]),
-        lineSource: lineSrc("da"),
+        lineSource: outputLineSource(prev, "da", base),
       },
       base
     ),
@@ -699,7 +795,7 @@ export function recalculateBreakdownFromComponents(
           section: "allowance",
           removable: true,
           tags: copyTags(prev, "meal_allowance", ["recurring", "tax_sensitive"]),
-          lineSource: lineSrc("meal_allowance"),
+          lineSource: outputLineSource(prev, "meal_allowance", base),
         },
         base
       )
@@ -727,7 +823,7 @@ export function recalculateBreakdownFromComponents(
             "recurring",
             "tax_sensitive",
           ]),
-          lineSource: lineSrc("telecom_reimbursement"),
+          lineSource: outputLineSource(prev, "telecom_reimbursement", base),
         },
         base
       )
@@ -754,7 +850,7 @@ export function recalculateBreakdownFromComponents(
         section: "allowance",
         removable: false,
         tags: copyTags(prev, "special_allowance", ["recurring", "tax_sensitive"]),
-        lineSource: lineSrc("special_allowance"),
+        lineSource: outputLineSource(prev, "special_allowance", base),
       },
       base
     )
@@ -777,7 +873,7 @@ export function recalculateBreakdownFromComponents(
           section: "variable_pay",
           removable: false,
           tags: copyTags(prev, "variable_pay", ["conditional", "one_time"]),
-          lineSource: lineSrc("variable_pay"),
+          lineSource: outputLineSource(prev, "variable_pay", base),
         },
         base
       )
@@ -786,6 +882,31 @@ export function recalculateBreakdownFromComponents(
 
   for (const c of varCustoms) {
     components.push(cloneCustomFromPrev(prev, c, base));
+  }
+
+  if (hasRow(prev, "esop_estimate")) {
+    components.push(
+      comp(
+        {
+          id: "esop_estimate",
+          name:
+            rowById(prev, "esop_estimate")?.name ??
+            "ESOPs / equity (illustrative value)",
+          description:
+            rowById(prev, "esop_estimate")?.description ??
+            "Not monthly salary cash — enter an estimated value or remove if none",
+          monthlyValue: monthlyEsop,
+          annualValue: annualEsop,
+          type: "earning",
+          group: "earnings",
+          section: "variable_pay",
+          removable: true,
+          tags: copyTags(prev, "esop_estimate", ["conditional", "one_time"]),
+          lineSource: outputLineSource(prev, "esop_estimate", base),
+        },
+        base
+      )
+    );
   }
 
   components.push(
@@ -799,7 +920,7 @@ export function recalculateBreakdownFromComponents(
         type: "employer",
         group: "employer_contributions",
         tags: copyTags(prev, "employer_pf", ["employer_side", "recurring"]),
-        lineSource: lineSrc("employer_pf"),
+        lineSource: outputLineSource(prev, "employer_pf", base),
       },
       base
     ),
@@ -813,7 +934,7 @@ export function recalculateBreakdownFromComponents(
         type: "employer",
         group: "employer_contributions",
         tags: copyTags(prev, "gratuity_accrual", ["employer_side", "conditional"]),
-        lineSource: lineSrc("gratuity_accrual"),
+        lineSource: outputLineSource(prev, "gratuity_accrual", base),
       },
       base
     ),
@@ -827,7 +948,7 @@ export function recalculateBreakdownFromComponents(
         type: "deduction",
         group: "deductions",
         tags: copyTags(prev, "employee_pf", ["recurring"]),
-        lineSource: lineSrc("employee_pf"),
+        lineSource: outputLineSource(prev, "employee_pf", base),
       },
       base
     ),
@@ -841,7 +962,7 @@ export function recalculateBreakdownFromComponents(
         type: "deduction",
         group: "deductions",
         tags: copyTags(prev, "professional_tax", ["recurring"]),
-        lineSource: lineSrc("professional_tax"),
+        lineSource: outputLineSource(prev, "professional_tax", base),
       },
       base
     ),
@@ -857,13 +978,14 @@ export function recalculateBreakdownFromComponents(
         type: "deduction",
         group: "deductions",
         tags: copyTags(prev, "income_tax", ["conditional", "tax_sensitive"]),
-        lineSource: lineSrc("income_tax"),
+        lineSource: outputLineSource(prev, "income_tax", base),
       },
       base
     )
   );
 
-  const totals = deriveBreakdownSummaries(components, ctx.annualCTC);
+  const componentsWithHints = attachDocumentVerificationHints(components, ctx, prev);
+  const totals = deriveBreakdownSummaries(componentsWithHints, ctx.annualCTC);
 
   const editBasis =
     ctx.salaryResultSource === "document_parsed"
@@ -879,7 +1001,7 @@ export function recalculateBreakdownFromComponents(
 
   return {
     ...totals,
-    components,
+    components: componentsWithHints,
     meta,
   };
 }

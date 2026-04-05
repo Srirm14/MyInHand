@@ -39,6 +39,15 @@ import { appToast } from "@/lib/notify/app-notify";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { cn } from "@/lib/utils";
 import { CompensationCtcSectionForm } from "@/components/features/salary/compensation-ctc-section";
+import { SalaryPdfReviewDialog } from "@/components/features/salary/salary-pdf-review-dialog";
+import type { SalaryPdfReviewSelection } from "@/lib/salary/pdf/apply-salary-pdf-to-state";
+import { parseCompensationPdf } from "@/lib/salary/pdf/parse-compensation-pdf";
+import type { CompensationPdfParseResult } from "@/lib/salary/pdf/salary-pdf-parse.types";
+import { SalaryPdfParseError } from "@/lib/salary/pdf/salary-pdf-parse.types";
+import {
+  assertValidSalaryPdfFile,
+  toUserFacingPdfError,
+} from "@/lib/salary/pdf/validate-pdf-upload";
 import { TaxRegimeToggle } from "@/components/shared/tax-regime-toggle";
 import { smoothScrollInputIntoViewAndFocus } from "@/lib/dom/smooth-focus-input";
 import { fadeUp } from "@/lib/motion/marketing-motion";
@@ -67,13 +76,15 @@ export function CtcInputForm() {
   const input = useSalaryStore((s) => s.input);
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
-  const applyParsedSalaryDocument = useSalaryStore(
-    (s) => s.applyParsedSalaryDocument
-  );
+  const applySalaryPdfReview = useSalaryStore((s) => s.applySalaryPdfReview);
 
   const [entryMode, setEntryMode] = useState<EntryMode>("manual");
   const [docParsing, setDocParsing] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
+  const [pdfParse, setPdfParse] = useState<CompensationPdfParseResult | null>(
+    null
+  );
+  const [pdfReviewOpen, setPdfReviewOpen] = useState(false);
 
   useEffect(() => {
     if (entryMode !== "manual") {
@@ -194,18 +205,19 @@ export function CtcInputForm() {
     if (!file) return;
     if (historyLimitReached) return;
     setDocError(null);
+    setPdfParse(null);
     setDocParsing(true);
     try {
-      await applyParsedSalaryDocument(file);
-      await pushSalaryHistory();
-      clearSalaryBreakdownScrollSave();
-      const sid = useSalaryStore.getState().activeSalaryHistoryId;
-      router.push(
-        persist && sid ? salaryPremiumBreakdownHref(sid) : salaryPremiumBreakdownHref()
-      );
-    } catch {
+      assertValidSalaryPdfFile(file);
+      const buffer = await file.arrayBuffer();
+      const parsed = await parseCompensationPdf(buffer, file.name);
+      setPdfParse(parsed);
+      setPdfReviewOpen(true);
+    } catch (err) {
       setDocError(
-        "We couldn’t parse that file. Try a clear PDF or image, or use manual entry."
+        err instanceof SalaryPdfParseError
+          ? err.message
+          : toUserFacingPdfError(err)
       );
     } finally {
       setDocParsing(false);
@@ -213,7 +225,31 @@ export function CtcInputForm() {
     }
   };
 
+  const onSalaryPdfReviewApply = async (selection: SalaryPdfReviewSelection) => {
+    if (!pdfParse) return;
+    const tier = form.getValues("cityTier");
+    const regime = form.getValues("taxRegime");
+    applySalaryPdfReview(pdfParse, selection, {
+      cityTier: tier,
+      taxRegime: regime,
+    });
+    setPdfParse(null);
+    await pushSalaryHistory();
+    clearSalaryBreakdownScrollSave();
+    const sid = useSalaryStore.getState().activeSalaryHistoryId;
+    router.push(
+      persist && sid ? salaryPremiumBreakdownHref(sid) : salaryPremiumBreakdownHref()
+    );
+  };
+
   return (
+    <>
+    <SalaryPdfReviewDialog
+      open={pdfReviewOpen}
+      onOpenChange={setPdfReviewOpen}
+      parse={pdfParse}
+      onApply={onSalaryPdfReviewApply}
+    />
     <div className="relative min-h-[calc(100vh-8rem)] overflow-hidden">
       <div
         className="pointer-events-none absolute -left-40 top-0 h-96 w-96 rounded-full bg-teal-100/50 blur-3xl"
@@ -294,18 +330,18 @@ export function CtcInputForm() {
             <div className="flex items-start gap-3 rounded-xl bg-teal-50/80 border border-teal-100 px-4 py-3">
               <Upload className="size-5 text-teal-600 shrink-0 mt-0.5" />
               <div className="text-sm text-navy-700 leading-relaxed">
-                <p className="font-semibold text-navy-800">PDF or image</p>
+                <p className="font-semibold text-navy-800">PDF (structured)</p>
                 <p className="mt-1 text-xs text-navy-600">
-                  Offer letter, compensation summary, or salary structure. We extract a CTC hint
-                  from the filename and run the same tax engine; replace with real OCR/API when
-                  your backend is ready.
+                  Offer letter, compensation summary, or salary breakup. We parse selectable text
+                  in your browser with Mozilla PDF.js, then ask you to confirm fields before the
+                  breakdown opens. Password-protected or scanned-only PDFs may not extract well.
                 </p>
               </div>
             </div>
             <input
               ref={fileRef}
               type="file"
-              accept=".pdf,.png,.jpg,.jpeg,image/*,application/pdf"
+              accept="application/pdf,.pdf"
               className="hidden"
               onChange={(e) => onDocumentSelected(e.target.files)}
             />
@@ -328,8 +364,8 @@ export function CtcInputForm() {
               <p className="text-sm text-danger-600 text-center">{docError}</p>
             )}
             <p className="text-center text-xs text-navy-400">
-              Tip: include CTC in the filename (e.g. <code className="text-navy-600">24L_offer.pdf</code>
-              ) for better mock extraction.
+              Tip: text-based PDFs work best. Filename hints (e.g.{" "}
+              <code className="text-navy-600">24L_offer.pdf</code>) still help when the doc is sparse.
             </p>
           </div>
         ) : (
@@ -434,5 +470,6 @@ export function CtcInputForm() {
         <SalaryRecentsPanels />
       </PageShell>
     </div>
+    </>
   );
 }

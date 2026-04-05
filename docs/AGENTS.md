@@ -14,6 +14,7 @@ Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode
 
 ## Key Codebase Facts
 
+- **Salary PDF upload (offer letters / annexures, client-side PDF.js):** **`docs/salary-pdf-upload.md`** — parse → review dialog → `buildSalaryStateFromPdfReview` → breakdown; document vs manual recalc rules.
 - **Source** lives under `app/src/` (see root **`README.md`** tree); file count drifts with features.
 - **6 Zustand stores:** auth, salary, lifestyle, history, offer-comparison-restore, **premium-plans-modal** (open/close + `fromPremium` for contextual copy). Plus **`salary-breakdown-recalc-context`** (helper, not a store).
 - **4 Zod schemas:** auth, ctc-input, lifestyle, offer.

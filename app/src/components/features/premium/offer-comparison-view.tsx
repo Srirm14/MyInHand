@@ -41,6 +41,7 @@ import type { OfferComparisonHistoryEntry } from "@/lib/types/history.types";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { SalaryBreakdown, SalaryComponent } from "@/lib/types/salary.types";
 import { mockParseOfferDocument } from "@/lib/mocks/parse-offer-document.mock";
+import { parseOfferPdfToDraft } from "@/lib/salary/pdf/parse-offer-pdf";
 import { CompensationCtcSectionControlled } from "@/components/features/salary/compensation-ctc-section";
 import {
   calculateSalaryBreakdown,
@@ -751,7 +752,14 @@ export function OfferComparisonView() {
         taxRegime: offers[0]?.taxRegime ?? ("new" as const),
       };
       const parsed = await Promise.all(
-        files.map((f) => mockParseOfferDocument(f, d))
+        files.map((f) => {
+          const name = f.name.toLowerCase();
+          const type = f.type.toLowerCase();
+          if (type === "application/pdf" || name.endsWith(".pdf")) {
+            return parseOfferPdfToDraft(f, d);
+          }
+          return mockParseOfferDocument(f, d);
+        })
       );
       setOffers(parsed);
       setEntryMode("manual");
@@ -945,8 +953,9 @@ export function OfferComparisonView() {
                 Advanced: compare from documents
               </p>
               <p className="text-xs text-navy-600 leading-relaxed">
-                Select two or three files (PDF or image). Mock parser infers company name
-                from the filename and CTC from patterns like <code className="text-navy-800">24L</code> or a 6–9 digit amount — then runs the same in-hand engine. Replace with real OCR when your API is live.
+                PDFs use the same PDF.js text extraction as salary upload. Images still use
+                filename hints only. After import, review each card — CTC and company are
+                best-effort and may need a quick correction.
               </p>
               <input
                 ref={fileRef}
@@ -981,7 +990,8 @@ export function OfferComparisonView() {
 
       {anyFromDocument ? (
         <p className="text-xs text-teal-800 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
-          This comparison includes document-parsed offers — double-check CTC, regime, and city tier in each card.
+          Document-assisted offers: we filled what we could — please verify CTC, company name,
+          regime, and city tier on each card before you rely on the comparison.
         </p>
       ) : null}
 

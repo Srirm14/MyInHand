@@ -31,7 +31,7 @@ describe("calculateSalaryBreakdown — component structure", () => {
     const bd = breakdown12LPA();
     const requiredIds = [
       "basic", "hra", "da", "meal_allowance", "telecom_reimbursement",
-      "special_allowance", "employer_pf", "gratuity_accrual",
+      "special_allowance", "esop_estimate", "employer_pf", "gratuity_accrual",
       "employee_pf", "professional_tax", "income_tax",
     ];
     requiredIds.forEach((id) => {
@@ -377,5 +377,20 @@ describe("recalculateBreakdownFromComponents", () => {
       makeCtx({ salaryResultSource: "document_parsed" })
     );
     expect(recalc.meta?.breakdownEditBasis).toBe("user_edited_after_parse");
+  });
+
+  it("document_parsed recalc skips illustrative meal, telecom, PF, gratuity, prof tax defaults", () => {
+    const fresh = calculateSalaryBreakdown(1_200_000, "tier1", "new");
+    const recalc = recalculateBreakdownFromComponents(
+      fresh.components,
+      makeCtx({ salaryResultSource: "document_parsed" })
+    );
+    expect(getComp(recalc, "meal_allowance").monthlyValue).toBe(0);
+    expect(getComp(recalc, "telecom_reimbursement").monthlyValue).toBe(0);
+    expect(getComp(recalc, "employee_pf").monthlyValue).toBe(0);
+    expect(getComp(recalc, "employer_pf").monthlyValue).toBe(0);
+    expect(getComp(recalc, "gratuity_accrual").monthlyValue).toBe(0);
+    expect(getComp(recalc, "professional_tax").monthlyValue).toBe(0);
+    expect(getComp(recalc, "meal_allowance").needsVerification).toBe(true);
   });
 });
