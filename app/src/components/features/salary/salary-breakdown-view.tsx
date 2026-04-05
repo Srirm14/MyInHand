@@ -17,7 +17,6 @@ import { useTotalsSectionFlash } from "@/lib/hooks/use-totals-section-flash";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowRight,
   BadgePercent,
   Briefcase,
   Calendar,
@@ -30,10 +29,10 @@ import {
   Plus,
   Sparkles,
   Trash2,
-  LineChart,
-  Scale,
   Upload,
+  LineChart,
   Loader2,
+  Scale,
   Wallet,
 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -66,7 +65,6 @@ import { useSalaryBreakdownCloudSync } from "@/lib/hooks/use-salary-breakdown-cl
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
-import type { LucideIcon } from "lucide-react";
 import type {
   SalaryBreakdownSection,
   SalaryComponent,
@@ -1241,7 +1239,9 @@ export function SalaryBreakdownView() {
             <h3 className="text-h3 text-navy-800 mb-1">Allocation benchmarks</h3>
             <p className="text-xs text-navy-500 mb-5 leading-relaxed">
               Illustrative 50/30/20-style split for sense-checking. For real
-              numbers, use the planning cards below.
+              numbers, open{" "}
+              <span className="font-medium text-navy-600">Monthly plan</span> from{" "}
+              <span className="font-medium text-navy-600">Tools</span>.
             </p>
             <div className="space-y-5">
               <BenchmarkBar
@@ -1262,83 +1262,10 @@ export function SalaryBreakdownView() {
             </div>
           </div>
         </div>
-
-        <div className="max-w-5xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-navy-400">
-            Plan from this breakdown
-          </p>
-          <p className="mt-1 text-sm text-navy-500 max-w-2xl leading-relaxed">
-            Monthly surplus, loan stress, then a longer-range view—same flow as
-            the quick links at the top of this section.
-          </p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <BreakdownNextStepCard
-              icon={CalendarDays}
-              title="Monthly plan"
-              description="Rent, food, transport, and more—see how much room you have after essentials each month."
-              cta="Open monthly plan"
-              href={SALARY_PREMIUM_LIFESTYLE}
-            />
-            <BreakdownNextStepCard
-              icon={Scale}
-              title="EMI & affordability"
-              description="Model home, car, or personal loans against in-hand pay and your Monthly plan."
-              cta="Open EMI planner"
-              href={toolHref("emi")}
-            />
-            <BreakdownNextStepCard
-              icon={LineChart}
-              title="Wealth forecast"
-              description="Project wealth over time from today’s model—not advice, just a clearer picture."
-              cta="View wealth forecast"
-              href={toolHref("forecast")}
-            />
-          </div>
-        </div>
       </div>
 
       <SaveProgressCta returnTo={SALARY_PREMIUM_BREAKDOWN} className="mt-12" />
     </PageShell>
-  );
-}
-
-function BreakdownNextStepCard({
-  icon: Icon,
-  title,
-  description,
-  cta,
-  href,
-}: {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  cta: string;
-  href: string;
-}) {
-  return (
-    <Link
-      href={href}
-      onPointerDownCapture={() => persistSalaryBreakdownScrollNow()}
-      className={cn(
-        "group flex min-h-[8.5rem] cursor-pointer flex-col rounded-xl border border-navy-200/70 bg-gradient-to-b from-white to-navy-50/30 p-4 shadow-sm transition-all",
-        "hover:border-teal-200/90 hover:shadow-md hover:shadow-teal-900/[0.04]"
-      )}
-    >
-      <div className="flex size-9 items-center justify-center rounded-lg bg-teal-50 text-teal-600 ring-1 ring-teal-100/80">
-        <Icon className="size-4" strokeWidth={2} aria-hidden />
-      </div>
-      <p className="mt-3 text-sm font-semibold text-navy-800">{title}</p>
-      <p className="mt-1 flex-1 text-xs leading-relaxed text-navy-500">
-        {description}
-      </p>
-      <span className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-teal-700">
-        {cta}
-        <ArrowRight
-          className="size-3.5 transition-transform group-hover:translate-x-0.5"
-          aria-hidden
-        />
-      </span>
-    </Link>
   );
 }
 

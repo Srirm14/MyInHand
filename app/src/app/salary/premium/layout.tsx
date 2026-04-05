@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { PremiumSalaryWorkflowSwitcher } from "@/components/shared/premium-salary-workflow-switcher";
 import { userHasPremiumEntitlement } from "@/lib/server/premium-access";
 
 export default async function SalaryPremiumSectionLayout({
@@ -9,5 +11,12 @@ export default async function SalaryPremiumSectionLayout({
   if (!(await userHasPremiumEntitlement())) {
     redirect("/paywall?from=premium");
   }
-  return children;
+  return (
+    <>
+      {children}
+      <Suspense fallback={null}>
+        <PremiumSalaryWorkflowSwitcher />
+      </Suspense>
+    </>
+  );
 }
