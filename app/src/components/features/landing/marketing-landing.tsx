@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
+  LayoutDashboard,
   PiggyBank,
   Scale,
   TrendingUp,
@@ -65,6 +66,13 @@ const STEPS = [
     title: "See your in-hand",
     desc: "Instant monthly take-home with a full breakup—PF, tax, every line item.",
   },
+] as const;
+
+/** Shown above the feature grid when the viewer already has Premium (no pricing on page). */
+const PREMIUM_TRUST_CHIPS = [
+  "Full toolkit unlocked",
+  "No bank linking",
+  "Old & new regime",
 ] as const;
 
 // ─── Abstract hero preview ────────────────────────────────────────────────────
@@ -167,7 +175,7 @@ function HeroAbstractPreview() {
 
 // ─── Section heading helper ───────────────────────────────────────────────────
 
-function SectionEyebrow({ children }: { children: React.ReactNode }) {
+function SectionEyebrow({ children }: { readonly children: React.ReactNode }) {
   return (
     <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-600 mb-3">
       {children}
@@ -175,14 +183,80 @@ function SectionEyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
+function MembershipLandingPanel({ loggedIn }: { readonly loggedIn: boolean }) {
+  return (
+    <motion.section
+      initial="hidden"
+      whileInView="show"
+      viewport={VIEWPORT}
+      variants={fadeUp}
+      className="mt-24 md:mt-28 mx-auto max-w-2xl rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-50/90 via-white to-emerald-50/50 p-8 text-center shadow-sm"
+      aria-labelledby="member-landing-heading"
+    >
+      <SectionEyebrow>Membership</SectionEyebrow>
+      <h2
+        id="member-landing-heading"
+        className="text-xl sm:text-2xl font-bold text-navy-800 leading-snug"
+      >
+        You&apos;re on Premium
+      </h2>
+      <p className="mt-3 text-sm text-navy-600 leading-relaxed">
+        Manage billing, receipts, and account details in one place. Your calculators stay
+        the same—this is only for your subscription.
+      </p>
+      {loggedIn ? (
+        <Link
+          href="/profile"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "lg" }),
+            "mt-6 inline-flex h-11 rounded-full border-teal-300 bg-white px-6 text-sm font-semibold text-teal-800 hover:bg-teal-50"
+          )}
+        >
+          Account &amp; billing
+          <ArrowRight className="ml-2 size-4" />
+        </Link>
+      ) : (
+        <p className="mt-4 text-xs text-navy-500">
+          Sign in to manage your subscription and saved workspaces.
+        </p>
+      )}
+    </motion.section>
+  );
+}
+
+function FreeUserPricingBlock({
+  pricingPremiumHref,
+}: {
+  readonly pricingPremiumHref: string;
+}) {
+  return (
+    <motion.div
+      initial="hidden"
+      whileInView="show"
+      viewport={VIEWPORT}
+      variants={fadeUp}
+      className="mt-24 md:mt-28"
+    >
+      <SalaryPricingSection
+        premiumHref={pricingPremiumHref}
+        freeHref="/salary"
+        id="pricing"
+      />
+    </motion.div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function MarketingLanding() {
-  const { toolHref } = useTieredPremiumLinks();
+  const { toolHref, hubHref } = useTieredPremiumLinks();
   const hasPremium = usePremiumProductAccess();
   const user = useAuthStore((s) => s.user);
   const loggedIn = Boolean(user);
   const pricingPremiumHref = loggedIn ? "/profile" : "/login?from=%2Fpaywall";
+  const trustChips = hasPremium
+    ? PREMIUM_TRUST_CHIPS
+    : (["No sign-up needed", "No bank linking", "Old & new regime"] as const);
 
   return (
     <div className="relative overflow-hidden">
@@ -215,7 +289,9 @@ export function MarketingLanding() {
           >
             <span className="size-1.5 rounded-full bg-teal-500 animate-pulse" />
             <p className="text-xs font-semibold text-teal-700 tracking-wide uppercase">
-              Free · No sign-up · No bank linking
+              {hasPremium
+                ? "Premium · Full toolkit unlocked"
+                : "Free · No sign-up · No bank linking"}
             </p>
           </motion.div>
 
@@ -246,8 +322,7 @@ export function MarketingLanding() {
                   strokeLinecap="round"
                 />
               </svg>
-            </span>
-            ?
+            </span>?
           </motion.h1>
 
           {/* Subtext */}
@@ -258,9 +333,9 @@ export function MarketingLanding() {
             custom={2}
             className="mt-5 md:mt-6 text-base md:text-lg text-navy-500 leading-relaxed max-w-xl mx-auto"
           >
-            InHand calculates your exact monthly take-home—after PF, TDS,
-            professional tax, and every deduction. No guessing, no HR
-            spreadsheet.
+            {hasPremium
+              ? "Your take-home, breakup, and Premium planners—offers, wealth outlook, and EMI checks—all use the same numbers, so comparisons stay honest."
+              : "InHand calculates your exact monthly take-home—after PF, TDS, professional tax, and every deduction. No guessing, no HR spreadsheet."}
           </motion.p>
 
           {/* Trust chips */}
@@ -270,18 +345,16 @@ export function MarketingLanding() {
             variants={staggerContainer(0.08)}
             className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2"
           >
-            {["No sign-up needed", "No bank linking", "Old & new regime"].map(
-              (t) => (
-                <motion.span
-                  key={t}
-                  variants={fadeIn}
-                  className="flex items-center gap-1.5 text-sm text-navy-500"
-                >
-                  <CheckCircle2 className="size-3.5 text-teal-500 shrink-0" />
-                  {t}
-                </motion.span>
-              )
-            )}
+            {trustChips.map((t) => (
+              <motion.span
+                key={t}
+                variants={fadeIn}
+                className="flex items-center gap-1.5 text-sm text-navy-500"
+              >
+                <CheckCircle2 className="size-3.5 text-teal-500 shrink-0" />
+                {t}
+              </motion.span>
+            ))}
           </motion.div>
 
           {/* CTAs */}
@@ -306,13 +379,14 @@ export function MarketingLanding() {
             <motion.div variants={fadeUp}>
               {hasPremium ? (
                 <Link
-                  href="#pricing"
+                  href={hubHref()}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "lg" }),
-                    "h-12 rounded-full border-navy-200 px-8 text-base"
+                    "h-12 rounded-full border-navy-200 px-8 text-base gap-2 inline-flex items-center"
                   )}
                 >
-                  See pricing
+                  <LayoutDashboard className="size-4 shrink-0" />
+                  Open workspace
                 </Link>
               ) : (
                 <button
@@ -473,11 +547,14 @@ export function MarketingLanding() {
             className="mx-auto max-w-2xl text-center mb-10"
           >
             <h2 className="text-h2 text-navy-800 mb-3">
-              Everything you need to understand your salary
+              {hasPremium
+                ? "Your tools — all included"
+                : "Everything you need to understand your salary"}
             </h2>
             <p className="text-navy-500 leading-relaxed">
-              From take-home to long-term wealth—tools built around your actual
-              numbers, not HR&apos;s CTC sheet.
+              {hasPremium
+                ? "Breakdown, offer comparison, wealth outlook, and EMI planning—each screen stays tied to your real in-hand, not headline CTC."
+                : "From take-home to long-term wealth—tools built around your actual numbers, not HR&apos;s CTC sheet."}
             </p>
           </motion.div>
 
@@ -535,8 +612,8 @@ export function MarketingLanding() {
           </motion.div>
         </section>
 
-        {/* ── PREMIUM TEASER ───────────────────────────────────────── */}
-        {!hasPremium ? (
+        {/* ── PREMIUM TEASER (free / anonymous only) ────────────────── */}
+        {hasPremium ? null : (
           <motion.section
             initial="hidden"
             whileInView="show"
@@ -546,22 +623,14 @@ export function MarketingLanding() {
           >
             <PremiumBlurOfferTeaser />
           </motion.section>
-        ) : null}
+        )}
 
-        {/* ── PRICING ──────────────────────────────────────────────── */}
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={VIEWPORT}
-          variants={fadeUp}
-          className="mt-24 md:mt-28"
-        >
-          <SalaryPricingSection
-            premiumHref={pricingPremiumHref}
-            freeHref="/salary"
-            id="pricing"
-          />
-        </motion.div>
+        {/* ── PRICING vs MEMBERSHIP ─────────────────────────────────── */}
+        {hasPremium ? (
+          <MembershipLandingPanel loggedIn={loggedIn} />
+        ) : (
+          <FreeUserPricingBlock pricingPremiumHref={pricingPremiumHref} />
+        )}
 
         {/* ── FINAL CTA ────────────────────────────────────────────── */}
         <motion.section
@@ -595,28 +664,37 @@ export function MarketingLanding() {
 
           <div className="relative">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-200 mb-3">
-              Start free, no account needed
+              {hasPremium ? "Premium member" : "Start free, no account needed"}
             </p>
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">
-              Know your real salary before you decide
+              {hasPremium
+                ? "Your full toolkit is ready"
+                : "Know your real salary before you decide"}
             </h2>
             <p className="text-teal-100/90 max-w-xl mx-auto mb-8 leading-relaxed">
-              Free breakdown instantly. Upgrade to premium when you need offer
-              comparison, forecasts, and EMI planning—all tied to your actual
-              in-hand, not CTC.
+              {hasPremium
+                ? "Head to your workspace for breakdown, offer comparison, forecasts, and EMI checks—everything stays grounded in your in-hand pay."
+                : "Free breakdown instantly. Upgrade when you want offer comparison, forecasts, and EMI planning—all tied to your actual in-hand, not CTC."}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                href="/salary"
+                href={hasPremium ? hubHref() : "/salary"}
                 className={cn(
                   buttonVariants({ variant: "secondary", size: "lg" }),
                   "rounded-full px-8 h-12 font-semibold bg-white text-teal-700 hover:bg-teal-50 shadow-md"
                 )}
               >
-                Calculate free
+                {hasPremium ? "Open workspace" : "Calculate free"}
                 <ArrowRight className="ml-2 size-4" />
               </Link>
-              {!hasPremium && (
+              {hasPremium ? (
+                <Link
+                  href="/salary"
+                  className="text-sm font-semibold text-teal-100 underline-offset-4 hover:underline"
+                >
+                  Or start from CTC calculator →
+                </Link>
+              ) : (
                 <button
                   type="button"
                   onClick={() => openPremiumPlansModal()}
