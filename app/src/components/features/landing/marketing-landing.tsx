@@ -5,7 +5,6 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
-  LayoutDashboard,
   PiggyBank,
   Scale,
   TrendingUp,
@@ -249,7 +248,7 @@ function FreeUserPricingBlock({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function MarketingLanding() {
-  const { toolHref, hubHref } = useTieredPremiumLinks();
+  const { toolHref } = useTieredPremiumLinks();
   const hasPremium = usePremiumProductAccess();
   const user = useAuthStore((s) => s.user);
   const loggedIn = Boolean(user);
@@ -379,14 +378,14 @@ export function MarketingLanding() {
             <motion.div variants={fadeUp}>
               {hasPremium ? (
                 <Link
-                  href={hubHref()}
+                  href={toolHref("offers")}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "lg" }),
                     "h-12 rounded-full border-navy-200 px-8 text-base gap-2 inline-flex items-center"
                   )}
                 >
-                  <LayoutDashboard className="size-4 shrink-0" />
-                  Open workspace
+                  <Scale className="size-4 shrink-0" aria-hidden />
+                  Compare offers
                 </Link>
               ) : (
                 <button
@@ -673,26 +672,26 @@ export function MarketingLanding() {
             </h2>
             <p className="text-teal-100/90 max-w-xl mx-auto mb-8 leading-relaxed">
               {hasPremium
-                ? "Head to your workspace for breakdown, offer comparison, forecasts, and EMI checks—everything stays grounded in your in-hand pay."
+                ? "Run the salary calculator anytime, or compare offers side by side—forecasts and EMI tools stay tied to your real in-hand pay."
                 : "Free breakdown instantly. Upgrade when you want offer comparison, forecasts, and EMI planning—all tied to your actual in-hand, not CTC."}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                href={hasPremium ? hubHref() : "/salary"}
+                href="/salary"
                 className={cn(
                   buttonVariants({ variant: "secondary", size: "lg" }),
                   "rounded-full px-8 h-12 font-semibold bg-white text-teal-700 hover:bg-teal-50 shadow-md"
                 )}
               >
-                {hasPremium ? "Open workspace" : "Calculate free"}
+                {hasPremium ? "Salary calculator" : "Calculate free"}
                 <ArrowRight className="ml-2 size-4" />
               </Link>
               {hasPremium ? (
                 <Link
-                  href="/salary"
+                  href={toolHref("offers")}
                   className="text-sm font-semibold text-teal-100 underline-offset-4 hover:underline"
                 >
-                  Or start from CTC calculator →
+                  Compare offers →
                 </Link>
               ) : (
                 <button

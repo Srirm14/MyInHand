@@ -36,12 +36,6 @@ export function useTieredPremiumLinks() {
       return `/login?from=${encodeURIComponent(paywall)}`;
     }
 
-    function hubHref(): string {
-      if (premium) return SALARY_PREMIUM_OFFER_COMPARISON;
-      if (loggedIn) return "/paywall";
-      return `/login?from=${encodeURIComponent("/paywall")}`;
-    }
-
-    return { loggedIn, premium, toolHref, hubHref };
+    return { loggedIn, premium, toolHref };
   }, [user]);
 }

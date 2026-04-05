@@ -82,7 +82,7 @@ Desktop-first salary intelligence SaaS for Indian salaried employees. Light-mode
   - Free / anonymous: static label only
 - **Premium nav:** **Offer comparison** in the header + **Premium** badge; tools live under **`/salary/premium/*`** (see `salary-premium-paths.ts`). Legacy `/premium/*` redirects there.
 - **History sheet** (`recent-history-sheet.tsx`): premium-only right drawer, last 5 mixed entries; trash removes salary (`RemoveSalaryEntryDialog`) or offer comparison (`RemoveOfferComparisonEntryDialog`).
-- **`useTieredPremiumLinks()`**: routes anon → login, free → paywall, premium → tool; `hubHref()` when unlocked → `/premium/offer-comparison`.
+- **`useTieredPremiumLinks()`**: routes anon → login, free → paywall, premium → real tool URLs via `toolHref("offers" | "forecast" | "emi" | "monthly")`.
 
 ## Documentation Rules
 
