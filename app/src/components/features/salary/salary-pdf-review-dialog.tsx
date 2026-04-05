@@ -191,6 +191,15 @@ interface SalaryPdfReviewDialogProps {
   readonly onOpenChange: (open: boolean) => void;
   readonly parse: CompensationPdfParseResult | null;
   readonly onApply: (selection: SalaryPdfReviewSelection) => void | Promise<void>;
+  /** Shown under the main title (e.g. “Offer 2 of 3”). */
+  readonly subtitle?: string;
+  /**
+   * When false, the dialog stays open after a successful apply (parent advances
+   * queue / closes via `open`). Salary flow keeps default true.
+   */
+  readonly closeOnApply?: boolean;
+  /** Replaces the default intro under the title (e.g. offer-comparison copy). */
+  readonly leadDescription?: ReactNode;
 }
 
 export function SalaryPdfReviewDialog({
@@ -198,6 +207,9 @@ export function SalaryPdfReviewDialog({
   onOpenChange,
   parse,
   onApply,
+  subtitle,
+  closeOnApply = true,
+  leadDescription,
 }: SalaryPdfReviewDialogProps) {
   const attentionRef = useRef<HTMLDivElement>(null);
   const paySectionRef = useRef<HTMLDivElement>(null);
@@ -469,7 +481,9 @@ export function SalaryPdfReviewDialog({
         manualAllowances: draftsToManualLines(manualAllowanceRows),
         manualVariableLines: draftsToManualLines(manualVariableRows),
       });
-      onOpenChange(false);
+      if (closeOnApply) {
+        onOpenChange(false);
+      }
     } finally {
       setApplyBusy(false);
     }
@@ -742,18 +756,24 @@ export function SalaryPdfReviewDialog({
         className="flex max-h-[min(94vh,900px)] w-full max-w-[min(100%-1rem,800px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl lg:max-w-[52rem]"
       >
         <DialogHeader className="shrink-0 border-b border-navy-100 px-5 py-4 sm:px-6">
-          <DialogTitle className="text-base sm:text-lg">Review what we extracted</DialogTitle>
+          <DialogTitle className="text-base sm:text-lg">Check your PDF</DialogTitle>
+          {subtitle ? (
+            <p className="mt-1 text-xs font-semibold text-teal-800">{subtitle}</p>
+          ) : null}
           <DialogDescription className="text-xs leading-relaxed text-navy-600 sm:text-[13px]">
-            We assisted with PDF text extraction — you stay in control. Highlighted
-            items need a quick look; everything else is optional. Your profile name is
-            used in the app; continue to refine the breakdown on the next screen.
+            {leadDescription ?? (
+              <>
+                We read your PDF on your device. Give the highlighted lines a quick look —
+                change anything that looks wrong, then continue. You can still edit later.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto scroll-smooth px-5 py-5 pb-16 sm:px-7 sm:py-6 sm:pb-20">
           <div className="rounded-xl border border-teal-100/90 bg-gradient-to-br from-teal-50/50 to-white px-3 py-2.5">
             <p className="text-xs font-medium leading-snug text-navy-800">
-              We filled what we could — review the highlighted fields before continuing.
+              Start with the highlighted fields — double-check those before you continue.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <StatusBadge variant="success">

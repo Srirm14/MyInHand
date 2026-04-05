@@ -8,6 +8,7 @@ import { mapPdfLinesToSalaryFields } from "@/lib/salary/pdf/map-text-to-salary-f
 import {
   inferMonthlyAnnualPair,
   parseMoneyTokens,
+  stripTrailingNumericAmountsFromPdfLabel,
 } from "@/lib/salary/pdf/parse-money-from-text";
 import type { CompensationPdfParseResult } from "@/lib/salary/pdf/salary-pdf-parse.types";
 import type { SalaryPdfSemanticKey } from "@/lib/salary/pdf/salary-pdf-parse.types";
@@ -62,6 +63,16 @@ describe("parse-money-from-text", () => {
   it("detects monthly/annual pair", () => {
     const p = inferMonthlyAnnualPair([50_000, 600_000]);
     expect(p).toEqual({ monthly: 50_000, annual: 600_000 });
+  });
+
+  it("strips trailing amounts from PDF line labels used as component names", () => {
+    expect(
+      stripTrailingNumericAmountsFromPdfLabel("Washing Allowance 24,000 2,000")
+    ).toBe("Washing Allowance");
+    expect(
+      stripTrailingNumericAmountsFromPdfLabel("Vehicle Allowance 4,11,773 34,314")
+    ).toBe("Vehicle Allowance");
+    expect(stripTrailingNumericAmountsFromPdfLabel("₹ 12,000")).toBe("");
   });
 });
 

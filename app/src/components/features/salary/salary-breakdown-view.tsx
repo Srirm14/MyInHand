@@ -30,7 +30,6 @@ import {
   Plus,
   Sparkles,
   Trash2,
-  Upload,
   LineChart,
   Loader2,
   Scale,
@@ -39,7 +38,7 @@ import {
 import { motion } from "framer-motion";
 import { PageShell } from "@/components/layout/page-shell";
 import { StatCard } from "@/components/shared/stat-card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -72,6 +71,7 @@ import { parseCompensationPdf } from "@/lib/salary/pdf/parse-compensation-pdf";
 import type { CompensationPdfParseResult } from "@/lib/salary/pdf/salary-pdf-parse.types";
 import { SalaryPdfParseError } from "@/lib/salary/pdf/salary-pdf-parse.types";
 import {
+  assertPdfMagicBytes,
   assertValidSalaryPdfFile,
   toUserFacingPdfError,
 } from "@/lib/salary/pdf/validate-pdf-upload";
@@ -102,6 +102,7 @@ import {
   SalaryBreakdownAccordionToolbar,
   SalaryBreakdownTableColgroup,
 } from "@/components/shared/salary-breakdown-accordion";
+import { CompensationPdfUploadDropzone } from "@/components/shared/compensation-pdf-upload-dropzone";
 
 const GROUP_TITLES: Record<SalaryComponentGroup, string> = {
   earnings: "Earnings & salary components",
@@ -340,7 +341,6 @@ export function SalaryBreakdownView() {
   );
   const applySalaryPdfReview = useSalaryStore((s) => s.applySalaryPdfReview);
 
-  const fileRef = useRef<HTMLInputElement>(null);
   const skipBreakdownScrollPersistRef = useRef(false);
   const [docBusy, setDocBusy] = useState(false);
   const [docError, setDocError] = useState<string | null>(null);
@@ -539,6 +539,7 @@ export function SalaryBreakdownView() {
     try {
       assertValidSalaryPdfFile(file);
       const buffer = await file.arrayBuffer();
+      assertPdfMagicBytes(buffer);
       const parsed = await parseCompensationPdf(buffer, file.name);
       setPdfParse(parsed);
       setPdfReviewOpen(true);
@@ -550,7 +551,6 @@ export function SalaryBreakdownView() {
       );
     } finally {
       setDocBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -622,54 +622,29 @@ export function SalaryBreakdownView() {
 
         <motion.div
           variants={fadeUp}
-          className="mt-1 mb-5 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm"
+          className="mt-1 mb-5 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm sm:p-5"
         >
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
-              <Upload className="size-5" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-navy-800">
-                Replace from file
-              </p>
-              <p className="mt-0.5 max-w-xl text-xs leading-relaxed text-navy-500">
-                Upload a text-based compensation PDF — we parse with PDF.js and open a
-                review sheet before replacing this breakdown.
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col items-stretch sm:items-end gap-2 shrink-0">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              className="hidden"
-              onChange={(e) => onStructureUpload(e.target.files)}
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={docBusy}
-              onClick={() => fileRef.current?.click()}
-              className="rounded-full border-teal-200 text-teal-800 hover:bg-teal-50"
-            >
-              {docBusy ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                  Reading…
-                </>
-              ) : (
-                "Choose file"
-              )}
-            </Button>
-            {docError && (
-              <p className="text-xs text-danger-600 text-right max-w-xs">
-                {docError}
-              </p>
-            )}
-          </div>
-        </div>
+          <CompensationPdfUploadDropzone
+            layout="inline"
+            onFilesSelected={onStructureUpload}
+            busy={docBusy}
+            busyLabel="Reading your file…"
+            error={docError}
+            title="Load a new PDF"
+            description={
+              <>
+                Pick an offer letter or breakup PDF. You’ll review it like on the salary
+                page, then this table updates. Use a normal PDF file — not a photo.
+              </>
+            }
+            browseButtonLabel="Choose PDF"
+            footnote={
+              <>
+                Remove the password from a locked PDF first. Thin on numbers? Try a
+                filename like <code className="text-navy-500">24L_offer.pdf</code>.
+              </>
+            }
+          />
         </motion.div>
 
       <motion.div

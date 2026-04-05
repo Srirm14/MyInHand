@@ -57,6 +57,29 @@ export function pickPrimaryAmount(
 }
 
 /** If two amounts look like monthly + annual (ratio ~12), return both. */
+/**
+ * PDF lines often pack label + annual + monthly into one string for `labelMatched`.
+ * Strip trailing currency tokens and numeric groups so breakdown row names stay clean.
+ */
+export function stripTrailingNumericAmountsFromPdfLabel(label: string): string {
+  let s = label.replace(/\u00a0/g, " ").trim();
+  for (let i = 0; i < 24; i++) {
+    const before = s;
+    s = s
+      .replace(/(?:₹|Rs\.?|INR)\s*[\d,]+(?:\.\d{1,2})?\s*$/i, "")
+      .trimEnd();
+    s = s.replace(/\s+[\d,]+(?:\.\d{1,2})?(?:\s*\/-)?\s*$/i, "").trimEnd();
+    if (s === before) break;
+  }
+  return s.trim();
+}
+
+/** If nothing readable remains, caller should fall back to a default label. */
+export function pdfLabelLooksEmptyForDisplay(s: string): boolean {
+  const t = s.trim();
+  return t.length < 2 || /^[\d,.\s₹/-]+$/i.test(t);
+}
+
 export function inferMonthlyAnnualPair(
   tokens: number[]
 ): { monthly: number; annual: number } | null {

@@ -40,8 +40,20 @@ import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-compariso
 import type { OfferComparisonHistoryEntry } from "@/lib/types/history.types";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { SalaryBreakdown, SalaryComponent } from "@/lib/types/salary.types";
-import { mockParseOfferDocument } from "@/lib/mocks/parse-offer-document.mock";
-import { parseOfferPdfToDraft } from "@/lib/salary/pdf/parse-offer-pdf";
+import { SalaryPdfReviewDialog } from "@/components/features/salary/salary-pdf-review-dialog";
+import { CompensationPdfUploadDropzone } from "@/components/shared/compensation-pdf-upload-dropzone";
+import type { SalaryPdfReviewSelection } from "@/lib/salary/pdf/apply-salary-pdf-to-state";
+import { buildOfferDraftAndBreakdownFromPdfReview } from "@/lib/salary/pdf/offer-from-pdf-review";
+import { parseCompensationPdf } from "@/lib/salary/pdf/parse-compensation-pdf";
+import {
+  SalaryPdfParseError,
+  type CompensationPdfParseResult,
+} from "@/lib/salary/pdf/salary-pdf-parse.types";
+import {
+  assertPdfMagicBytes,
+  assertValidSalaryPdfFile,
+  toUserFacingPdfError,
+} from "@/lib/salary/pdf/validate-pdf-upload";
 import { CompensationCtcSectionControlled } from "@/components/features/salary/compensation-ctc-section";
 import {
   calculateSalaryBreakdown,
@@ -133,6 +145,11 @@ function offersLookUnused(list: OfferDraft[]): boolean {
 
 type OfferEntryMode = "manual" | "upload";
 
+type PendingOfferPdf = {
+  parse: CompensationPdfParseResult;
+  offerId: string;
+};
+
 const VERDICT_FILTER_SEQUENCE: OfferVerdictFilterId[] = [
   "all",
   "best_both",
@@ -183,7 +200,15 @@ export function OfferComparisonView() {
   const persistOffers = shouldPersistSessions(user);
   const urlOfferSession = searchParams.get("session");
 
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingOfferPdfQueue, setPendingOfferPdfQueue] = useState<
+    PendingOfferPdf[]
+  >([]);
+  const offerPdfReviewTotalRef = useRef(0);
+  const offersBeforePdfReviewRef = useRef<OfferDraft[] | null>(null);
+  const editsBeforePdfReviewRef = useRef<Record<
+    string,
+    { breakdown: SalaryBreakdown; inputKey: string }
+  > | null>(null);
   const [expandedOfferId, setExpandedOfferId] = useState<string | null>(null);
   const [verdictFilter, setVerdictFilter] =
     useState<OfferVerdictFilterId>("all");
@@ -206,6 +231,9 @@ export function OfferComparisonView() {
     }
     return [emptyOffer("a"), emptyOffer("b")];
   });
+
+  const offersRef = useRef(offers);
+  offersRef.current = offers;
 
   const upsertOfferSession = useUpsertOfferSessionMutation();
   const [activeOfferSessionId, setActiveOfferSessionId] = useState<string | null>(
@@ -737,32 +765,98 @@ export function OfferComparisonView() {
     }
   }, [canCompare, anyFromDocument]);
 
+  const handleOfferPdfReviewOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) return;
+    if (pendingOfferPdfQueue.length === 0) return;
+    const snapOffers = offersBeforePdfReviewRef.current;
+    const snapEdits = editsBeforePdfReviewRef.current;
+    if (snapOffers) {
+      setOffers(snapOffers);
+      setOfferBreakdownEdits(snapEdits ?? {});
+    }
+    offersBeforePdfReviewRef.current = null;
+    editsBeforePdfReviewRef.current = null;
+    setPendingOfferPdfQueue([]);
+  };
+
+  const onOfferPdfReviewApply = (selection: SalaryPdfReviewSelection) => {
+    const head = pendingOfferPdfQueue[0];
+    if (!head) return;
+    const prev = offersRef.current;
+    const slotOffer = prev.find((o) => o.id === head.offerId);
+    const defaults = {
+      cityTier: slotOffer?.cityTier ?? prev[0]?.cityTier ?? "tier1",
+      taxRegime: slotOffer?.taxRegime ?? prev[0]?.taxRegime ?? "new",
+    };
+    const { draft, breakdown } = buildOfferDraftAndBreakdownFromPdfReview(
+      head.parse,
+      selection,
+      defaults,
+      head.offerId
+    );
+    const inputKey = makeOfferInputKey(draft);
+    setOffers((p) => p.map((o) => (o.id === head.offerId ? draft : o)));
+    setOfferBreakdownEdits((p) => ({
+      ...p,
+      [head.offerId]: { breakdown, inputKey },
+    }));
+    setPendingOfferPdfQueue((q) => {
+      const next = q.slice(1);
+      if (next.length === 0) {
+        offersBeforePdfReviewRef.current = null;
+        editsBeforePdfReviewRef.current = null;
+      }
+      return next;
+    });
+  };
+
   const onOfferFiles = async (list: FileList | null) => {
     const files = Array.from(list ?? []).slice(0, 3);
-    if (fileRef.current) fileRef.current.value = "";
     if (files.length < 2) {
-      setUploadError("Select 2–3 offer letters or PDFs to compare.");
+      setUploadError("Choose at least 2 PDF offer letters (up to 3).");
       return;
     }
     setUploadError(null);
     setUploadBusy(true);
     try {
-      const d = {
+      const defaults = {
         cityTier: offers[0]?.cityTier ?? ("tier1" as const),
         taxRegime: offers[0]?.taxRegime ?? ("new" as const),
       };
-      const parsed = await Promise.all(
-        files.map((f) => {
-          const name = f.name.toLowerCase();
-          const type = f.type.toLowerCase();
-          if (type === "application/pdf" || name.endsWith(".pdf")) {
-            return parseOfferPdfToDraft(f, d);
-          }
-          return mockParseOfferDocument(f, d);
-        })
+
+      const pdfSlots: PendingOfferPdf[] = [];
+      for (const f of files) {
+        assertValidSalaryPdfFile(f);
+        const buffer = await f.arrayBuffer();
+        assertPdfMagicBytes(buffer);
+        const parse = await parseCompensationPdf(buffer, f.name);
+        pdfSlots.push({ parse, offerId: crypto.randomUUID() });
+      }
+
+      const initialOffers: OfferDraft[] = pdfSlots.map((s) => ({
+        ...emptyOffer(s.offerId),
+        cityTier: defaults.cityTier,
+        taxRegime: defaults.taxRegime,
+        documentFileName: s.parse.fileName,
+      }));
+
+      offersBeforePdfReviewRef.current = offers;
+      editsBeforePdfReviewRef.current = offerBreakdownEdits;
+      offerPdfReviewTotalRef.current = pdfSlots.length;
+      setPendingOfferPdfQueue(
+        pdfSlots.map(({ parse, offerId }) => ({ parse, offerId }))
       );
-      setOffers(parsed);
+
+      setOffers(initialOffers);
+      setOfferBreakdownEdits({});
       setEntryMode("manual");
+      setComparisonRevealed(false);
+    } catch (err) {
+      setUploadError(
+        err instanceof SalaryPdfParseError
+          ? err.message
+          : toUserFacingPdfError(err)
+      );
     } finally {
       setUploadBusy(false);
     }
@@ -778,6 +872,9 @@ export function OfferComparisonView() {
     offerSaveFlight.reset();
     setOffers([emptyOffer(crypto.randomUUID()), emptyOffer(crypto.randomUUID())]);
     setOfferBreakdownEdits({});
+    setPendingOfferPdfQueue([]);
+    offersBeforePdfReviewRef.current = null;
+    editsBeforePdfReviewRef.current = null;
     setComparisonRevealed(false);
     setExpandedOfferId(null);
     router.replace(SALARY_PREMIUM_OFFER_COMPARISON, { scroll: false });
@@ -788,7 +885,29 @@ export function OfferComparisonView() {
     return <OfferComparisonSkeleton />;
   }
 
+  const headOfferPdf = pendingOfferPdfQueue[0];
+  const offerPdfReviewSubtitle =
+    headOfferPdf != null
+      ? `Offer ${offerPdfReviewTotalRef.current - pendingOfferPdfQueue.length + 1} of ${offerPdfReviewTotalRef.current} · ${headOfferPdf.parse.fileName}`
+      : undefined;
+
   return (
+    <>
+      <SalaryPdfReviewDialog
+        key={headOfferPdf?.offerId ?? "offer-pdf-review-idle"}
+        open={pendingOfferPdfQueue.length > 0}
+        onOpenChange={handleOfferPdfReviewOpenChange}
+        parse={headOfferPdf?.parse ?? null}
+        onApply={onOfferPdfReviewApply}
+        closeOnApply={false}
+        subtitle={offerPdfReviewSubtitle}
+        leadDescription={
+          <>
+            Tick what you agree with — that’s what we save to this offer. You can change
+            anything later on the cards or in the table below.
+          </>
+        }
+      />
     <PageShell className="py-0 pt-2 pb-28 md:pt-3 md:pb-10">
       {persistOffers && upsertOfferSession.isPending ? (
         <div
@@ -921,7 +1040,7 @@ export function OfferComparisonView() {
                         : "text-navy-500 hover:bg-white/60 hover:text-navy-700"
                     )}
                   >
-                    Upload offers
+                    Upload PDFs
                   </button>
                 </div>
                 <div className="flex w-full gap-2 sm:w-auto sm:items-center">
@@ -944,54 +1063,43 @@ export function OfferComparisonView() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: EASE }}
-          className="rounded-2xl border border-teal-200/60 bg-teal-50/40 p-6"
+          className="rounded-2xl border border-teal-200/60 bg-teal-50/40 p-5 sm:p-6"
         >
-          <div className="flex items-start gap-3">
+          <div className="mb-4 flex items-start gap-3">
             <Upload className="size-5 text-teal-600 shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-3">
+            <div className="text-xs text-navy-600 leading-relaxed">
               <p className="text-sm font-semibold text-navy-800">
-                Advanced: compare from documents
+                Start from PDFs
               </p>
-              <p className="text-xs text-navy-600 leading-relaxed">
-                PDFs use the same PDF.js text extraction as salary upload. Images still use
-                filename hints only. After import, review each card — CTC and company are
-                best-effort and may need a quick correction.
+              <p className="mt-1">
+                Add 2 or 3 offer PDFs. We open a short review for each file, in order, then
+                fill your cards. Use real PDFs — not photos (save as PDF first if needed).
               </p>
-              <input
-                ref={fileRef}
-                type="file"
-                multiple
-                accept=".pdf,.png,.jpg,.jpeg,image/*,application/pdf"
-                className="hidden"
-                onChange={(e) => onOfferFiles(e.target.files)}
-              />
-              <Button
-                type="button"
-                disabled={uploadBusy}
-                onClick={() => fileRef.current?.click()}
-                className="rounded-full"
-              >
-                {uploadBusy ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-                    Parsing…
-                  </>
-                ) : (
-                  "Choose 2–3 files"
-                )}
-              </Button>
-              {uploadError && (
-                <p className="text-xs text-danger-600">{uploadError}</p>
-              )}
             </div>
           </div>
+          <CompensationPdfUploadDropzone
+            multiple
+            onFilesSelected={onOfferFiles}
+            busy={uploadBusy}
+            busyLabel="Reading your files…"
+            error={uploadError}
+            title="Your offer PDFs"
+            description={
+              <>
+                Put all letters in the box below, or choose them at once. First file first,
+                then the next — same review each time.
+              </>
+            }
+            browseButtonLabel="Choose PDFs"
+            dropHint="Drag 2–3 PDFs here, or click to choose"
+          />
         </motion.div>
       )}
 
       {anyFromDocument ? (
         <p className="text-xs text-teal-800 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
-          Document-assisted offers: we filled what we could — please verify CTC, company name,
-          regime, and city tier on each card before you rely on the comparison.
+          These offers came from PDFs — double-check CTC, company, tax regime, and city on
+          each card before you trust the side-by-side numbers.
         </p>
       ) : null}
 
@@ -1588,5 +1696,6 @@ export function OfferComparisonView() {
         .
       </p>
     </PageShell>
+    </>
   );
 }

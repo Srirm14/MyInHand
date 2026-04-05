@@ -45,12 +45,14 @@ import { parseCompensationPdf } from "@/lib/salary/pdf/parse-compensation-pdf";
 import type { CompensationPdfParseResult } from "@/lib/salary/pdf/salary-pdf-parse.types";
 import { SalaryPdfParseError } from "@/lib/salary/pdf/salary-pdf-parse.types";
 import {
+  assertPdfMagicBytes,
   assertValidSalaryPdfFile,
   toUserFacingPdfError,
 } from "@/lib/salary/pdf/validate-pdf-upload";
 import { TaxRegimeToggle } from "@/components/shared/tax-regime-toggle";
 import { smoothScrollInputIntoViewAndFocus } from "@/lib/dom/smooth-focus-input";
 import { fadeUp } from "@/lib/motion/marketing-motion";
+import { CompensationPdfUploadDropzone } from "@/components/shared/compensation-pdf-upload-dropzone";
 
 const tierOptions = CITY_TIERS.map((t) => ({
   value: t.value,
@@ -62,7 +64,6 @@ type EntryMode = "manual" | "document";
 
 export function CtcInputForm() {
   const router = useRouter();
-  const fileRef = useRef<HTMLInputElement>(null);
   const annualCtcInputRef = useRef<HTMLInputElement | null>(null);
   const setAnnualCtcInputNode = useCallback((node: HTMLInputElement | null) => {
     annualCtcInputRef.current = node;
@@ -210,6 +211,7 @@ export function CtcInputForm() {
     try {
       assertValidSalaryPdfFile(file);
       const buffer = await file.arrayBuffer();
+      assertPdfMagicBytes(buffer);
       const parsed = await parseCompensationPdf(buffer, file.name);
       setPdfParse(parsed);
       setPdfReviewOpen(true);
@@ -221,7 +223,6 @@ export function CtcInputForm() {
       );
     } finally {
       setDocParsing(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   };
 
@@ -267,11 +268,9 @@ export function CtcInputForm() {
             <span className="text-navy-800">, two ways</span>
           </h1>
           <p className="mt-4 text-base md:text-lg text-navy-500 max-w-2xl mx-auto leading-relaxed">
-            Enter your CTC for an{" "}
-            <strong className="font-semibold text-navy-700">estimated</strong> in-hand and
-            breakup, or upload an offer or salary structure for a{" "}
-            <strong className="font-semibold text-navy-700">document-assisted</strong> draft.
-            Extracted fields are a starting point—review and adjust on the next screen.
+            <strong className="font-semibold text-navy-700">Type your CTC</strong> for a quick
+            estimate. Or <strong className="font-semibold text-navy-700">add a PDF</strong>{" "}
+            and we’ll pull numbers out for you — you check them on the next screen.
           </p>
         </div>
 
@@ -280,7 +279,7 @@ export function CtcInputForm() {
             {(
               [
                 { id: "manual" as const, label: "Manual CTC" },
-                { id: "document" as const, label: "Upload document" },
+                { id: "document" as const, label: "From PDF" },
               ] as const
             ).map((tab) => (
               <button
@@ -326,47 +325,38 @@ export function CtcInputForm() {
         ) : null}
 
         {entryMode === "document" ? (
-          <div className="rounded-2xl border border-navy-200/50 bg-white p-6 md:p-8 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-navy-200/50 bg-white p-6 md:p-8 shadow-sm space-y-5">
             <div className="flex items-start gap-3 rounded-xl bg-teal-50/80 border border-teal-100 px-4 py-3">
               <Upload className="size-5 text-teal-600 shrink-0 mt-0.5" />
               <div className="text-sm text-navy-700 leading-relaxed">
-                <p className="font-semibold text-navy-800">PDF (structured)</p>
+                <p className="font-semibold text-navy-800">Use a real PDF</p>
                 <p className="mt-1 text-xs text-navy-600">
-                  Offer letter, compensation summary, or salary breakup. We parse selectable text
-                  in your browser with Mozilla PDF.js, then ask you to confirm fields before the
-                  breakdown opens. Password-protected or scanned-only PDFs may not extract well.
+                  Not a photo of your screen — a PDF file from email or HR. We read it on
+                  your device, then you confirm the numbers before we show your breakup.
                 </p>
               </div>
             </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/pdf,.pdf"
-              className="hidden"
-              onChange={(e) => onDocumentSelected(e.target.files)}
-            />
-            <Button
-              type="button"
-              disabled={docParsing || historyLimitReached}
-              onClick={() => fileRef.current?.click()}
-              className="w-full h-12 rounded-full text-base font-semibold"
-            >
-              {docParsing ? (
+            <CompensationPdfUploadDropzone
+              onFilesSelected={onDocumentSelected}
+              busy={docParsing}
+              busyLabel="Reading your file…"
+              disabled={historyLimitReached}
+              error={docError}
+              title="Add your salary PDF"
+              description={
                 <>
-                  <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
-                  Reading document…
+                  Offer letter or salary breakup — drag it in or tap the button. Bad scans
+                  or locked PDFs sometimes fail; you can fix numbers on the next step.
                 </>
-              ) : (
-                "Choose file"
-              )}
-            </Button>
-            {docError && (
-              <p className="text-sm text-danger-600 text-center">{docError}</p>
-            )}
-            <p className="text-center text-xs text-navy-400">
-              Tip: text-based PDFs work best. Filename hints (e.g.{" "}
-              <code className="text-navy-600">24L_offer.pdf</code>) still help when the doc is sparse.
-            </p>
+              }
+              browseButtonLabel="Choose PDF"
+              footnote={
+                <>
+                  Tip: if amounts are missing in the file, a filename like{" "}
+                  <code className="text-navy-600">24L_offer.pdf</code> helps us guess CTC.
+                </>
+              }
+            />
           </div>
         ) : (
           <motion.form

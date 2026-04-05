@@ -1,18 +1,12 @@
 "use client";
 
 import { suggestInitialAnnualCtc } from "@/lib/salary/pdf/apply-salary-pdf-to-state";
+import { pickEmployerName } from "@/lib/salary/pdf/offer-from-pdf-review";
 import { parseCompensationPdf } from "@/lib/salary/pdf/parse-compensation-pdf";
 import type { CompensationPdfParseResult } from "@/lib/salary/pdf/salary-pdf-parse.types";
 import type { CityTier } from "@/lib/constants/city-tiers";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { TaxRegime } from "@/lib/types/salary.types";
-
-function pickEmployerName(parse: CompensationPdfParseResult): string {
-  const emp = parse.fields.find((f) => f.key === "employerName");
-  if (emp?.rawSnippet?.trim()) return emp.rawSnippet.trim().slice(0, 56);
-  const base = parse.fileName.replace(/\.[^.]+$/i, "");
-  return base.replace(/[_-]+/g, " ").trim().slice(0, 56) || "Offer from upload";
-}
 
 function pickJoiningBonus(parse: CompensationPdfParseResult): number {
   const j = parse.fields.find((f) => f.key === "joiningBonus");

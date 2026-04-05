@@ -126,6 +126,7 @@ Review values **win** over prior breakdown cells for included keys because patch
 ## Offer comparison
 
 - **`offer-breakdown-recalc-context.ts`** aligns **`baseLineSource: "estimated"`** with salary’s recalc context so offer-side edits use the same override rules.
+- **Bulk PDF upload (`OfferComparisonView`):** Users add **2–3 PDFs** only (drag-and-drop or browse via **`CompensationPdfUploadDropzone`**). Each file is parsed with `parseCompensationPdf`, then the same **`SalaryPdfReviewDialog`** runs **sequentially** (subtitle shows “Offer _i_ of _n_ · filename”). **`buildOfferDraftAndBreakdownFromPdfReview`** (`offer-from-pdf-review.ts`) calls **`buildSalaryStateFromPdfReview`** so CTC, fixed/variable split, line items, and manual rows match the salary apply path. The resulting **`SalaryBreakdown`** is stored in **`offerBreakdownEdits`** for that offer id (same as manual grid edits). Closing the dialog mid-queue restores offers + edits from before the upload.
 
 ---
 

@@ -15,6 +15,10 @@ import type {
   TaxRegime,
 } from "@/lib/types/salary.types";
 import {
+  pdfLabelLooksEmptyForDisplay,
+  stripTrailingNumericAmountsFromPdfLabel,
+} from "@/lib/salary/pdf/parse-money-from-text";
+import {
   calculateSalaryBreakdown,
   recalculateBreakdownFromComponents,
 } from "@/lib/utils/calculate-salary";
@@ -295,10 +299,12 @@ function buildDistinctParsedAllowanceComponents(
     const monthly = resolveIncludedMonthlyRupees(fields, key, overrides);
     if (monthly == null || monthly <= 0) continue;
     const f = fields.find((x) => x.key === key);
-    const label = f?.labelMatched?.trim();
+    const cleaned = f?.labelMatched
+      ? stripTrailingNumericAmountsFromPdfLabel(f.labelMatched)
+      : "";
     const name =
-      label && label.length > 0
-        ? label
+      cleaned.length > 0 && !pdfLabelLooksEmptyForDisplay(cleaned)
+        ? cleaned
         : DEFAULT_DISTINCT_ALLOWANCE_NAME[key] ?? "Allowance";
     out.push({
       id: `pdf_allow_${key}_${pdfDistinctAllowanceIdSuffix()}`,
@@ -333,10 +339,12 @@ function buildDistinctParsedVariableComponents(
     const monthly = resolveIncludedMonthlyRupees(fields, key, overrides);
     if (monthly == null || monthly <= 0) continue;
     const f = fields.find((x) => x.key === key);
-    const label = f?.labelMatched?.trim();
+    const cleaned = f?.labelMatched
+      ? stripTrailingNumericAmountsFromPdfLabel(f.labelMatched)
+      : "";
     const name =
-      label && label.length > 0
-        ? label
+      cleaned.length > 0 && !pdfLabelLooksEmptyForDisplay(cleaned)
+        ? cleaned
         : DEFAULT_DISTINCT_VARIABLE_NAME[key] ?? "Variable pay";
     out.push({
       id: `pdf_var_${key}_${pdfDistinctAllowanceIdSuffix()}`,
