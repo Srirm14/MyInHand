@@ -27,7 +27,10 @@ import { RemoveSalaryEntryDialog } from "@/components/layout/remove-salary-entry
 import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
 import { appToast } from "@/lib/notify/app-notify";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
-import { salaryPremiumBreakdownHref } from "@/lib/config/salary-premium-paths";
+import {
+  isSalaryPremiumOfferComparisonPath,
+  salaryPremiumBreakdownHref,
+} from "@/lib/config/salary-premium-paths";
 import { cn } from "@/lib/utils";
 
 const DROPDOWN_LIMIT = 5;
@@ -356,8 +359,10 @@ export function SalaryNavItem() {
   const salaryContexts = useHistoryStore((s) => s.salaryContexts);
   const { data: cloudSalaries = [] } = useSalarySessionsListQuery(persist);
 
+  /** Offer comparison lives under `/salary/premium/…` but is its own primary nav item. */
   const isActive =
-    pathname === "/salary" || pathname.startsWith("/salary/");
+    (pathname === "/salary" || pathname.startsWith("/salary/")) &&
+    !isSalaryPremiumOfferComparisonPath(pathname);
 
   const hasMeaningfulCtc =
     breakdown != null && annualCTC >= MIN_CTC_FOR_LABEL;

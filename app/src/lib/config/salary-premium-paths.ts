@@ -28,3 +28,10 @@ export function isSalaryPremiumBreakdownPath(pathname: string): boolean {
     pathname.startsWith(`${SALARY_PREMIUM_BREAKDOWN}/`)
   );
 }
+
+export function isSalaryPremiumOfferComparisonPath(pathname: string): boolean {
+  return (
+    pathname === SALARY_PREMIUM_OFFER_COMPARISON ||
+    pathname.startsWith(`${SALARY_PREMIUM_OFFER_COMPARISON}/`)
+  );
+}

@@ -148,6 +148,16 @@
   }
 }
 
+/** App-wide loading placeholders: soft grey sweep (navy-50 / 100 / 200), low-attention */
+@keyframes inhand-skeleton-shimmer-move {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -120% 0;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -167,6 +177,27 @@
 @layer utilities {
   .inhand-totals-flash-once {
     animation: inhand-totals-flash 720ms ease-out forwards;
+  }
+
+  .inhand-skeleton-shimmer {
+    background-image: linear-gradient(
+      100deg,
+      #f1f5f9 0%,
+      #e2e8f0 42%,
+      #f8fafc 50%,
+      #e2e8f0 58%,
+      #f1f5f9 100%
+    );
+    background-size: 220% 100%;
+    animation: inhand-skeleton-shimmer-move 2.6s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .inhand-skeleton-shimmer {
+      animation: none;
+      background-image: none;
+      background-color: #f1f5f9;
+    }
   }
 
   .text-display {

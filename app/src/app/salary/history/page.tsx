@@ -25,8 +25,10 @@ import { appToast } from "@/lib/notify/app-notify";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 import { salaryPremiumBreakdownHref } from "@/lib/config/salary-premium-paths";
 import { cn } from "@/lib/utils";
-import { SalaryHistoryRowsSkeleton } from "@/components/shared/loading-skeletons";
-import { Skeleton } from "@/components/ui/skeleton";
+import {
+  SalaryHistoryRowsSkeleton,
+  ShimmerBlock,
+} from "@/components/shared/loading-skeletons";
 
 export default function SalaryHistoryPage() {
   const router = useRouter();
@@ -80,8 +82,8 @@ export default function SalaryHistoryPage() {
           aria-busy
           aria-label="Loading"
         >
-          <Skeleton className="h-3 w-full rounded-md" />
-          <Skeleton className="h-3 w-[85%] rounded-md" />
+          <ShimmerBlock className="h-3 w-full rounded-md" />
+          <ShimmerBlock className="h-3 w-[85%] rounded-md" />
         </div>
       </PageShell>
     );

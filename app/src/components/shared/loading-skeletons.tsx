@@ -1,38 +1,50 @@
 import { PageShell } from "@/components/layout/page-shell";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+
+/** Minimal placeholders: three-tone grey sweep, quiet on neutral-bg */
+export function ShimmerBlock({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("inhand-skeleton-shimmer rounded-xl", className)}
+      {...props}
+    />
+  );
+}
 
 /** Login / signup Suspense fallbacks — mirrors AuthPageShell form rhythm */
 export function AuthFormSkeleton({ fields = 3 }: { fields?: number }) {
   return (
     <>
-      <Skeleton className="mx-auto mb-2 h-8 w-40 max-w-full rounded-lg" />
-      <Skeleton className="mx-auto mb-8 h-4 w-full max-w-[280px] rounded-md" />
+      <ShimmerBlock className="mx-auto mb-2 h-8 w-40 max-w-full rounded-lg" />
+      <ShimmerBlock className="mx-auto mb-8 h-4 w-full max-w-[280px] rounded-md" />
       <div className="space-y-5">
         {Array.from({ length: fields }).map((_, i) => (
           <div key={i} className="space-y-2">
-            <Skeleton className="h-3.5 w-16 rounded" />
-            <Skeleton className="h-10 w-full rounded-xl" />
+            <ShimmerBlock className="h-3.5 w-16 rounded" />
+            <ShimmerBlock className="h-10 w-full rounded-xl" />
           </div>
         ))}
-        <Skeleton className="h-11 w-full rounded-full" />
+        <ShimmerBlock className="h-11 w-full rounded-full" />
       </div>
     </>
   );
 }
 
 export function NavbarAuthSkeleton() {
-  return <Skeleton className="h-9 w-24 shrink-0 rounded-full" aria-hidden />;
+  return <ShimmerBlock className="h-9 w-24 shrink-0 rounded-full" aria-hidden />;
 }
 
 export function NavbarSuspenseFallback() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-navy-200/60 bg-white shadow-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <Skeleton className="h-9 w-36 rounded-lg" />
+        <ShimmerBlock className="h-9 w-36 rounded-lg" />
         <div className="hidden gap-8 md:flex">
-          <Skeleton className="h-4 w-20 rounded" />
-          <Skeleton className="h-4 w-28 rounded" />
+          <ShimmerBlock className="h-4 w-20 rounded" />
+          <ShimmerBlock className="h-4 w-28 rounded" />
         </div>
         <NavbarAuthSkeleton />
       </div>
@@ -45,29 +57,29 @@ export function ProfilePageSkeleton() {
   return (
     <PageShell narrow className="py-8 md:py-10">
       <div className="mb-8 space-y-2">
-        <Skeleton className="h-9 w-40 rounded-lg" />
-        <Skeleton className="h-4 w-full max-w-md rounded" />
+        <ShimmerBlock className="h-9 w-40 rounded-lg" />
+        <ShimmerBlock className="h-4 w-full max-w-md rounded" />
       </div>
       <div className="space-y-8 rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm md:p-8">
         <div className="space-y-2">
-          <Skeleton className="h-3 w-12 rounded" />
-          <Skeleton className="h-5 w-24 rounded" />
-          <Skeleton className="h-3 w-full max-w-sm rounded" />
+          <ShimmerBlock className="h-3 w-12 rounded" />
+          <ShimmerBlock className="h-5 w-24 rounded" />
+          <ShimmerBlock className="h-3 w-full max-w-sm rounded" />
         </div>
         <div className="space-y-2">
-          <Skeleton className="h-3 w-14 rounded" />
-          <Skeleton className="h-5 w-48 rounded" />
+          <ShimmerBlock className="h-3 w-14 rounded" />
+          <ShimmerBlock className="h-5 w-48 rounded" />
         </div>
         <div className="space-y-5">
           {[1, 2, 3].map((i) => (
             <div key={i} className="space-y-2">
-              <Skeleton className="h-3.5 w-20 rounded" />
-              <Skeleton className="h-10 w-full rounded-xl" />
+              <ShimmerBlock className="h-3.5 w-20 rounded" />
+              <ShimmerBlock className="h-10 w-full rounded-xl" />
             </div>
           ))}
           <div className="flex flex-wrap gap-3 pt-2">
-            <Skeleton className="h-10 w-32 rounded-full" />
-            <Skeleton className="h-10 w-28 rounded-full" />
+            <ShimmerBlock className="h-10 w-32 rounded-full" />
+            <ShimmerBlock className="h-10 w-28 rounded-full" />
           </div>
         </div>
       </div>
@@ -80,28 +92,28 @@ export function SalaryBreakdownSkeleton() {
   return (
     <PageShell className="py-8 md:py-10">
       <div className="mb-4">
-        <Skeleton className="h-8 w-44 rounded-lg" />
+        <ShimmerBlock className="h-8 w-44 rounded-lg" />
       </div>
       <div className="mb-5 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <Skeleton className="size-10 shrink-0 rounded-xl" />
+            <ShimmerBlock className="size-10 shrink-0 rounded-xl" />
             <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-4 w-40 rounded" />
-              <Skeleton className="h-3 w-full max-w-md rounded" />
+              <ShimmerBlock className="h-4 w-40 rounded" />
+              <ShimmerBlock className="h-3 w-full max-w-md rounded" />
             </div>
           </div>
-          <Skeleton className="h-9 w-28 shrink-0 rounded-full self-end sm:self-center" />
+          <ShimmerBlock className="h-9 w-28 shrink-0 rounded-full self-end sm:self-center" />
         </div>
       </div>
-      <Skeleton className="mb-6 h-14 w-full rounded-xl" />
+      <ShimmerBlock className="mb-6 h-14 w-full rounded-xl" />
       <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:justify-between">
         <div className="max-w-2xl flex-1 space-y-2">
-          <Skeleton className="h-10 w-56 rounded-lg" />
-          <Skeleton className="h-4 w-full max-w-lg rounded" />
-          <Skeleton className="h-4 w-4/5 max-w-lg rounded" />
+          <ShimmerBlock className="h-10 w-56 rounded-lg" />
+          <ShimmerBlock className="h-4 w-full max-w-lg rounded" />
+          <ShimmerBlock className="h-4 w-4/5 max-w-lg rounded" />
         </div>
-        <Skeleton className="h-28 w-full max-w-sm shrink-0 rounded-xl lg:mt-1" />
+        <ShimmerBlock className="h-28 w-full max-w-sm shrink-0 rounded-xl lg:mt-1" />
       </div>
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
@@ -109,24 +121,24 @@ export function SalaryBreakdownSkeleton() {
             key={i}
             className="rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm"
           >
-            <Skeleton className="mb-3 h-3 w-24 rounded" />
-            <Skeleton className="h-8 w-36 rounded-md" />
-            <Skeleton className="mt-2 h-3 w-28 rounded" />
+            <ShimmerBlock className="mb-3 h-3 w-24 rounded" />
+            <ShimmerBlock className="h-8 w-36 rounded-md" />
+            <ShimmerBlock className="mt-2 h-3 w-28 rounded" />
           </div>
         ))}
       </div>
       <div className="mt-6 rounded-2xl border border-navy-200/50 bg-white px-5 py-4 shadow-sm">
-        <Skeleton className="mb-4 h-3 w-28 rounded" />
+        <ShimmerBlock className="mb-4 h-3 w-28 rounded" />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-16 rounded-lg" />
+            <ShimmerBlock key={i} className="h-16 rounded-lg" />
           ))}
         </div>
       </div>
       <div className="mt-6 space-y-3 rounded-2xl border border-navy-200/50 bg-white p-4 shadow-sm">
-        <Skeleton className="h-4 w-48 rounded" />
+        <ShimmerBlock className="h-4 w-48 rounded" />
         {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-12 w-full rounded-lg" />
+          <ShimmerBlock key={i} className="h-12 w-full rounded-lg" />
         ))}
       </div>
     </PageShell>
@@ -141,14 +153,14 @@ export function OfferComparisonSkeleton() {
         <div className="rounded-t-3xl border-b border-navy-100/90 px-4 py-2.5 md:px-6 md:py-3">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-3 w-40 rounded" />
-              <Skeleton className="h-6 w-56 rounded-md" />
-              <Skeleton className="h-4 w-48 rounded" />
-              <Skeleton className="hidden h-3 w-full max-w-xl rounded sm:block" />
+              <ShimmerBlock className="h-3 w-40 rounded" />
+              <ShimmerBlock className="h-6 w-56 rounded-md" />
+              <ShimmerBlock className="h-4 w-48 rounded" />
+              <ShimmerBlock className="hidden h-3 w-full max-w-xl rounded sm:block" />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Skeleton className="h-11 w-36 rounded-full" />
-              <Skeleton className="h-11 w-28 rounded-full" />
+              <ShimmerBlock className="h-11 w-36 rounded-full" />
+              <ShimmerBlock className="h-11 w-28 rounded-full" />
             </div>
           </div>
         </div>
@@ -158,11 +170,11 @@ export function OfferComparisonSkeleton() {
               key={i}
               className="rounded-2xl border border-navy-200/50 bg-navy-50/20 p-4"
             >
-              <Skeleton className="mb-4 h-5 w-32 rounded" />
+              <ShimmerBlock className="mb-4 h-5 w-32 rounded" />
               <div className="space-y-3">
-                <Skeleton className="h-10 w-full rounded-xl" />
-                <Skeleton className="h-10 w-full rounded-xl" />
-                <Skeleton className="h-24 w-full rounded-xl" />
+                <ShimmerBlock className="h-10 w-full rounded-xl" />
+                <ShimmerBlock className="h-10 w-full rounded-xl" />
+                <ShimmerBlock className="h-24 w-full rounded-xl" />
               </div>
             </div>
           ))}
@@ -178,7 +190,7 @@ export function SalaryHistoryRowsSkeleton({ rows = 4 }: { rows?: number }) {
     <ul className="mt-8 max-w-xl space-y-3" aria-busy aria-label="Loading saved salaries">
       {Array.from({ length: rows }).map((_, i) => (
         <li key={i}>
-          <Skeleton className="h-[5.5rem] w-full rounded-xl" />
+          <ShimmerBlock className="h-[5.5rem] w-full rounded-xl" />
         </li>
       ))}
     </ul>
@@ -189,21 +201,21 @@ export function SalaryHistoryRowsSkeleton({ rows = 4 }: { rows?: number }) {
 export function SalaryHistoryListSkeleton() {
   return (
     <PageShell className="py-8 md:py-10">
-      <Skeleton className="mb-6 h-8 w-36 rounded-lg" />
+      <ShimmerBlock className="mb-6 h-8 w-36 rounded-lg" />
       <div className="max-w-2xl space-y-2">
-        <Skeleton className="h-10 w-64 rounded-lg" />
-        <Skeleton className="h-4 w-full max-w-lg rounded" />
+        <ShimmerBlock className="h-10 w-64 rounded-lg" />
+        <ShimmerBlock className="h-4 w-full max-w-lg rounded" />
       </div>
-      <Skeleton className="mt-8 h-10 w-full max-w-xs rounded-full" />
+      <ShimmerBlock className="mt-8 h-10 w-full max-w-xs rounded-full" />
       <ul className="mt-8 max-w-xl space-y-3">
         {[1, 2, 3, 4].map((i) => (
           <li key={i}>
             <div className="flex items-center gap-3 rounded-xl border border-navy-200/50 bg-white p-4 shadow-sm">
               <div className="min-w-0 flex-1 space-y-2">
-                <Skeleton className="h-4 w-[72%] max-w-xs rounded" />
-                <Skeleton className="h-3 w-[88%] max-w-sm rounded" />
+                <ShimmerBlock className="h-4 w-[72%] max-w-xs rounded" />
+                <ShimmerBlock className="h-3 w-[88%] max-w-sm rounded" />
               </div>
-              <Skeleton className="size-9 shrink-0 rounded-lg" />
+              <ShimmerBlock className="size-9 shrink-0 rounded-lg" />
             </div>
           </li>
         ))}
@@ -223,13 +235,13 @@ export function RecentHistoryRowsSkeleton({ rows = 5 }: { rows?: number }) {
         >
           <div className="min-w-0 flex-1 space-y-2 rounded-xl px-3 py-3">
             <div className="flex justify-between gap-2">
-              <Skeleton className="h-4 flex-1 rounded" />
-              <Skeleton className="h-3 w-14 shrink-0 rounded" />
+              <ShimmerBlock className="h-4 flex-1 rounded" />
+              <ShimmerBlock className="h-3 w-14 shrink-0 rounded" />
             </div>
-            <Skeleton className="h-3 w-full max-w-[280px] rounded" />
-            <Skeleton className="h-3 w-24 rounded" />
+            <ShimmerBlock className="h-3 w-full max-w-[280px] rounded" />
+            <ShimmerBlock className="h-3 w-24 rounded" />
           </div>
-          <Skeleton className="size-10 shrink-0 self-center rounded-lg" />
+          <ShimmerBlock className="size-10 shrink-0 self-center rounded-lg" />
         </div>
       ))}
     </div>
@@ -262,14 +274,14 @@ export function PremiumPlannerSalaryContextSkeleton({
       aria-label="Loading salary context"
     >
       <div className="space-y-6">
-        <Skeleton className="h-3 w-28 rounded" />
-        <Skeleton className="h-4 w-full max-w-xl rounded" />
-        <Skeleton className="h-72 w-full rounded-2xl" />
-        <Skeleton className="h-52 w-full rounded-2xl" />
+        <ShimmerBlock className="h-3 w-28 rounded-md" />
+        <ShimmerBlock className="h-4 w-full max-w-xl rounded-md" />
+        <ShimmerBlock className="h-72 w-full rounded-2xl" />
+        <ShimmerBlock className="h-52 w-full rounded-2xl" />
       </div>
       <aside className="space-y-5 lg:sticky lg:top-24">
-        <Skeleton className="h-48 w-full rounded-2xl" />
-        <Skeleton className="h-56 w-full rounded-2xl" />
+        <ShimmerBlock className="h-48 w-full rounded-2xl" />
+        <ShimmerBlock className="h-56 w-full rounded-2xl" />
       </aside>
     </div>
   );
@@ -283,8 +295,8 @@ export function WealthForecastBodySkeleton({ className }: { className?: string }
       aria-busy
       aria-label="Loading salary context"
     >
-      <Skeleton className="h-80 w-full rounded-2xl" />
-      <Skeleton className="h-80 w-full rounded-2xl" />
+      <ShimmerBlock className="h-80 w-full rounded-2xl" />
+      <ShimmerBlock className="h-80 w-full rounded-2xl" />
     </div>
   );
 }
@@ -298,15 +310,15 @@ export function WealthForecastPlannerSkeleton() {
       aria-label="Loading salary context"
     >
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-xl space-y-2">
-          <Skeleton className="h-9 w-52 rounded-lg" />
-          <Skeleton className="h-4 w-full rounded" />
-          <Skeleton className="h-4 w-[92%] rounded" />
+        <div className="max-w-xl space-y-2.5">
+          <ShimmerBlock className="h-9 w-52 rounded-lg" />
+          <ShimmerBlock className="h-4 w-full rounded-md" />
+          <ShimmerBlock className="h-4 w-[92%] rounded-md" />
         </div>
         <div className="flex shrink-0 gap-2 lg:pt-1">
-          <Skeleton className="h-10 w-14 rounded-full" />
-          <Skeleton className="h-10 w-14 rounded-full" />
-          <Skeleton className="h-10 w-14 rounded-full" />
+          <ShimmerBlock className="h-10 w-14 rounded-full" />
+          <ShimmerBlock className="h-10 w-14 rounded-full" />
+          <ShimmerBlock className="h-10 w-14 rounded-full" />
         </div>
       </div>
       <WealthForecastBodySkeleton className="mt-0" />
@@ -321,13 +333,13 @@ export function SalaryRecentsPanelsSkeleton() {
       {[1, 2].map((col) => (
         <div key={col}>
           <div className="mb-4 flex items-center gap-2">
-            <Skeleton className="size-4 rounded" />
-            <Skeleton className="h-4 w-40 rounded" />
+            <ShimmerBlock className="size-4 rounded" />
+            <ShimmerBlock className="h-4 w-40 rounded" />
           </div>
           <ul className="space-y-2">
             {[1, 2, 3].map((row) => (
               <li key={row}>
-                <Skeleton className="h-[4.5rem] w-full rounded-xl" />
+                <ShimmerBlock className="h-[4.5rem] w-full rounded-xl" />
               </li>
             ))}
           </ul>
