@@ -6,6 +6,19 @@
     "dev": "npm run dev --prefix app",
     "build": "npm run build --prefix app",
     "lint": "npm run lint --prefix app",
-    "start": "npm run start --prefix app"
+    "start": "npm run start --prefix app",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "cd app && npx vitest run",
+    "test:unit:watch": "cd app && npx vitest",
+    "test:unit:coverage": "cd app && npx vitest run --coverage",
+    "test:e2e": "npx playwright test",
+    "test:e2e:headed": "npx playwright test --headed",
+    "test:e2e:ui": "npx playwright test --ui",
+    "test:e2e:premium": "NEXT_PUBLIC_ACCESS_MODE=premium npx playwright test",
+    "test:e2e:report": "npx playwright show-report",
+    "playwright:install": "npx playwright install --with-deps"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1"
   }
 }

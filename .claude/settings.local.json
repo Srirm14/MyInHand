@@ -14,7 +14,11 @@
       "Bash(grep -v \":0$\")",
       "Bash(grep -l \"export function\" src/lib/utils/*.ts src/lib/constants/*.ts)",
       "Bash(npx tsc:*)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx vitest:*)",
+      "Bash(grep -rh \"^  test\\(\" /Users/sriram.v/Desktop/Inhand/tests/e2e/*.spec.ts)",
+      "Bash(ls /Users/sriram.v/Desktop/Inhand/tests/e2e/*.spec.ts)",
+      "Bash(ls /Users/sriram.v/Desktop/Inhand/app/src/__tests__/*.test.ts)"
     ]
   }
 }
