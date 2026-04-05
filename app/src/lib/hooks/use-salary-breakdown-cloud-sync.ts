@@ -2,15 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import { useDelayedTrue } from "@/lib/hooks/use-delayed-true";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
-import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { createSaveFlightSequence } from "@/lib/persistence/save-flight-sequence";
+import { salaryDraftSignature } from "@/lib/salary/session-save/salary-session-save-logic";
 import {
-  salaryDraftSignature,
-  salaryStoreMatchesServerPayload,
-} from "@/lib/salary/session-save/salary-session-save-logic";
+  applySalarySessionDetailToStores,
+  consumeSkipNextSalaryFlush,
+} from "@/lib/salary/apply-salary-session-detail-to-stores";
 import { appToast } from "@/lib/notify/app-notify";
 import { deferExecution } from "@/lib/scheduling/defer-execution";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
@@ -18,27 +18,22 @@ import {
   useSalarySessionDetailQuery,
   useUpdateSalarySessionMutation,
 } from "@/lib/supabase/hooks/use-salary-sessions";
-import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 import type { SalaryBreakdown, SalaryInput } from "@/lib/types/salary.types";
 
 /**
- * URL `?session=`, hydrate from query, coalesced autosave with dirty baseline,
- * partial PATCH via mutation, save-flight sequencing, no last_opened touch.
+ * Breakdown-only: `?session=` effective id, baseline + debounced PATCH.
+ * Session restore, hydrate, and invalid-session cleanup live in
+ * `CloudSalaryWorkspaceSync` (layout).
  */
 export function useSalaryBreakdownCloudSync() {
-  const router = useRouter();
-  const pathname = usePathname();
   const user = useAuthStore((s) => s.user);
   const persist = shouldPersistSessions(user);
   const searchParams = useSearchParams();
   const urlSession = searchParams.get("session");
 
   const activeId = useSalaryStore((s) => s.activeSalaryHistoryId);
-  const setActive = useSalaryStore((s) => s.setActiveSalaryHistoryId);
   const input = useSalaryStore((s) => s.input);
   const breakdown = useSalaryStore((s) => s.breakdown);
-
-  const hydrateLifestyle = useLifestyleStore((s) => s.hydrateFromJson);
 
   const saveFlightRef = useRef<ReturnType<
     typeof createSaveFlightSequence
@@ -46,23 +41,15 @@ export function useSalaryBreakdownCloudSync() {
   saveFlightRef.current ??= createSaveFlightSequence();
   const saveFlight = saveFlightRef.current;
 
-  useEffect(() => {
-    if (urlSession && persist) {
-      setActive(urlSession);
-    }
-  }, [urlSession, persist, setActive]);
-
-  /** URL wins on first paint so the detail query runs without waiting for `setActive` in an effect. */
+  /** URL wins on first paint; `CloudSalaryWorkspaceSync` mirrors `?session=` into the store. */
   const effectiveId =
     persist && urlSession ? urlSession : activeId;
 
-  const { data: detail, isPending, isError } = useSalarySessionDetailQuery(
+  const { data: detail, isPending } = useSalarySessionDetailQuery(
     effectiveId,
     Boolean(persist && effectiveId)
   );
 
-  const lastHydratedSig = useRef<string | null>(null);
-  const skipNextFlush = useRef(false);
   const lastPersistedSalarySig = useRef<string | null>(null);
   const lastPersistedInputRef = useRef<SalaryInput | null>(null);
   const lastPersistedBreakdownRef = useRef<SalaryBreakdown | null>(null);
@@ -75,44 +62,9 @@ export function useSalaryBreakdownCloudSync() {
   }, [effectiveId, saveFlight]);
 
   useEffect(() => {
-    if (!persist || !effectiveId || !isError) return;
-    setActive(null);
-    lastHydratedSig.current = null;
-    if (pathname.startsWith("/salary/breakdown")) {
-      router.replace("/salary");
-    }
-  }, [persist, effectiveId, isError, setActive, router, pathname]);
-
-  useEffect(() => {
     if (!persist || !detail?.session || !effectiveId) return;
     if (detail.session.id !== effectiveId) return;
-    const sig = `${detail.session.id}:${detail.session.updated_at}`;
-    if (lastHydratedSig.current === sig) return;
-    lastHydratedSig.current = sig;
-    skipNextFlush.current = true;
-
-    const nextInput = detail.session.input_json as unknown as SalaryInput;
-    const nextBreakdown = detail.session.breakdown_json as unknown as SalaryBreakdown;
-
-    const storeInput = useSalaryStore.getState().input;
-    const storeBreakdown = useSalaryStore.getState().breakdown;
-    const { input: sameInput, breakdown: sameBreakdown } =
-      salaryStoreMatchesServerPayload(
-        storeInput,
-        storeBreakdown,
-        nextInput,
-        nextBreakdown
-      );
-
-    if (!sameInput || !sameBreakdown) {
-      // Full replace — setInput() merges partials and can leave stale keys vs
-      // server JSON, which then diverges from lastPersisted* and retriggers PATCH.
-      useSalaryStore.setState({
-        input: nextInput,
-        breakdown: nextBreakdown,
-      });
-    }
-
+    applySalarySessionDetailToStores(detail, effectiveId);
     const st = useSalaryStore.getState();
     const bd = st.breakdown;
     if (bd) {
@@ -120,12 +72,7 @@ export function useSalaryBreakdownCloudSync() {
       lastPersistedBreakdownRef.current = bd;
       lastPersistedSalarySig.current = salaryDraftSignature(st.input, bd);
     }
-
-    const lj = detail.planning?.lifestyle_json;
-    if (lj && typeof lj === "object" && !Array.isArray(lj)) {
-      hydrateLifestyle(lj as Partial<LifestyleExpenses>);
-    }
-  }, [detail, effectiveId, persist, hydrateLifestyle]);
+  }, [detail, effectiveId, persist]);
 
   const updateMut = useUpdateSalarySessionMutation();
 
@@ -140,8 +87,7 @@ export function useSalaryBreakdownCloudSync() {
   useEffect(() => {
     if (!persist || !effectiveId || !breakdown || input.annualCTC < 100_000) return;
     if (detail?.session?.id !== effectiveId) return;
-    if (skipNextFlush.current) {
-      skipNextFlush.current = false;
+    if (consumeSkipNextSalaryFlush()) {
       return;
     }
     const currentSig = `${inputSnapshot}|${breakdownSnapshot}`;

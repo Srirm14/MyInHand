@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { userHasPremiumEntitlement } from "@/lib/server/premium-access";
 
-export default async function PremiumSectionLayout({
+export default async function SalaryPremiumSectionLayout({
   children,
 }: {
   children: React.ReactNode;

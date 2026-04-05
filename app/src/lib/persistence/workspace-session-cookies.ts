@@ -1,9 +1,11 @@
 /**
- * First-party cookies for last active local salary row and offer-comparison workspace.
- * Cleared on sign-out; long max-age survives browser restarts until then.
+ * First-party cookies: last active salary session (local or cloud UUID) and
+ * offer-comparison workspace. Cleared on sign-out; long max-age survives restarts.
  */
 
-const SALARY_COOKIE = "inhand_active_salary_local";
+export const SALARY_SESSION_COOKIE_PRIMARY = "inhand_last_salary_session";
+const LEGACY_SALARY_LOCAL = "inhand_active_salary_local";
+const LEGACY_SALARY_CLOUD = "inhand_active_salary_cloud";
 const OFFER_COOKIE = "inhand_active_offer_workspace";
 const MAX_AGE_SEC = 60 * 60 * 24 * 180;
 
@@ -36,17 +38,35 @@ function expireRaw(name: string): void {
   document.cookie = `${name}=; path=/; max-age=0`;
 }
 
-export function getLocalSalarySessionCookie(): string | null {
-  const v = readRaw(SALARY_COOKIE);
-  return v && v.length > 0 ? v : null;
+/** Read unified cookie, migrating from legacy names once if needed. */
+export function readSalarySessionIdFromCookie(): string | null {
+  const primary = readRaw(SALARY_SESSION_COOKIE_PRIMARY);
+  if (primary && primary.length > 0) return primary;
+  const local = readRaw(LEGACY_SALARY_LOCAL);
+  if (local && local.length > 0) {
+    writeRaw(SALARY_SESSION_COOKIE_PRIMARY, local);
+    expireRaw(LEGACY_SALARY_LOCAL);
+    return local;
+  }
+  const cloud = readRaw(LEGACY_SALARY_CLOUD);
+  if (cloud && cloud.length > 0) {
+    writeRaw(SALARY_SESSION_COOKIE_PRIMARY, cloud);
+    expireRaw(LEGACY_SALARY_CLOUD);
+    return cloud;
+  }
+  return null;
 }
 
-export function setLocalSalarySessionCookie(id: string): void {
-  writeRaw(SALARY_COOKIE, id);
+export function writeSalarySessionIdCookie(id: string): void {
+  writeRaw(SALARY_SESSION_COOKIE_PRIMARY, id);
+  expireRaw(LEGACY_SALARY_LOCAL);
+  expireRaw(LEGACY_SALARY_CLOUD);
 }
 
-export function clearLocalSalarySessionCookie(): void {
-  expireRaw(SALARY_COOKIE);
+export function clearSalarySessionIdCookie(): void {
+  expireRaw(SALARY_SESSION_COOKIE_PRIMARY);
+  expireRaw(LEGACY_SALARY_LOCAL);
+  expireRaw(LEGACY_SALARY_CLOUD);
 }
 
 export function getOfferWorkspaceCookie(): string | null {
@@ -63,7 +83,7 @@ export function clearOfferWorkspaceCookie(): void {
 }
 
 export function clearAllWorkspaceSessionCookies(): void {
-  expireRaw(SALARY_COOKIE);
+  clearSalarySessionIdCookie();
   expireRaw(OFFER_COOKIE);
 }
 

@@ -27,6 +27,7 @@ import { RemoveSalaryEntryDialog } from "@/components/layout/remove-salary-entry
 import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
 import { appToast } from "@/lib/notify/app-notify";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
+import { salaryPremiumBreakdownHref } from "@/lib/config/salary-premium-paths";
 import { cn } from "@/lib/utils";
 
 const DROPDOWN_LIMIT = 5;
@@ -181,7 +182,7 @@ function SalaryNavHistoryDropdown({
                     <div className="flex items-stretch gap-1 rounded-lg pr-1 hover:bg-navy-50/50">
                       {historySource === "cloud" ? (
                         <Link
-                          href={`/salary/breakdown?session=${encodeURIComponent(entry.id)}`}
+                          href={salaryPremiumBreakdownHref(entry.id)}
                           scroll={false}
                           role="option"
                           aria-selected={current}
@@ -332,7 +333,7 @@ function SalaryNavHistoryDropdown({
 /**
  * Context-aware Salary nav (primary item):
  * - Before a completed run: label `Salary`, link → `/salary`
- * - After breakdown exists: `Salary (25 LPA)` via formatCTCAsLPA, link → `/salary/breakdown`
+ * - After breakdown exists: `Salary (25 LPA)` via formatCTCAsLPA, link → `/salary/premium/breakdown`
  * - Premium access (env or `profiles.plan_tier`): label + chevron menu (switch runs, new check).
  *   Otherwise: plain Salary link only—no history switcher in nav.
  */
@@ -373,9 +374,9 @@ export function SalaryNavItem() {
 
   const salaryHref =
     breakdown && activeSalaryHistoryId && persist
-      ? `/salary/breakdown?session=${encodeURIComponent(activeSalaryHistoryId)}`
+      ? salaryPremiumBreakdownHref(activeSalaryHistoryId)
       : breakdown
-        ? "/salary/breakdown"
+        ? salaryPremiumBreakdownHref()
         : "/salary";
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -407,7 +408,7 @@ export function SalaryNavItem() {
       }
       setInput(coerceSalarySnapshot(entry.snapshot));
       calculateBreakdown();
-      router.push("/salary/breakdown");
+      router.push(salaryPremiumBreakdownHref());
       appToast.salarySession.opened();
     },
     [setInput, calculateBreakdown, setActiveSalaryHistoryId, router, persist]

@@ -23,6 +23,7 @@ import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown
 import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
 import { appToast } from "@/lib/notify/app-notify";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
+import { salaryPremiumBreakdownHref } from "@/lib/config/salary-premium-paths";
 import { cn } from "@/lib/utils";
 import { SalaryHistoryRowsSkeleton } from "@/components/shared/loading-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -212,15 +213,13 @@ export default function SalaryHistoryPage() {
                       onClick={() => {
                         setActiveSalaryHistoryId(entry.id);
                         if (persist) {
-                          router.push(
-                            `/salary/breakdown?session=${encodeURIComponent(entry.id)}`
-                          );
+                          router.push(salaryPremiumBreakdownHref(entry.id));
                           appToast.salarySession.opened();
                           return;
                         }
                         setInput(coerceSalarySnapshot(entry.snapshot));
                         calculateBreakdown();
-                        router.push("/salary/breakdown");
+                        router.push(salaryPremiumBreakdownHref());
                         appToast.salarySession.opened();
                       }}
                     >

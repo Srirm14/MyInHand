@@ -1,5 +1,6 @@
 import { PageShell } from "@/components/layout/page-shell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
 /** Login / signup Suspense fallbacks — mirrors AuthPageShell form rhythm */
 export function AuthFormSkeleton({ fields = 3 }: { fields?: number }) {
@@ -231,6 +232,84 @@ export function RecentHistoryRowsSkeleton({ rows = 5 }: { rows?: number }) {
           <Skeleton className="size-10 shrink-0 self-center rounded-lg" />
         </div>
       ))}
+    </div>
+  );
+}
+
+type PlannerSplitLayout = "monthly" | "emi";
+
+/**
+ * Premium planners (EMI, monthly plan): main column + sticky sidebar while
+ * `useResolvedMonthlyInHand().isRestoringSalaryContext` is true.
+ */
+export function PremiumPlannerSalaryContextSkeleton({
+  className,
+  layout = "monthly",
+}: {
+  className?: string;
+  /** EMI uses a 380px stats column to match the live page grid. */
+  layout?: PlannerSplitLayout;
+}) {
+  const grid =
+    layout === "emi"
+      ? "mt-10 grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-12"
+      : "mt-10 grid gap-8 lg:grid-cols-[1fr_420px] lg:items-start lg:gap-8";
+
+  return (
+    <div
+      className={cn(grid, className)}
+      aria-busy
+      aria-label="Loading salary context"
+    >
+      <div className="space-y-6">
+        <Skeleton className="h-3 w-28 rounded" />
+        <Skeleton className="h-4 w-full max-w-xl rounded" />
+        <Skeleton className="h-72 w-full rounded-2xl" />
+        <Skeleton className="h-52 w-full rounded-2xl" />
+      </div>
+      <aside className="space-y-5 lg:sticky lg:top-24">
+        <Skeleton className="h-48 w-full rounded-2xl" />
+        <Skeleton className="h-56 w-full rounded-2xl" />
+      </aside>
+    </div>
+  );
+}
+
+/** Wealth forecast: two equal columns below header. */
+export function WealthForecastBodySkeleton({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn("mt-10 grid gap-10 lg:grid-cols-2", className)}
+      aria-busy
+      aria-label="Loading salary context"
+    >
+      <Skeleton className="h-80 w-full rounded-2xl" />
+      <Skeleton className="h-80 w-full rounded-2xl" />
+    </div>
+  );
+}
+
+/** Wealth forecast: title row + horizon chips + body — avoids flashing manual in-hand UI. */
+export function WealthForecastPlannerSkeleton() {
+  return (
+    <div
+      className="mt-1 space-y-8"
+      aria-busy
+      aria-label="Loading salary context"
+    >
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-xl space-y-2">
+          <Skeleton className="h-9 w-52 rounded-lg" />
+          <Skeleton className="h-4 w-full rounded" />
+          <Skeleton className="h-4 w-[92%] rounded" />
+        </div>
+        <div className="flex shrink-0 gap-2 lg:pt-1">
+          <Skeleton className="h-10 w-14 rounded-full" />
+          <Skeleton className="h-10 w-14 rounded-full" />
+          <Skeleton className="h-10 w-14 rounded-full" />
+        </div>
+      </div>
+      <WealthForecastBodySkeleton className="mt-0" />
     </div>
   );
 }

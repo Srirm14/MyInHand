@@ -11,6 +11,50 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/lifestyle",
+        destination: "/salary/premium/lifestyle",
+        permanent: true,
+      },
+      {
+        source: "/lifestyle/:path*",
+        destination: "/salary/premium/lifestyle",
+        permanent: true,
+      },
+      {
+        source: "/premium",
+        destination: "/salary/premium/offer-comparison",
+        permanent: true,
+      },
+      {
+        source: "/premium/wealth-forecast",
+        destination: "/salary/premium/wealth-forecast",
+        permanent: true,
+      },
+      {
+        source: "/premium/emi-analyzer",
+        destination: "/salary/premium/emi-analyzer",
+        permanent: true,
+      },
+      {
+        source: "/premium/offer-comparison",
+        destination: "/salary/premium/offer-comparison",
+        permanent: true,
+      },
+      {
+        source: "/salary/breakdown",
+        destination: "/salary/premium/breakdown",
+        permanent: true,
+      },
+      {
+        source: "/salary/breakdown/:path*",
+        destination: "/salary/premium/breakdown",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

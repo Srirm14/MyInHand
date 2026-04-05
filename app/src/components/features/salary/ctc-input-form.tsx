@@ -19,6 +19,7 @@ import {
 import { CITY_TIERS } from "@/lib/constants/city-tiers";
 import { ctcInputSchema, type CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
+import { salaryPremiumBreakdownHref } from "@/lib/config/salary-premium-paths";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import {
   useCreateSalarySessionMutation,
@@ -176,9 +177,7 @@ export function CtcInputForm() {
     clearSalaryBreakdownScrollSave();
     const sid = useSalaryStore.getState().activeSalaryHistoryId;
     router.push(
-      persist && sid
-        ? `/salary/breakdown?session=${encodeURIComponent(sid)}`
-        : "/salary/breakdown"
+      persist && sid ? salaryPremiumBreakdownHref(sid) : salaryPremiumBreakdownHref()
     );
   };
 
@@ -194,9 +193,7 @@ export function CtcInputForm() {
       clearSalaryBreakdownScrollSave();
       const sid = useSalaryStore.getState().activeSalaryHistoryId;
       router.push(
-        persist && sid
-          ? `/salary/breakdown?session=${encodeURIComponent(sid)}`
-          : "/salary/breakdown"
+        persist && sid ? salaryPremiumBreakdownHref(sid) : salaryPremiumBreakdownHref()
       );
     } catch {
       setDocError(

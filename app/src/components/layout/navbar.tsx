@@ -12,13 +12,14 @@ import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { InhandLogoMark } from "@/components/layout/inhand-logo-mark";
 import { NavbarAuthSkeleton, NavbarSuspenseFallback } from "@/components/shared/loading-skeletons";
 import { cn } from "@/lib/utils";
+import { SALARY_PREMIUM_OFFER_COMPARISON } from "@/lib/config/salary-premium-paths";
 
 function navOfferComparisonActive(
   pathname: string,
   paywallTool: string | null,
   premiumUnlocked: boolean
 ) {
-  const href = "/premium/offer-comparison";
+  const href = SALARY_PREMIUM_OFFER_COMPARISON;
   const onRoute = pathname === href || pathname.startsWith(`${href}/`);
   if (premiumUnlocked) return onRoute;
   /** Plain `/paywall` (e.g. hub or global pricing modal route) must not imply “offers”. */

@@ -13,7 +13,8 @@ import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
 import { isSalaryInputEquivalent } from "@/lib/utils/salary-context-match";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import { appToast } from "@/lib/notify/app-notify";
-import { clearLocalSalarySessionCookie } from "@/lib/persistence/workspace-session-cookies";
+import { salaryPremiumBreakdownHref } from "@/lib/config/salary-premium-paths";
+import { clearSalarySessionIdCookie } from "@/lib/persistence/workspace-session-cookies";
 import type { SalaryHistoryEntry } from "@/lib/types/history.types";
 
 const LIST_LIMIT = 40;
@@ -57,10 +58,10 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
             setInput(coerceSalarySnapshot(next.snapshot));
             calculateBreakdown();
             setActiveSalaryHistoryId(next.id);
-            router.push("/salary/breakdown");
+            router.push(salaryPremiumBreakdownHref());
           } else {
             resetSalary();
-            clearLocalSalarySessionCookie();
+            clearSalarySessionIdCookie();
             clearSalaryBreakdownScrollSave();
             router.push("/salary");
           }
@@ -80,12 +81,11 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
             const next = mapped[0];
             if (next) {
               setActiveSalaryHistoryId(next.id);
-              router.push(
-                "/salary/breakdown?session=" + encodeURIComponent(next.id)
-              );
+              router.push(salaryPremiumBreakdownHref(next.id));
             } else {
               resetSalary();
               clearSalaryBreakdownScrollSave();
+              clearSalarySessionIdCookie();
               setActiveSalaryHistoryId(null);
               router.push("/salary");
             }

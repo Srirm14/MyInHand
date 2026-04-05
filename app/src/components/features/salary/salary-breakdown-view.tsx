@@ -53,6 +53,10 @@ import { CashPathInteractiveRow } from "@/components/shared/cash-path-interactiv
 import { SaveProgressCta } from "@/components/shared/save-progress-cta";
 import { ExportDropdown } from "@/components/shared/export/export-dropdown";
 import { getSalaryComponentTooltip } from "@/lib/constants/salary-component-catalog";
+import {
+  SALARY_PREMIUM_BREAKDOWN,
+  SALARY_PREMIUM_LIFESTYLE,
+} from "@/lib/config/salary-premium-paths";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useSalaryBreakdownCloudSync } from "@/lib/hooks/use-salary-breakdown-cloud-sync";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
@@ -656,7 +660,7 @@ export function SalaryBreakdownView() {
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
-                href="/lifestyle"
+                href={SALARY_PREMIUM_LIFESTYLE}
                 onPointerDownCapture={() => persistSalaryBreakdownScrollNow()}
                 className={cn(
                   buttonVariants({ variant: "outline" }),
@@ -972,7 +976,7 @@ export function SalaryBreakdownView() {
               title="Monthly plan"
               description="Rent, food, transport, and more—see how much room you have after essentials each month."
               cta="Open monthly plan"
-              href="/lifestyle"
+              href={SALARY_PREMIUM_LIFESTYLE}
             />
             <BreakdownNextStepCard
               icon={Scale}
@@ -992,7 +996,7 @@ export function SalaryBreakdownView() {
         </div>
       </div>
 
-      <SaveProgressCta returnTo="/salary/breakdown" className="mt-12" />
+      <SaveProgressCta returnTo={SALARY_PREMIUM_BREAKDOWN} className="mt-12" />
     </PageShell>
   );
 }

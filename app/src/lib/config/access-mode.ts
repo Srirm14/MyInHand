@@ -4,6 +4,13 @@
  * For **feature gating**, use `hasPremiumProductAccess` / `userHasPremiumEntitlement`
  * so database `plan_tier` is respected when this is unset.
  */
+import {
+  SALARY_PREMIUM_EMI_ANALYZER,
+  SALARY_PREMIUM_LIFESTYLE,
+  SALARY_PREMIUM_OFFER_COMPARISON,
+  SALARY_PREMIUM_WEALTH_FORECAST,
+} from "@/lib/config/salary-premium-paths";
+
 export type AccessMode = "default" | "premium";
 
 const raw = process.env.NEXT_PUBLIC_ACCESS_MODE?.toLowerCase().trim();
@@ -28,17 +35,17 @@ export const PREMIUM_UNLOCKED = ACCESS_MODE === "premium";
 export type PaywallTool = "offers" | "forecast" | "emi" | "monthly";
 
 export function premiumHubHref(): string {
-  return PREMIUM_UNLOCKED ? "/premium/offer-comparison" : "/paywall";
+  return PREMIUM_UNLOCKED ? SALARY_PREMIUM_OFFER_COMPARISON : "/paywall";
 }
 
 /** Deep link into paywall with ?tool= when locked; real route when unlocked. */
 export function premiumToolHref(tool: PaywallTool): string {
   if (PREMIUM_UNLOCKED) {
     const paths: Record<PaywallTool, string> = {
-      offers: "/premium/offer-comparison",
-      forecast: "/premium/wealth-forecast",
-      emi: "/premium/emi-analyzer",
-      monthly: "/lifestyle",
+      offers: SALARY_PREMIUM_OFFER_COMPARISON,
+      forecast: SALARY_PREMIUM_WEALTH_FORECAST,
+      emi: SALARY_PREMIUM_EMI_ANALYZER,
+      monthly: SALARY_PREMIUM_LIFESTYLE,
     };
     return paths[tool];
   }

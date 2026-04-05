@@ -4,12 +4,18 @@ import { useMemo } from "react";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { hasPremiumProductAccess } from "@/lib/access/product-access";
 import type { PaywallTool } from "@/lib/config/access-mode";
+import {
+  SALARY_PREMIUM_EMI_ANALYZER,
+  SALARY_PREMIUM_LIFESTYLE,
+  SALARY_PREMIUM_OFFER_COMPARISON,
+  SALARY_PREMIUM_WEALTH_FORECAST,
+} from "@/lib/config/salary-premium-paths";
 
 const TOOL_PATHS: Record<PaywallTool, string> = {
-  offers: "/premium/offer-comparison",
-  forecast: "/premium/wealth-forecast",
-  emi: "/premium/emi-analyzer",
-  monthly: "/lifestyle",
+  offers: SALARY_PREMIUM_OFFER_COMPARISON,
+  forecast: SALARY_PREMIUM_WEALTH_FORECAST,
+  emi: SALARY_PREMIUM_EMI_ANALYZER,
+  monthly: SALARY_PREMIUM_LIFESTYLE,
 };
 
 /**
@@ -31,7 +37,7 @@ export function useTieredPremiumLinks() {
     }
 
     function hubHref(): string {
-      if (premium) return "/premium/offer-comparison";
+      if (premium) return SALARY_PREMIUM_OFFER_COMPARISON;
       if (loggedIn) return "/paywall";
       return `/login?from=${encodeURIComponent("/paywall")}`;
     }

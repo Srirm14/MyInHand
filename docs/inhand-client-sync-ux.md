@@ -1,6 +1,6 @@
 # Client sync, access, and UX conventions
 
-Practical reference for premium gating, auth, session routing, cloud sync, API minimization, loading UI, and notifications. Pair with [ADR-002](./adr/ADR-002-session-save.md) for session-save architecture decisions.
+Practical reference for premium gating, auth, session routing, cloud sync, API minimization, loading UI, and notifications. Pair with [ADR-002](./adr/ADR-002-session-save.md) (session save) and [ADR-003](./adr/ADR-003-salary-session-client-persistence.md) (cookie + global hydrate).
 
 ---
 
@@ -34,9 +34,13 @@ Do not gate product features on env-only flags without also considering `planTie
 ## Salary selected-session routing
 
 - **Active session id** lives in Zustand: `useSalaryStore.activeSalaryHistoryId`.
-- **URL:** Cloud users use `/salary/breakdown?session=<uuid>`. [`useSalaryBreakdownCloudSync`](../app/src/lib/hooks/use-salary-breakdown-cloud-sync.ts) reads `?session=`, sets active id when persisting, and loads detail from TanStack Query.
-- **Switching sessions:** Navbar dropdown, history page, recent-activity sheet, and hub recents set active id and `router.push` with `?session=` when `shouldPersistSessions` is true; otherwise they hydrate from local snapshot and push `/salary/breakdown` without query.
-- **New run from CTC form:** [`ctc-input-form`](../app/src/components/features/salary/ctc-input-form.tsx) creates a cloud session (or local history entry), sets active id, then navigates with `?session=` when applicable.
+- **Canonical URLs:** Premium planners live under **`/salary/premium/*`** (breakdown, lifestyle, wealth forecast, EMI, offer comparison). Legacy `/lifestyle`, `/salary/breakdown`, `/premium/*` **redirect** in `next.config.ts`.
+- **Cookie (`inhand_last_salary_session`):** Last active session UUID for local **or** cloud. [`WorkspaceSessionCookiesSync`](../app/src/components/providers/workspace-session-cookies-sync.tsx) writes it when tier is known; it **does not** clear the salary cookie until `authReady` and a resolved `user` (avoids treating “profile still loading” as local free tier and wiping the cookie). **Sign-out** clears all workspace cookies.
+- **Global cloud hydrate:** [`CloudSalaryWorkspaceSync`](../app/src/components/providers/cloud-salary-workspace-sync.tsx) (root layout, `Suspense` for `useSearchParams`) runs when `shouldPersistSessions` is true: after `authReady`, sets active id from **`?session=`** or the cookie, fetches `SalarySessionDetail`, applies [`applySalarySessionDetailToStores`](../app/src/lib/salary/apply-salary-session-detail-to-stores.ts). **Invalid session** (query error): clear cookie + active id; if on breakdown, redirect to `/salary`.
+- **Breakdown-only autosave:** [`useSalaryBreakdownCloudSync`](../app/src/lib/hooks/use-salary-breakdown-cloud-sync.ts) — debounced PATCH, baseline refs, save-flight. It does **not** duplicate session restore or invalid-session redirect (owned by `CloudSalaryWorkspaceSync`). **`?session=`** still wins for `effectiveId` on first paint so the detail query can run before the store is updated.
+- **Planner in-hand display:** [`useResolvedMonthlyInHand`](../app/src/lib/hooks/use-resolved-monthly-in-hand.ts) — prefer Zustand breakdown in-hand, else `salary_sessions.monthly_in_hand` from detail query. **`isRestoringSalaryContext`** is true while **`!authReady`**, during the “restore gap” (`activeId` still null while cookie or `?session=` exists), or while the detail query is loading with no in-hand yet — [`PremiumPlannerSalaryGate`](../app/src/components/shared/premium-planner-salary-gate.tsx) swaps in skeletons (`PremiumPlannerSalaryContextSkeleton`, `WealthForecastPlannerSkeleton`) so yellow CTAs and manual in-hand inputs do not flash. **`isHydratingCloudSalary`** remains the narrower “query in flight with active id” flag.
+- **Switching sessions:** Navbar, history, recents set active id and push `salaryPremiumBreakdownHref(id)` (or equivalent) when persisting; otherwise local snapshot + `salaryPremiumBreakdownHref()` without query.
+- **New run from CTC:** [`ctc-input-form`](../app/src/components/features/salary/ctc-input-form.tsx) creates cloud session or local history entry, sets active id, navigates with `?session=` when applicable.
 
 ---
 
@@ -44,7 +48,7 @@ Do not gate product features on env-only flags without also considering `planTie
 
 | Area | Hook / view | Behavior summary |
 |------|-------------|------------------|
-| Salary breakdown | `useSalaryBreakdownCloudSync` | Debounced autosave; **partial PATCH** via `diffSalarySessionRow`; baseline and signature aligned with **client store** after save/hydrate to avoid PATCH loops; save-flight discards stale callbacks. |
+| Salary breakdown | `useSalaryBreakdownCloudSync` + layout `CloudSalaryWorkspaceSync` | Global hydrate + cookie restore in layout; breakdown hook: debounced autosave, **partial PATCH**, baseline/signature, save-flight. |
 | Offer comparison | `offer-comparison-view` | Debounced upsert; fingerprint skips redundant writes; save-flight for latest `.then`; cache updated with `setQueryData`. |
 | Monthly plan | `monthly-plan-view` | Debounced `upsertSalaryPlanning` when lifestyle JSON fingerprint differs from server planning row. |
 
@@ -121,10 +125,15 @@ Scroll-after-compare in offer comparison uses **double `requestAnimationFrame`**
 |-------|------|
 | Premium + persistence gate | `app/src/lib/access/product-access.ts`, `app/src/lib/supabase/persistence-gate.ts` |
 | Auth sync | `app/src/components/providers/auth-sync.tsx` |
-| Salary cloud sync | `app/src/lib/hooks/use-salary-breakdown-cloud-sync.ts` |
+| Workspace session cookies | `app/src/components/providers/workspace-session-cookies-sync.tsx`, `app/src/lib/persistence/workspace-session-cookies.ts` |
+| Cloud salary workspace | `app/src/components/providers/cloud-salary-workspace-sync.tsx` |
+| Salary breakdown autosave | `app/src/lib/hooks/use-salary-breakdown-cloud-sync.ts` |
+| Salary session hydrate helper | `app/src/lib/salary/apply-salary-session-detail-to-stores.ts` |
+| Resolved in-hand (planners) | `app/src/lib/hooks/use-resolved-monthly-in-hand.ts` |
 | Salary mutations | `app/src/lib/supabase/hooks/use-salary-sessions.ts` |
 | Offer mutations | `app/src/lib/supabase/hooks/use-offer-sessions.ts` |
 | Session save ADR | `docs/adr/ADR-002-session-save.md` |
+| Client salary session ADR | `docs/adr/ADR-003-salary-session-client-persistence.md` |
 | Notifications | `app/src/lib/notify/app-notify.ts`, `app/src/components/ui/sonner.tsx` |
 | Deferred execution | `app/src/lib/scheduling/defer-execution.ts` |
 | Totals flash (CSS) | `app/src/lib/hooks/use-totals-section-flash.ts`, `app/src/app/globals.css` (`inhand-totals-flash`) |

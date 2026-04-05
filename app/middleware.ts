@@ -13,12 +13,13 @@ const PUBLIC_EXACT = new Set([
   "/paywall",
 ]);
 
-function isPremiumSalaryOrLifestylePath(pathname: string) {
+function isPremiumSalaryDeepPath(pathname: string) {
   if (pathname === "/salary/detailed" || pathname.startsWith("/salary/detailed/"))
     return true;
   if (pathname === "/salary/breakdown" || pathname.startsWith("/salary/breakdown/"))
     return true;
-  if (pathname === "/lifestyle" || pathname.startsWith("/lifestyle/")) return true;
+  if (pathname === "/salary/premium" || pathname.startsWith("/salary/premium/"))
+    return true;
   return false;
 }
 
@@ -27,7 +28,7 @@ function requiresPremiumToolAccess(pathname: string) {
 }
 
 function requiresPremiumAccess(pathname: string) {
-  return requiresPremiumToolAccess(pathname) || isPremiumSalaryOrLifestylePath(pathname);
+  return requiresPremiumToolAccess(pathname) || isPremiumSalaryDeepPath(pathname);
 }
 
 function isProtectedProfile(pathname: string) {

@@ -10,22 +10,25 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { useSalaryStore } from "@/lib/stores/use-salary-store";
+import { useResolvedMonthlyInHand } from "@/lib/hooks/use-resolved-monthly-in-hand";
 import {
   projectWealth,
   type WealthYearRow,
 } from "@/lib/utils/project-wealth";
+import { SALARY_PREMIUM_BREAKDOWN } from "@/lib/config/salary-premium-paths";
+import { PremiumPlannerSalaryGate } from "@/components/shared/premium-planner-salary-gate";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { cn } from "@/lib/utils";
 
 const HORIZONS = [5, 10, 20] as const;
 
 export function WealthForecastView() {
-  const storeInHand = useSalaryStore((s) => s.breakdown?.monthlyInHand ?? 0);
+  const { monthlyInHand: resolvedInHand, isRestoringSalaryContext } =
+    useResolvedMonthlyInHand();
   const [overrideInHand, setOverrideInHand] = useState<string>("");
   const monthlyInHand =
-    storeInHand > 0
-      ? storeInHand
+    resolvedInHand > 0
+      ? resolvedInHand
       : Math.max(0, Number(overrideInHand.replace(/[^\d]/g, "")) || 0);
 
   const [horizon, setHorizon] = useState<(typeof HORIZONS)[number]>(10);
@@ -51,7 +54,7 @@ export function WealthForecastView() {
   return (
     <PageShell className="py-8 md:py-10">
       <Link
-        href="/salary/breakdown"
+        href={SALARY_PREMIUM_BREAKDOWN}
         scroll={false}
         className={cn(
           buttonVariants({ variant: "ghost" }),
@@ -66,6 +69,10 @@ export function WealthForecastView() {
         />
         Back to breakdown
       </Link>
+      <PremiumPlannerSalaryGate
+        showSkeleton={isRestoringSalaryContext}
+        layout="wealth"
+      >
       <div className="mt-1 mb-8 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <SectionHeader
           className="mb-0"
@@ -91,7 +98,7 @@ export function WealthForecastView() {
         </div>
       </div>
 
-      {storeInHand <= 0 && (
+      {resolvedInHand <= 0 && (
         <div className="mt-6 flex flex-col gap-3 rounded-xl border border-navy-200 bg-white p-4 sm:flex-row sm:items-end">
           <div className="flex-1 space-y-2">
             <Label htmlFor="inhand-override">Monthly in-hand (₹)</Label>
@@ -233,6 +240,7 @@ export function WealthForecastView() {
           </div>
         </>
       )}
+      </PremiumPlannerSalaryGate>
     </PageShell>
   );
 }

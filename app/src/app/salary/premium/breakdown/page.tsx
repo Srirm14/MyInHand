@@ -5,7 +5,7 @@ import { redirectToSalaryUnlessPremiumEnv } from "@/lib/server/redirect-free-tie
 
 export const dynamic = "force-dynamic";
 
-export default async function SalaryBreakdownPage() {
+export default async function SalaryPremiumBreakdownPage() {
   await redirectToSalaryUnlessPremiumEnv();
   return (
     <Suspense fallback={<SalaryBreakdownSkeleton />}>

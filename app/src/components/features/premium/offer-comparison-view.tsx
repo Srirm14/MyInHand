@@ -51,6 +51,11 @@ import { isSplitBalanced } from "@/lib/utils/compensation-split";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { appToast } from "@/lib/notify/app-notify";
 import { deferExecution } from "@/lib/scheduling/defer-execution";
+import {
+  SALARY_PREMIUM_BREAKDOWN,
+  SALARY_PREMIUM_OFFER_COMPARISON,
+  salaryPremiumOfferComparisonHref,
+} from "@/lib/config/salary-premium-paths";
 import { cn } from "@/lib/utils";
 import { SalaryBreakdownEditablePanel } from "@/components/shared/salary-breakdown-editable-panel";
 import { PremiumBlurOfferTeaser } from "@/components/features/pricing/premium-blur-offer-teaser";
@@ -242,10 +247,7 @@ export function OfferComparisonView() {
     const id = getOfferWorkspaceCookie();
     if (!id || !isLikelyUuid(id)) return;
     offerCookieDeepLinkDoneRef.current = true;
-    router.replace(
-      `/premium/offer-comparison?session=${encodeURIComponent(id)}`,
-      { scroll: false }
-    );
+    router.replace(salaryPremiumOfferComparisonHref(id), { scroll: false });
   }, [persistOffers, urlOfferSession, router]);
 
   useEffect(() => {
@@ -558,10 +560,9 @@ export function OfferComparisonView() {
             setActiveOfferSessionId(id);
             if (previousId !== id) {
               queueMicrotask(() => {
-                router.replace(
-                  `/premium/offer-comparison?session=${encodeURIComponent(id)}`,
-                  { scroll: false }
-                );
+                router.replace(salaryPremiumOfferComparisonHref(id), {
+                  scroll: false,
+                });
               });
             }
           });
@@ -771,7 +772,7 @@ export function OfferComparisonView() {
     setOfferBreakdownEdits({});
     setComparisonRevealed(false);
     setExpandedOfferId(null);
-    router.replace("/premium/offer-comparison", { scroll: false });
+    router.replace(SALARY_PREMIUM_OFFER_COMPARISON, { scroll: false });
     appToast.offerComparison.workspaceReset();
   }, [router, offerSaveFlight]);
 
@@ -1568,7 +1569,7 @@ export function OfferComparisonView() {
       <p className="mt-8 text-center text-xs text-navy-400">
         Same CTC structure assumptions as your{" "}
         <Link
-          href="/salary/breakdown"
+          href={SALARY_PREMIUM_BREAKDOWN}
           scroll={false}
           className="text-teal-600 hover:underline"
         >

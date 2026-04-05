@@ -2,6 +2,11 @@
 
 import { motion } from "framer-motion";
 import {
+  SALARY_PREMIUM_EMI_ANALYZER,
+  SALARY_PREMIUM_LIFESTYLE,
+  SALARY_PREMIUM_WEALTH_FORECAST,
+} from "@/lib/config/salary-premium-paths";
+import {
   PREMIUM_PLANNING_TOOLS,
   type PlanningToolId,
   type PremiumPlanningToolMeta,
@@ -14,9 +19,9 @@ import {
 import { PremiumFeatureCard } from "./premium-feature-card";
 
 const HREF_BY_ID: Record<PlanningToolId, string> = {
-  wealth_forecast: "/premium/wealth-forecast",
-  emi_analyzer: "/premium/emi-analyzer",
-  monthly_planner: "/lifestyle",
+  wealth_forecast: SALARY_PREMIUM_WEALTH_FORECAST,
+  emi_analyzer: SALARY_PREMIUM_EMI_ANALYZER,
+  monthly_planner: SALARY_PREMIUM_LIFESTYLE,
 };
 
 interface PremiumFeatureSectionProps {

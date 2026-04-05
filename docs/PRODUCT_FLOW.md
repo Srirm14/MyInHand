@@ -20,13 +20,12 @@
 ### Signed-in — premium tier
 
 - **Header:** Salary (context-aware + **dropdown with last 5**) + Offer comparison + **Premium** (small read-only plan badge, not a link) + **Recent activity** (sheet: resume or remove salaries and offer comparisons) + Profile.
-- **Flow:** All free routes + `/premium/*` tool routes (`/premium` itself redirects to offer comparison).
+- **Flow:** All free routes + **`/salary/premium/*`** tool routes (offer comparison, wealth forecast, EMI, breakdown, monthly plan). Legacy **`/premium/*`** and **`/lifestyle`** redirect to the salary workspace (`next.config.ts`).
 - **Salary nav:** Shows "Salary (25 LPA) ▼". Click opens dropdown with recent salary contexts. Selecting one switches the active salary across the entire app.
 
 ```
 Anonymous:
-  Landing → /salary (quick calc) → optional /salary/detailed → /salary/breakdown
-    → Monthly plan → Surplus
+  Landing → /salary (quick calc) → optional /salary/detailed → breakdown / monthly plan per tier
     └→ (optional) Login/Signup
 
 Signed-in (free):
@@ -34,7 +33,7 @@ Signed-in (free):
     └→ Paywall for upgrade
 
 Signed-in (premium):
-  Above + header (Offer comparison, Premium shortcut) + `/premium/*` tools
+  Above + header (Offer comparison, Premium badge) + `/salary/premium/*` tools
     → Salary dropdown for context switching
 ```
 
@@ -55,7 +54,7 @@ Signed-in (premium):
 
 ### 2. Salary entry (`/salary`) — route split by access mode
 
-**`PREMIUM_UNLOCKED` (env premium):** Renders **`CtcInputForm`** — name/email, manual CTC (total or fixed + variable), city tier, document upload, recents → **Show estimated breakdown** → `/salary/breakdown`. Same legacy premium path as before.
+**`PREMIUM_UNLOCKED` (env premium):** Renders **`CtcInputForm`** — name/email, manual CTC (total or fixed + variable), city tier, document upload, recents → **Show estimated breakdown** → **`/salary/premium/breakdown`** (with `?session=` when persisting to Supabase).
 
 **`PREMIUM_UNLOCKED === false` (paywall / production default):** Renders **`SalaryCalculatorScreen`** — free fixed/variable quick calculator only (no full component table on this page).
 
@@ -83,7 +82,7 @@ Signed-in (premium):
 
 **Store sync:** Writes `annualCTC` (= fixed + variable), `taxRegime`, `compensationMode: "fixed_variable"`, `fixedAnnual`, `variableAnnual` to `useSalaryStore` for nav and downstream tools.
 
-**Handoff:** Footer link **Detailed breakdown input** → `/salary/detailed` for full CTC form, document parse, and `/salary/breakdown` (free tier still reaches the old breakdown flow from here).
+**Handoff:** Footer link **Detailed breakdown input** → `/salary/detailed` for full CTC form, document parse, then premium breakdown at **`/salary/premium/breakdown`** when unlocked.
 
 ---
 
@@ -92,7 +91,7 @@ Signed-in (premium):
 **Purpose:** Start the **full** estimated or document-parsed breakdown (city tier, fixed/variable split, upload, recents).
 
 **Modes (tabs):**
-- **Manual CTC:** Name, Email, Annual CTC block (Total only | Fixed + variable), City Tier, Tax Regime → **Show estimated breakdown** → `/salary/breakdown`.
+- **Manual CTC:** Name, Email, Annual CTC block (Total only | Fixed + variable), City Tier, Tax Regime → **Show estimated breakdown** → **`/salary/premium/breakdown`** (premium) or breakdown path per access mode.
 - **Upload document:** PDF/image → mock parser infers CTC from filename → document-labeled result.
 
 **History restore:** "Last tracked salaries" + "Last compared offers" (`useHistoryStore`).
@@ -101,7 +100,7 @@ Signed-in (premium):
 
 ---
 
-### 3. Salary Breakdown (`/salary/breakdown`)
+### 3. Salary Breakdown (`/salary/premium/breakdown`)
 
 **Purpose:** Show fixed vs variable pay, editable allowances, dual summaries, next planning steps.
 
@@ -119,7 +118,7 @@ Signed-in (premium):
 
 ---
 
-### 4. Monthly Plan (`/lifestyle`)
+### 4. Monthly Plan (`/salary/premium/lifestyle`)
 
 **Purpose:** Input monthly expenses, see if salary supports lifestyle.
 
@@ -138,13 +137,13 @@ Signed-in (premium):
 
 ---
 
-### 6. `/premium` (redirect)
+### 6. Legacy `/premium` and `/lifestyle`
 
-**Purpose:** Legacy path; immediately **redirects** to **`/premium/offer-comparison`**. There is no separate hub screen.
+**Purpose:** Old URLs; **`next.config.ts`** permanently redirects to **`/salary/premium/offer-comparison`**, **`/salary/premium/lifestyle`**, etc. No standalone `/premium` hub page.
 
 ---
 
-### 7. Offer Comparison (`/premium/offer-comparison`)
+### 7. Offer Comparison (`/salary/premium/offer-comparison`)
 
 **Purpose:** Compare 2–3 offers on real take-home.
 **Inputs:** CTC details per offer (manual or document), city, regime. **New offers start with empty amounts** (CTC, fixed/variable when used, joining bonus, ESOP) and **`00,00,000`-style placeholders** until the user types; comparison table appears once each offer is named and CTC is at least ₹1L with a balanced split if applicable.
@@ -154,7 +153,7 @@ Signed-in (premium):
 
 ---
 
-### 8. Wealth Forecast (`/premium/wealth-forecast`)
+### 8. Wealth Forecast (`/salary/premium/wealth-forecast`)
 
 **Purpose:** Project net worth over 5/10/20 years.
 **Inputs:** Current salary, savings rate, salary growth, investment return.
@@ -162,7 +161,7 @@ Signed-in (premium):
 
 ---
 
-### 9. EMI Analyzer (`/premium/emi-analyzer`)
+### 9. EMI Analyzer (`/salary/premium/emi-analyzer`)
 
 **Purpose:** Loan impact on disposable income.
 **Inputs:** Loan amount, tenure, rate, existing EMIs.
@@ -174,7 +173,7 @@ Signed-in (premium):
 
 | User state | Nav label | Entry switcher (▼) |
 |-----------|-----------|---------------------|
-| Default / free build (env unset or `default`) | "Salary" or "Salary (25 LPA)" | No — plain link to `/salary` or `/salary/breakdown` |
+| Default / free build (env unset or `default`) | "Salary" or "Salary (25 LPA)" | No — plain link to `/salary` or breakdown path per product mode |
 | Premium build (`NEXT_PUBLIC_ACCESS_MODE=premium`) | "Salary" or "Salary (25 LPA)" + chevron | **Whole label + chevron** toggles the menu. **New in-hand check**, up to **5** recent rows (may be empty), **Open current workspace** when applicable, `/salary/history` link. |
 
 **New in-hand check** resets the salary store to an empty CTC (`annualCTC` 0) and opens `/salary`. Up to **40** salaries are stored on device; the form is blocked with a calm banner when full until one is removed.
@@ -183,7 +182,7 @@ Selecting a saved entry from the switcher:
 1. Restores that salary input to the store
 2. Recalculates breakdown
 3. Updates nav label to new LPA
-4. Navigates to `/salary/breakdown`
+4. Navigates to **`/salary/premium/breakdown`** (with `?session=` when using cloud sessions)
 
 Removing the **active** saved entry applies the next newest saved row, or resets and sends the user to `/salary` if none remain.
 

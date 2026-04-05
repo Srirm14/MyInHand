@@ -27,7 +27,7 @@
 ```
 src/
 ├── app/                              # Next.js App Router (thin route pages)
-│   ├── layout.tsx                    # Root: fonts, providers, Navbar, Footer; Suspense + PremiumPlansModalHost (free tier: global pricing modal)
+│   ├── layout.tsx                    # Root: fonts, providers, Navbar, Footer; Suspense: CloudSalaryWorkspaceSync + PremiumPlansModalHost
 │   ├── page.tsx                      # Landing (MarketingLanding)
 │   ├── login/page.tsx                # Auth
 │   ├── signup/page.tsx
@@ -36,19 +36,19 @@ src/
 │   ├── salary/
 │   │   ├── page.tsx                  # Premium: CtcInputForm; default/paywall: SalaryCalculatorScreen
 │   │   ├── detailed/page.tsx         # CtcInputForm: manual/upload + recents → breakdown
-│   │   └── breakdown/page.tsx      # Editable breakdown (SalaryBreakdownView)
-│   ├── lifestyle/page.tsx            # Monthly plan (MonthlyPlanView)
+│   │   ├── history/page.tsx          # Saved salary sessions (premium list)
+│   │   └── premium/                  # Canonical premium workspace (`salary-premium-paths.ts`; legacy URLs redirect)
+│   │       ├── layout.tsx            # Premium route guard (signed-in + premium)
+│   │       ├── breakdown/page.tsx    # SalaryBreakdownView
+│   │       ├── lifestyle/page.tsx    # MonthlyPlanView
+│   │       ├── offer-comparison/page.tsx
+│   │       ├── wealth-forecast/page.tsx
+│   │       └── emi-analyzer/page.tsx
 │   ├── paywall/page.tsx              # Free: minimal shell; global modal owns UX. Premium env: unlocked redirect
-│   └── premium/
-│       ├── layout.tsx                # Premium route guard
-│       ├── page.tsx                  # Redirect → /premium/offer-comparison
-│       ├── offer-comparison/page.tsx # OfferComparisonView
-│       ├── wealth-forecast/page.tsx  # WealthForecastView
-│       └── emi-analyzer/page.tsx     # EmiAnalyzerView
 │
 ├── components/
 │   ├── ui/                           # shadcn/ui primitives (13: button, input, label, badge, slider, table, sheet, tooltip, dialog, card, tabs, separator, inr-money-input)
-│   ├── shared/                       # Composed reusable (15 components)
+│   ├── shared/                       # Composed reusable (premium-planner-salary-gate, loading-skeletons, currency-display, …)
 │   │   ├── stat-card.tsx             # KPI card with amount, trend, icon
 │   │   ├── feature-card.tsx          # Icon + title + CTA (supports href)
 │   │   ├── currency-display.tsx      # ₹ formatted display
@@ -79,7 +79,9 @@ src/
 │   │   ├── premium/wealth-forecast-view.tsx
 │   │   └── premium/emi-analyzer-view.tsx
 │   ├── auth/auth-page-shell.tsx      # Centered card for auth forms
-│   ├── providers/auth-sync.tsx       # Cookie ↔ store sync
+│   ├── providers/auth-sync.tsx       # Supabase auth → profile store; sign-out clears workspace cookies + hydration guard
+│   ├── providers/workspace-session-cookies-sync.tsx  # `inhand_last_salary_session` + local history restore
+│   ├── providers/cloud-salary-workspace-sync.tsx     # Premium: cookie/`?session=` restore + detail hydrate (layout)
 │   ├── providers/premium-plans-modal-host.tsx  # /paywall + ?from=premium sync; PremiumPlansModal when !PREMIUM_UNLOCKED
 │   └── layout/
 │       ├── navbar.tsx                # Top nav with tiered chrome
@@ -93,6 +95,7 @@ src/
 ├── lib/
 │   ├── auth/premium-entitlement.ts   # Server-side premium check helpers
 │   ├── config/access-mode.ts         # PREMIUM_UNLOCKED, PaywallTool, tier logic
+│   ├── config/salary-premium-paths.ts # Canonical `/salary/premium/*` paths + href builders
 │   ├── config/premium-planning-tools.ts  # Metadata for premium cards on /salary
 │   ├── schemas/                      # Zod (4)
 │   │   ├── auth.schema.ts            # login, signup, forgot-password, profile
@@ -143,7 +146,7 @@ src/
 │       ├── offer-breakdown-recalc-context.ts
 │       └── utils.ts                  # cn() tailwind merge (also at lib/utils.ts)
 │
-├── middleware.ts                     # Session refresh; /profile, /premium/*, breakdown, detailed, lifestyle (session + premium)
+├── middleware.ts                     # Session refresh; /profile; /salary/detailed; /salary/premium/** (session + premium)
 └── styles/globals.css                # Tailwind tokens + custom utility classes
 ```
 
@@ -185,10 +188,11 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 | `/` | Public |
 | `/login`, `/signup`, `/forgot-password` | Public (redirect if logged in) |
 | `/salary` | Public (free calculator or premium CTC flow per `NEXT_PUBLIC_ACCESS_MODE`) |
-| `/salary/detailed`, `/salary/breakdown`, `/lifestyle` | Signed-in + premium (`profiles.plan_tier` or env `NEXT_PUBLIC_ACCESS_MODE=premium`); else redirect to login/paywall |
+| `/salary/detailed` | Signed-in + premium; else redirect to login/paywall |
+| `/salary/premium/*` (breakdown, lifestyle, offer comparison, wealth forecast, EMI) | Signed-in + premium (layout guard + middleware) |
 | `/profile` | Signed-in (middleware) |
 | `/paywall` | Public |
-| `/premium` (redirect), `/premium/*` | Signed-in + premium (same rule as breakdown/lifestyle) |
+| Legacy `/lifestyle`, `/salary/breakdown`, `/premium/*` | **Permanent redirect** to `/salary/premium/...` (`next.config.ts`) |
 
 ## Nav Architecture
 
@@ -200,7 +204,7 @@ Zod schema → z.infer<> type → useForm({ resolver: zodResolver(schema) }) →
 
 Premium nav: **Offer comparison** link + **Premium** plan badge (read-only status, not a link) for signed-in premium users. `useTieredPremiumLinks()` routes: anon → login, free → paywall, premium → tool.
 
-**Salary breakdown scroll:** Leaving `/salary/breakdown` for Monthly plan / EMI / Forecast (etc.) saves `window` scroll Y in `sessionStorage` (`useSalaryBreakdownScrollRestoration` + `persistSalaryBreakdownScrollNow` on outbound pointerdown). Returning uses `useLayoutEffect` restore and `Link scroll={false}` on “Back to breakdown” so the App Router does not force the document to the top after restore. `clearSalaryBreakdownScrollSave()` on fresh CTC submit or “Back to salary inputs” resets the saved position.
+**Salary breakdown scroll:** Leaving **`/salary/premium/breakdown`** for other premium planners saves `window` scroll Y in `sessionStorage` (`useSalaryBreakdownScrollRestoration` + `persistSalaryBreakdownScrollNow` on outbound pointerdown). Returning uses `useLayoutEffect` restore and `Link scroll={false}` on “Back to breakdown”. `clearSalaryBreakdownScrollSave()` on fresh CTC submit or “Back to salary inputs” resets the saved position.
 
 **Salary entry history (premium):** `use-history-store` keeps at most **`SALARY_HISTORY_MAX_ENTRIES` (40)** `salaryContexts` (newest first). The nav chevron lists the **five** most recent; `/salary/history` shows the full list. `removeSalaryContext(id)` drops one row from `salaryContexts` and the mixed `entries` list. `removeOfferComparisonEntry(id)` removes only an `offer_comparison` row from mixed `entries` (no salary list change). **SalaryNavItem** entry menu (label + chevron toggle): **New in-hand check**, **Open current workspace** when a breakdown exists, saved rows with trash, **Manage saved salaries**; menu shows in **premium** builds only (`PREMIUM_UNLOCKED`), not in default/free access mode—regardless of login or history count. **`useSalaryHistoryDelete`** + **`RemoveSalaryEntryDialog`** reconcile the active salary after removal (nav menu, **recent-history-sheet**, `/salary/history`). **`RemoveOfferComparisonEntryDialog`** + trash on offer rows in **recent-history-sheet** for offer removal. New salary runs are blocked at 40 until the user removes an entry (banner on salary form + history page).
 

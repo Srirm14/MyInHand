@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthSync } from "@/components/providers/auth-sync";
+import { CloudSalaryWorkspaceSync } from "@/components/providers/cloud-salary-workspace-sync";
 import { WorkspaceSessionCookiesSync } from "@/components/providers/workspace-session-cookies-sync";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { PremiumPlansModalHost } from "@/components/providers/premium-plans-modal-host";
@@ -51,6 +52,9 @@ export default function RootLayout({
             <Toaster />
             <AuthSync />
             <WorkspaceSessionCookiesSync />
+            <Suspense fallback={null}>
+              <CloudSalaryWorkspaceSync />
+            </Suspense>
             <Navbar />
             <Suspense fallback={null}>
               <PremiumPlansModalHost />

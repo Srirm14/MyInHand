@@ -24,10 +24,15 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { InrMoneyInput } from "@/components/ui/inr-money-input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import {
+  SALARY_PREMIUM_BREAKDOWN,
+  SALARY_PREMIUM_LIFESTYLE,
+} from "@/lib/config/salary-premium-paths";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
+import { useResolvedMonthlyInHand } from "@/lib/hooks/use-resolved-monthly-in-hand";
 import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
-import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { calculateEmi, totalInterestPayable } from "@/lib/utils/calculate-emi";
+import { PremiumPlannerSalaryGate } from "@/components/shared/premium-planner-salary-gate";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -53,7 +58,7 @@ const EMI_ABS_MAX_PRINCIPAL = 50_00_00_000;
 
 export function EmiAnalyzerView() {
   const { toolHref } = useTieredPremiumLinks();
-  const monthlyInHand = useSalaryStore((s) => s.breakdown?.monthlyInHand ?? 0);
+  const { monthlyInHand, isRestoringSalaryContext } = useResolvedMonthlyInHand();
   const calculateSurplus = useLifestyleStore((s) => s.calculateSurplus);
 
   const lifestyleLivingExpenses =
@@ -129,7 +134,7 @@ export function EmiAnalyzerView() {
   return (
     <PageShell className="py-8 md:py-10">
       <Link
-        href="/salary/breakdown"
+        href={SALARY_PREMIUM_BREAKDOWN}
         scroll={false}
         className={cn(
           buttonVariants({ variant: "ghost" }),
@@ -151,6 +156,10 @@ export function EmiAnalyzerView() {
         subtitle="Model one or two fixed-rate loans against your estimated in-hand pay and Monthly plan. Numbers update as you move sliders—use it to stress-test tenure, rate, and a second obligation before you commit."
       />
 
+      <PremiumPlannerSalaryGate
+        showSkeleton={isRestoringSalaryContext}
+        layout="emi"
+      >
       {monthlyInHand <= 0 && (
         <div className="mt-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
           <Info className="size-5 shrink-0 text-amber-700 mt-0.5" aria-hidden />
@@ -377,7 +386,7 @@ export function EmiAnalyzerView() {
                 <p className="text-xs text-navy-500 mb-2">
                   Living spend from{" "}
                   <Link
-                    href="/lifestyle"
+                    href={SALARY_PREMIUM_LIFESTYLE}
                     className="font-medium text-teal-700 underline-offset-2 hover:underline"
                   >
                     Monthly plan
@@ -397,7 +406,7 @@ export function EmiAnalyzerView() {
                   What’s left each month once EMIs and your plan are paid for.
                 </p>
                 <Link
-                  href="/lifestyle"
+                  href={SALARY_PREMIUM_LIFESTYLE}
                   className="mt-3 inline-flex text-sm font-semibold text-teal-700 hover:underline"
                 >
                   Adjust Monthly plan →
@@ -409,6 +418,7 @@ export function EmiAnalyzerView() {
           <AdvisoryPanel advisory={advisory} verdict={verdict} />
         </aside>
       </div>
+      </PremiumPlannerSalaryGate>
     </PageShell>
   );
 }
@@ -454,8 +464,8 @@ function getAdvisoryCopy(
         title: "Debt load is high",
         body: `At ${dti}% of in-hand going to EMIs, there’s limited room for surprises. Consider a smaller ticket, better rate, or longer tenure before you lock in.`,
         actions: [
-          { label: "Refine Monthly plan assumptions", href: "/lifestyle" },
-          { label: "Review salary breakdown", href: "/salary/breakdown" },
+          { label: "Refine Monthly plan assumptions", href: SALARY_PREMIUM_LIFESTYLE },
+          { label: "Review salary breakdown", href: SALARY_PREMIUM_BREAKDOWN },
         ],
       };
     case "tight":
@@ -466,7 +476,7 @@ function getAdvisoryCopy(
             ? "After EMIs and the living costs in your Monthly plan, the maths goes negative. Trim discretionary spend, reduce a loan amount, or revisit tenure."
             : "You’re close to the edge after your Monthly plan.",
         actions: [
-          { label: "Open Monthly plan", href: "/lifestyle" },
+          { label: "Open Monthly plan", href: SALARY_PREMIUM_LIFESTYLE },
           ...(opts.hasSecondLoan
             ? [
                 {
@@ -541,7 +551,7 @@ function AdvisoryPanel({
                 {a.href ? (
                   <Link
                     href={a.href}
-                    scroll={a.href === "/salary/breakdown" ? false : undefined}
+                    scroll={a.href === SALARY_PREMIUM_BREAKDOWN ? false : undefined}
                     className={cn(
                       "inline-flex text-sm font-semibold underline-offset-2 hover:underline",
                       verdict === "ok"

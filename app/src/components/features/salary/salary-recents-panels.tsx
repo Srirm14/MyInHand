@@ -7,6 +7,10 @@ import { useOfferComparisonRestoreStore } from "@/lib/stores/use-offer-compariso
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
+import {
+  salaryPremiumBreakdownHref,
+  salaryPremiumOfferComparisonHref,
+} from "@/lib/config/salary-premium-paths";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useOfferSessionsListQuery } from "@/lib/supabase/hooks/use-offer-sessions";
 import { useSalarySessionsListQuery } from "@/lib/supabase/hooks/use-salary-sessions";
@@ -96,9 +100,7 @@ export function SalaryRecentsPanels() {
                   onClick={() => {
                     setActiveSalaryHistoryId(e.id);
                     if (cloud) {
-                      router.push(
-                        `/salary/breakdown?session=${encodeURIComponent(e.id)}`
-                      );
+                      router.push(salaryPremiumBreakdownHref(e.id));
                       appToast.salarySession.opened();
                       return;
                     }
@@ -110,7 +112,7 @@ export function SalaryRecentsPanels() {
                       })
                     );
                     calculateBreakdown();
-                    router.push("/salary/breakdown");
+                    router.push(salaryPremiumBreakdownHref());
                     appToast.salarySession.opened();
                   }}
                   className={cn(
@@ -167,7 +169,7 @@ export function SalaryRecentsPanels() {
                   onClick={() => {
                     if (e.hydrateFromServer) {
                       router.push(
-                        `/premium/offer-comparison?session=${encodeURIComponent(e.id)}`
+                        salaryPremiumOfferComparisonHref(e.id)
                       );
                       appToast.offerComparison.opened();
                     } else {

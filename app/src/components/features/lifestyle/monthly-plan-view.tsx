@@ -24,6 +24,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
+import { useResolvedMonthlyInHand } from "@/lib/hooks/use-resolved-monthly-in-hand";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import {
   useSalarySessionDetailQuery,
@@ -33,6 +34,11 @@ import { SaveProgressCta } from "@/components/shared/save-progress-cta";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { appToast } from "@/lib/notify/app-notify";
 import { deferExecution } from "@/lib/scheduling/defer-execution";
+import {
+  SALARY_PREMIUM_BREAKDOWN,
+  SALARY_PREMIUM_LIFESTYLE,
+} from "@/lib/config/salary-premium-paths";
+import { PremiumPlannerSalaryGate } from "@/components/shared/premium-planner-salary-gate";
 import { cn } from "@/lib/utils";
 import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 
@@ -47,9 +53,7 @@ export function MonthlyPlanView() {
     Boolean(persist && activeSalarySessionId)
   );
 
-  const breakdown = useSalaryStore((s) => s.breakdown);
-  const monthlyInHand = breakdown?.monthlyInHand ?? 0;
-  const hasBreakdown = Boolean(breakdown);
+  const { monthlyInHand, isRestoringSalaryContext } = useResolvedMonthlyInHand();
 
   const expenses = useLifestyleStore((s) => s.expenses);
   const setExpense = useLifestyleStore((s) => s.setExpense);
@@ -153,7 +157,7 @@ export function MonthlyPlanView() {
     <div className="relative">
       <PageShell className="py-8 md:py-10">
         <Link
-          href="/salary/breakdown"
+          href={SALARY_PREMIUM_BREAKDOWN}
           scroll={false}
           className={cn(
             buttonVariants({ variant: "ghost" }),
@@ -178,7 +182,11 @@ export function MonthlyPlanView() {
           }
         />
 
-        {!hasBreakdown && (
+        <PremiumPlannerSalaryGate
+          showSkeleton={isRestoringSalaryContext}
+          layout="monthly"
+        >
+        {monthlyInHand <= 0 && (
           <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/90 px-4 py-3 text-sm text-amber-950">
             Est. net income uses your last salary breakdown.{" "}
             <Link
@@ -459,9 +467,10 @@ export function MonthlyPlanView() {
               </Link>
             </div>
 
-            <SaveProgressCta returnTo="/lifestyle" className="mt-2" />
+            <SaveProgressCta returnTo={SALARY_PREMIUM_LIFESTYLE} className="mt-2" />
           </aside>
         </div>
+        </PremiumPlannerSalaryGate>
       </PageShell>
 
       {premium && (

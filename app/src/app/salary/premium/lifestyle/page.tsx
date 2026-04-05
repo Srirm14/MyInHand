@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Plan monthly spending against estimated in-hand, see surplus or deficit, and connect to wealth tools on Pro.",
 };
 
-export default async function LifestylePage() {
+export default async function SalaryPremiumLifestylePage() {
   await redirectToSalaryUnlessPremiumEnv();
   return <MonthlyPlanView />;
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { buttonVariants } from "@/components/ui/button";
+import { SALARY_PREMIUM_OFFER_COMPARISON } from "@/lib/config/salary-premium-paths";
 import { cn } from "@/lib/utils";
 
 /** Shown at /paywall when the user already has premium (env override or account plan). */
@@ -20,7 +21,7 @@ export function PaywallUnlocked() {
           available from the app — head straight to a tool below.
         </p>
         <Link
-          href="/premium/offer-comparison"
+          href={SALARY_PREMIUM_OFFER_COMPARISON}
           className={cn(
             buttonVariants({ variant: "default" }),
             "mt-10 inline-flex rounded-full px-8 h-11 bg-teal-600 hover:bg-teal-700"

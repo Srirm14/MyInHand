@@ -12,6 +12,10 @@ import {
 } from "@/components/ui/sheet";
 import { RemoveOfferComparisonEntryDialog } from "@/components/layout/remove-offer-comparison-entry-dialog";
 import { RemoveSalaryEntryDialog } from "@/components/layout/remove-salary-entry-dialog";
+import {
+  salaryPremiumBreakdownHref,
+  salaryPremiumOfferComparisonHref,
+} from "@/lib/config/salary-premium-paths";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useRecentActivityEntries } from "@/lib/hooks/use-recent-activity-entries";
 import { useSalaryHistoryDelete } from "@/lib/hooks/use-salary-history-delete";
@@ -90,20 +94,18 @@ function RecentHistorySheet({
       if (entry.kind === "salary") {
         setActiveSalaryHistoryId(entry.id);
         if (cloud) {
-          router.push(
-            `/salary/breakdown?session=${encodeURIComponent(entry.id)}`
-          );
+          router.push(salaryPremiumBreakdownHref(entry.id));
           appToast.salarySession.opened();
         } else {
           setInput(coerceSalarySnapshot(entry.snapshot));
           calculateBreakdown();
-          router.push("/salary/breakdown");
+          router.push(salaryPremiumBreakdownHref());
           appToast.salarySession.opened();
         }
       } else {
         if (entry.hydrateFromServer) {
           router.push(
-            `/premium/offer-comparison?session=${encodeURIComponent(entry.id)}`
+            salaryPremiumOfferComparisonHref(entry.id)
           );
           appToast.offerComparison.opened();
         } else {
