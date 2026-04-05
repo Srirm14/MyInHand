@@ -206,6 +206,16 @@ export async function deleteSalarySession(
   if (error) throw error;
 }
 
+/** Deletes many sessions in one request. Planning rows cascade (ON DELETE CASCADE). */
+export async function deleteSalarySessions(
+  supabase: SupabaseClient<Database>,
+  ids: string[]
+) {
+  if (ids.length === 0) return;
+  const { error } = await supabase.from("salary_sessions").delete().in("id", ids);
+  if (error) throw error;
+}
+
 export async function upsertSalarySessionPlanning(
   supabase: SupabaseClient<Database>,
   salarySessionId: string,

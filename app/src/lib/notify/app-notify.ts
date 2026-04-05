@@ -16,6 +16,12 @@ const COPY = {
       title: "Salary session removed",
       description: "It’s no longer in your account.",
     },
+    bulkDeleted: {
+      title: "Saved salaries removed",
+      descriptionOne: "It’s no longer in your account.",
+      descriptionMany: (n: number) =>
+        `${n} sessions are no longer in your account.`,
+    },
     created: {
       title: "Salary session saved",
       description: "Synced to your account.",
@@ -142,6 +148,20 @@ export const appToast = {
         COPY.salarySession.autosaved.title,
         COPY.salarySession.autosaved.description
       ),
+
+    bulkDeleted: (count: number) => {
+      if (count <= 1) {
+        showSuccess(
+          COPY.salarySession.deleted.title,
+          COPY.salarySession.deleted.description
+        );
+        return;
+      }
+      showSuccess(
+        COPY.salarySession.bulkDeleted.title,
+        COPY.salarySession.bulkDeleted.descriptionMany(count)
+      );
+    },
   },
 
   offerComparison: {

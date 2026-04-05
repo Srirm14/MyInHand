@@ -6,6 +6,7 @@ import { queryKeys } from "@/lib/supabase/query-keys";
 import {
   createSalarySession,
   deleteSalarySession,
+  deleteSalarySessions,
   diffSalarySessionRow,
   getSalarySession,
   listSalarySessions,
@@ -182,6 +183,29 @@ export function useDeleteSalarySessionMutation() {
       qc.setQueryData(
         queryKeys.salarySessions.list(LIST_LIMIT),
         (prev: SalaryHistoryEntry[] | undefined) => prev?.filter((e) => e.id !== id)
+      );
+    },
+  });
+}
+
+export function useDeleteSalarySessionsMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      if (ids.length === 0) return [];
+      const sb = getBrowserSupabase();
+      await deleteSalarySessions(sb, ids);
+      return ids;
+    },
+    onSuccess: (ids) => {
+      const idSet = new Set(ids);
+      for (const id of ids) {
+        qc.removeQueries({ queryKey: queryKeys.salarySessions.detail(id) });
+      }
+      qc.setQueryData(
+        queryKeys.salarySessions.list(LIST_LIMIT),
+        (prev: SalaryHistoryEntry[] | undefined) =>
+          prev?.filter((e) => !idSet.has(e.id))
       );
     },
   });

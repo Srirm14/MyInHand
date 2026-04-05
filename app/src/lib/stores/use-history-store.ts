@@ -22,6 +22,8 @@ interface HistoryState {
   salaryContexts: SalaryHistoryEntry[];
   /** Remove one saved salary from nav/history (and matching mixed `entries` row). */
   removeSalaryContext: (id: string) => void;
+  /** Remove several saved salaries in one store update (local / offline list). */
+  removeSalaryContexts: (ids: string[]) => void;
   /** Remove one offer-comparison row from mixed `entries` only. */
   removeOfferComparisonEntry: (id: string) => void;
   pushSalaryCalculation: (
@@ -51,6 +53,17 @@ export const useHistoryStore = create<HistoryState>()(
             (e) => !(e.kind === "salary" && e.id === id)
           ),
         })),
+
+      removeSalaryContexts: (ids) => {
+        const idSet = new Set(ids);
+        if (idSet.size === 0) return;
+        set((s) => ({
+          salaryContexts: s.salaryContexts.filter((e) => !idSet.has(e.id)),
+          entries: s.entries.filter(
+            (e) => !(e.kind === "salary" && idSet.has(e.id))
+          ),
+        }));
+      },
 
       removeOfferComparisonEntry: (id) =>
         set((s) => ({

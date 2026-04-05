@@ -187,13 +187,38 @@ export function OfferComparisonSkeleton() {
 /** Rows only — under real page header */
 export function SalaryHistoryRowsSkeleton({ rows = 4 }: { rows?: number }) {
   return (
-    <ul className="mt-8 max-w-xl space-y-3" aria-busy aria-label="Loading saved salaries">
-      {Array.from({ length: rows }).map((_, i) => (
-        <li key={i}>
-          <ShimmerBlock className="h-[5.5rem] w-full rounded-xl" />
-        </li>
-      ))}
-    </ul>
+    <div
+      className="mt-6 w-full overflow-hidden rounded-2xl border border-navy-200/70 bg-white shadow-sm"
+      aria-busy
+      aria-label="Loading saved salaries"
+    >
+      <div className="hidden border-b border-navy-100 bg-navy-50/60 px-4 py-2.5 md:block">
+        <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_minmax(0,1fr)_11.5rem] items-center gap-5">
+          <span />
+          <ShimmerBlock className="h-3 w-20 rounded" />
+          <ShimmerBlock className="h-3 w-32 rounded" />
+          <ShimmerBlock className="h-3 w-16 justify-self-end rounded" />
+        </div>
+      </div>
+      <ul className="divide-y divide-navy-100">
+        {Array.from({ length: rows }).map((_, i) => (
+          <li key={i} className="px-4 py-3 md:py-2.5">
+            <div className="flex items-center gap-3 md:grid md:grid-cols-[2.75rem_minmax(0,1fr)_minmax(0,1fr)_11.5rem] md:items-center md:gap-5">
+              <ShimmerBlock className="size-4 shrink-0 rounded md:mx-auto" />
+              <div className="min-w-0 flex-1 space-y-2 md:space-y-1.5">
+                <ShimmerBlock className="h-4 w-32 rounded" />
+                <ShimmerBlock className="h-3 w-48 rounded md:hidden" />
+              </div>
+              <ShimmerBlock className="hidden h-3 w-40 rounded md:block" />
+              <div className="flex justify-end gap-2 md:justify-end">
+                <ShimmerBlock className="size-9 rounded-lg" />
+                <ShimmerBlock className="h-9 w-[7.5rem] rounded-full" />
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

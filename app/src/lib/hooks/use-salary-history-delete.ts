@@ -6,7 +6,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { useHistoryStore } from "@/lib/stores/use-history-store";
 import { useSalaryStore } from "@/lib/stores/use-salary-store";
-import { useDeleteSalarySessionMutation } from "@/lib/supabase/hooks/use-salary-sessions";
+import {
+  useDeleteSalarySessionMutation,
+  useDeleteSalarySessionsMutation,
+} from "@/lib/supabase/hooks/use-salary-sessions";
 import { queryKeys } from "@/lib/supabase/query-keys";
 import { shouldPersistSessions } from "@/lib/supabase/persistence-gate";
 import { coerceSalarySnapshot } from "@/lib/utils/coerce-salary-snapshot";
@@ -29,8 +32,10 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
   const user = useAuthStore((s) => s.user);
   const cloud = shouldPersistSessions(user);
   const deleteSalarySession = useDeleteSalarySessionMutation();
+  const deleteSalarySessions = useDeleteSalarySessionsMutation();
 
   const removeSalaryContext = useHistoryStore((s) => s.removeSalaryContext);
+  const removeSalaryContexts = useHistoryStore((s) => s.removeSalaryContexts);
   const input = useSalaryStore((s) => s.input);
   const resetSalary = useSalaryStore((s) => s.reset);
   const setInput = useSalaryStore((s) => s.setInput);
@@ -38,6 +43,38 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
   const activeSalaryHistoryId = useSalaryStore((s) => s.activeSalaryHistoryId);
   const setActiveSalaryHistoryId = useSalaryStore(
     (s) => s.setActiveSalaryHistoryId
+  );
+
+  const reconcileAfterRemoval = useCallback(
+    (wasActive: boolean, mappedOrRemaining: SalaryHistoryEntry[]) => {
+      if (!wasActive) return;
+      const next = mappedOrRemaining[0];
+      if (next) {
+        if (cloud) {
+          setActiveSalaryHistoryId(next.id);
+          router.push(salaryPremiumBreakdownHref(next.id));
+        } else {
+          setInput(coerceSalarySnapshot(next.snapshot));
+          calculateBreakdown();
+          setActiveSalaryHistoryId(next.id);
+          router.push(salaryPremiumBreakdownHref());
+        }
+      } else {
+        resetSalary();
+        clearSalaryBreakdownScrollSave();
+        clearSalarySessionIdCookie();
+        setActiveSalaryHistoryId(null);
+        router.push("/salary");
+      }
+    },
+    [
+      cloud,
+      calculateBreakdown,
+      resetSalary,
+      router,
+      setActiveSalaryHistoryId,
+      setInput,
+    ]
   );
 
   const applyRemove = useCallback(
@@ -52,20 +89,7 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
         onAfterRemove?.();
         appToast.persistence.removedFromDevice();
         const remaining = useHistoryStore.getState().salaryContexts;
-        if (wasActive) {
-          const next = remaining[0];
-          if (next) {
-            setInput(coerceSalarySnapshot(next.snapshot));
-            calculateBreakdown();
-            setActiveSalaryHistoryId(next.id);
-            router.push(salaryPremiumBreakdownHref());
-          } else {
-            resetSalary();
-            clearSalarySessionIdCookie();
-            clearSalaryBreakdownScrollSave();
-            router.push("/salary");
-          }
-        }
+        reconcileAfterRemoval(wasActive, remaining);
       };
 
       if (cloud) {
@@ -77,19 +101,7 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
               queryKeys.salarySessions.list(LIST_LIMIT)
             ) ?? [];
           onAfterRemove?.();
-          if (wasActive) {
-            const next = mapped[0];
-            if (next) {
-              setActiveSalaryHistoryId(next.id);
-              router.push(salaryPremiumBreakdownHref(next.id));
-            } else {
-              resetSalary();
-              clearSalaryBreakdownScrollSave();
-              clearSalarySessionIdCookie();
-              setActiveSalaryHistoryId(null);
-              router.push("/salary");
-            }
-          }
+          reconcileAfterRemoval(wasActive, mapped);
         } catch {
           appToast.errors.salarySessionDeleteFailed();
         }
@@ -103,16 +115,60 @@ export function useSalaryHistoryDelete(onAfterRemove?: () => void) {
       input,
       removeSalaryContext,
       onAfterRemove,
-      setInput,
-      calculateBreakdown,
-      setActiveSalaryHistoryId,
-      resetSalary,
-      router,
+      reconcileAfterRemoval,
       cloud,
       deleteSalarySession,
       queryClient,
     ]
   );
 
-  return { applyRemove };
+  const applyRemoveMany = useCallback(
+    async (entries: SalaryHistoryEntry[]): Promise<void> => {
+      if (entries.length === 0) return;
+      const ids = entries.map((e) => e.id);
+      const idSet = new Set(ids);
+      const wasActive =
+        (activeSalaryHistoryId != null && idSet.has(activeSalaryHistoryId)) ||
+        (activeSalaryHistoryId == null &&
+          entries.some((e) => isSalaryInputEquivalent(e.snapshot, input)));
+
+      const finishLocalMany = () => {
+        removeSalaryContexts(ids);
+        onAfterRemove?.();
+        appToast.salarySession.bulkDeleted(ids.length);
+        const remaining = useHistoryStore.getState().salaryContexts;
+        reconcileAfterRemoval(wasActive, remaining);
+      };
+
+      if (cloud) {
+        try {
+          await deleteSalarySessions.mutateAsync(ids);
+          appToast.salarySession.bulkDeleted(ids.length);
+          const mapped =
+            queryClient.getQueryData<SalaryHistoryEntry[]>(
+              queryKeys.salarySessions.list(LIST_LIMIT)
+            ) ?? [];
+          onAfterRemove?.();
+          reconcileAfterRemoval(wasActive, mapped);
+        } catch {
+          appToast.errors.salarySessionDeleteFailed();
+        }
+        return;
+      }
+
+      finishLocalMany();
+    },
+    [
+      activeSalaryHistoryId,
+      input,
+      removeSalaryContexts,
+      onAfterRemove,
+      reconcileAfterRemoval,
+      cloud,
+      deleteSalarySessions,
+      queryClient,
+    ]
+  );
+
+  return { applyRemove, applyRemoveMany };
 }
