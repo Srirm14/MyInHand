@@ -9,7 +9,11 @@ import {
 } from "react";
 import type { Control, UseFormSetValue } from "react-hook-form";
 import { useWatch } from "react-hook-form";
-import type { CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
+import {
+  CTC_MIN_FOR_BREAKDOWN_ISSUE,
+  MIN_ANNUAL_CTC_RUPEES,
+  type CTCInputFormData,
+} from "@/lib/schemas/ctc-input.schema";
 import type { CompensationMode } from "@/lib/types/salary.types";
 import type { OfferDraft } from "@/lib/types/offer.types";
 import type { DerivedCompField } from "@/lib/utils/compensation-split";
@@ -244,7 +248,13 @@ function CompensationCtcInputs({
   compact?: boolean;
   annualCtcInputRef?: RefCallback<HTMLInputElement | null>;
 }) {
-  const totalErr = errors?.annualCTC?.message;
+  const annualCtcMsg = errors?.annualCTC?.message;
+  const totalErr =
+    annualCtcMsg && annualCtcMsg !== CTC_MIN_FOR_BREAKDOWN_ISSUE
+      ? annualCtcMsg
+      : undefined;
+  const showMinCtcBadge =
+    annualCTC > 0 && annualCTC < MIN_ANNUAL_CTC_RUPEES;
   const fixedErr = errors?.fixedAnnual?.message;
   const varErr = errors?.variableAnnual?.message;
 
@@ -358,7 +368,16 @@ function CompensationCtcInputs({
           INR / Year
         </span>
       </div>
-      {totalErr && <p className="text-xs text-danger-500">{totalErr}</p>}
+      {showMinCtcBadge ? (
+        <p className="mt-1.5">
+          <span className="inline-flex items-center rounded-full border border-navy-200/70 bg-navy-50/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-navy-500">
+            From ₹1L / yr for breakdown
+          </span>
+        </p>
+      ) : null}
+      {totalErr ? (
+        <p className="text-xs text-danger-500 mt-1">{totalErr}</p>
+      ) : null}
 
       {mode === "fixed_variable" && (
         <div className="rounded-xl border border-navy-100 bg-navy-50/40 p-4 space-y-3">

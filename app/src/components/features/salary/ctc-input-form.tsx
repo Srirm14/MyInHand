@@ -17,7 +17,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { CITY_TIERS } from "@/lib/constants/city-tiers";
-import { ctcInputSchema, type CTCInputFormData } from "@/lib/schemas/ctc-input.schema";
+import {
+  ctcInputSchema,
+  MIN_ANNUAL_CTC_RUPEES,
+  type CTCInputFormData,
+} from "@/lib/schemas/ctc-input.schema";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import { salaryPremiumBreakdownHref } from "@/lib/config/salary-premium-paths";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
@@ -122,6 +126,12 @@ export function CtcInputForm() {
     input.cityTier,
     input.taxRegime,
   ]);
+
+  const watchedAnnualCtc = form.watch("annualCTC");
+  const ctcMeetsMinimum =
+    typeof watchedAnnualCtc === "number" &&
+    Number.isFinite(watchedAnnualCtc) &&
+    watchedAnnualCtc >= MIN_ANNUAL_CTC_RUPEES;
 
   const pushSalaryHistory = async () => {
     const { input: nextInput, breakdown } = useSalaryStore.getState();
@@ -401,8 +411,12 @@ export function CtcInputForm() {
 
             <Button
               type="submit"
-              disabled={historyLimitReached || form.formState.isSubmitting}
-              className="mt-10 h-12 w-full rounded-full text-base font-semibold shadow-md hover:shadow-lg"
+              disabled={
+                historyLimitReached ||
+                form.formState.isSubmitting ||
+                !ctcMeetsMinimum
+              }
+              className="mt-10 h-12 w-full rounded-full text-base font-semibold shadow-md hover:shadow-lg disabled:pointer-events-none disabled:opacity-50"
             >
               {form.formState.isSubmitting ? (
                 <>
