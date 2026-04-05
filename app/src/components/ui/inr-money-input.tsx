@@ -121,6 +121,7 @@ export const InrMoneyInput = forwardRef<HTMLInputElement, InrMoneyInputProps>(
         ₹
       </span>
       <input
+        ref={ref}
         {...rest}
         type="text"
         inputMode="numeric"

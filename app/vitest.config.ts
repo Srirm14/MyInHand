@@ -1,8 +1,9 @@
 import { defineConfig } from "vitest/config";
-import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
+  resolve: {
+    tsconfigPaths: true,
+  },
   test: {
     environment: "node",
     globals: true,
@@ -12,6 +13,6 @@ export default defineConfig({
       reporter: ["text", "lcov", "html"],
       include: ["src/lib/utils/**", "src/lib/simple-salary-calculator/**"],
     },
-    reporters: ["verbose"],
+    reporters: ["default"],
   },
 });

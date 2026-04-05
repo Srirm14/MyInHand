@@ -1,5 +1,50 @@
-.DS_Store
-*.log
+# ── Dependencies & installs ─────────────────────────────────────────
+node_modules/
+
+# ── Environment & secrets ───────────────────────────────────────────
 .env
 .env.*
 !.env.example
+!**/.env.example
+
+# Mistaken shell redirect as filename (use app/.env.local for env vars)
+NEXT_PUBLIC_ACCESS_MODE=*
+
+# ── Build & caches ──────────────────────────────────────────────────
+.next/
+out/
+build/
+dist/
+.turbo/
+.cache/
+*.tsbuildinfo
+.eslintcache
+
+# Vite / Vitest (when run from repo root or app)
+.vite/
+
+# ── Test & coverage output ──────────────────────────────────────────
+coverage/
+playwright-report/
+test-results/
+blob-report/
+playwright/.cache/
+
+# ── Logs & OS ───────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.DS_Store
+Thumbs.db
+
+# ── IDE & local tooling ─────────────────────────────────────────────
+.idea/
+*.swp
+*.swo
+.claude/settings.local.json
+
+# ── Misc ───────────────────────────────────────────────────────────
+*.pem
+.vercel

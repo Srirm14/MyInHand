@@ -62,15 +62,10 @@ export function CloudSalaryWorkspaceSync() {
     }
   }, [persist, effectiveId, isError, setActive, router, pathname]);
 
-  const sessionSig = detail?.session
-    ? `${detail.session.id}:${detail.session.updated_at}`
-    : "";
-  const planningUpdatedAt = detail?.planning?.updated_at ?? "";
-
   useEffect(() => {
     if (!persist || !effectiveId || !detail?.session) return;
     applySalarySessionDetailToStores(detail, effectiveId);
-  }, [persist, effectiveId, sessionSig, planningUpdatedAt]);
+  }, [persist, effectiveId, detail]);
 
   return null;
 }

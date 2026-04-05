@@ -81,7 +81,7 @@ export function MonthlyPlanView() {
     lastPersistedLifestyleSig.current = planningLifestyleSig;
   }, [
     activeSalarySessionId,
-    detailQ.data?.session?.id,
+    detailQ.data?.session,
     detailQ.data?.planning?.updated_at,
     planningLifestyleSig,
   ]);
@@ -128,7 +128,7 @@ export function MonthlyPlanView() {
     persist,
     activeSalarySessionId,
     upsertPlanning,
-    detailQ.data?.session?.id,
+    detailQ.data?.session,
   ]);
 
   const result = calculateSurplus(monthlyInHand);

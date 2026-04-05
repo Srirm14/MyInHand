@@ -1,4 +1,8 @@
+import path from "node:path";
 import type { NextConfig } from "next";
+
+/** App package root when running `next` from `./app` — avoids Turbopack picking the repo-root lockfile. */
+const turbopackRoot = path.resolve(process.cwd());
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
@@ -11,6 +15,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: turbopackRoot,
+  },
   async redirects() {
     return [
       {

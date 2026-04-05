@@ -11,10 +11,14 @@ export function useDelayedTrue(value: boolean, delayMs: number): boolean {
   const [active, setActive] = useState(false);
   useEffect(() => {
     if (!value) {
-      setActive(false);
+      queueMicrotask(() => {
+        setActive(false);
+      });
       return;
     }
-    return deferExecution(delayMs, () => setActive(true));
+    return deferExecution(delayMs, () => {
+      setActive(true);
+    });
   }, [value, delayMs]);
   return active;
 }

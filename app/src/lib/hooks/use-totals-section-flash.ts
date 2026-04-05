@@ -24,10 +24,14 @@ export function useTotalsSectionFlash(totalsSignature: string) {
       primed.current = true;
       return;
     }
-    setFlashOn(false);
+    queueMicrotask(() => {
+      setFlashOn(false);
+    });
     let innerId = 0;
     const outerId = requestAnimationFrame(() => {
-      innerId = requestAnimationFrame(() => setFlashOn(true));
+      innerId = requestAnimationFrame(() => {
+        setFlashOn(true);
+      });
     });
     return () => {
       cancelAnimationFrame(outerId);

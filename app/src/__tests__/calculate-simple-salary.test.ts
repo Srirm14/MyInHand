@@ -131,7 +131,7 @@ describe("calculateSimpleSalarySummary — deductions", () => {
   it("extra deductions reduce in-hand proportionally", () => {
     const withExtra = calculateSimpleSalarySummary(
       input({
-        extraDeductions: [{ label: "NPS", monthlyAmount: 3_000 }],
+        extraDeductions: [{ id: "nps", label: "NPS", monthlyAmount: 3_000 }],
       })
     );
     const without = calculateSimpleSalarySummary(input({ extraDeductions: [] }));
@@ -142,8 +142,8 @@ describe("calculateSimpleSalarySummary — deductions", () => {
     const result = calculateSimpleSalarySummary(
       input({
         extraDeductions: [
-          { label: "VPF", monthlyAmount: 2_000 },
-          { label: "NPS", monthlyAmount: 3_000 },
+          { id: "vpf", label: "VPF", monthlyAmount: 2_000 },
+          { id: "nps-2", label: "NPS", monthlyAmount: 3_000 },
         ],
       })
     );
@@ -153,7 +153,9 @@ describe("calculateSimpleSalarySummary — deductions", () => {
 
   it("negative extra deduction amounts are clamped to 0", () => {
     const result = calculateSimpleSalarySummary(
-      input({ extraDeductions: [{ label: "Negative", monthlyAmount: -1_000 }] })
+      input({
+        extraDeductions: [{ id: "neg", label: "Negative", monthlyAmount: -1_000 }],
+      })
     );
     const base = calculateSimpleSalarySummary(input({ extraDeductions: [] }));
     expect(result.monthlyInHandFixedOnly).toBe(base.monthlyInHandFixedOnly);
