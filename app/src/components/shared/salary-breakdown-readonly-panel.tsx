@@ -2,12 +2,12 @@
 
 import { useMemo, type ReactNode } from "react";
 import {
-  Banknote,
+  BadgePercent,
+  Calendar,
+  ClipboardList,
   Info,
-  PiggyBank,
-  Receipt,
   Sparkles,
-  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { CashPathInteractiveRow } from "@/components/shared/cash-path-interactive-row";
 import { StatCard } from "@/components/shared/stat-card";
@@ -638,28 +638,28 @@ export function SalaryBreakdownReadonlyPanel({
           amount={breakdown.monthlyInHandExcludingVariable}
           sublabel={`~${formatCurrency(annualInHandExclVar)} / yr`}
           sentiment="positive"
-          icon={Banknote}
+          icon={Wallet}
         />
         <StatCard
           label="Monthly in-hand · incl. variable"
           amount={breakdown.monthlyInHandIncludingVariable}
           sublabel="÷12 spread — illustrative only"
           sentiment="positive"
-          icon={TrendingUp}
+          icon={Calendar}
         />
         <StatCard
           label="Est. income tax (TDS)"
           amount={breakdown.annualIncomeTax}
           sublabel={regimeLabel}
           sentiment="negative"
-          icon={PiggyBank}
+          icon={BadgePercent}
         />
         <StatCard
           label="Monthly deductions"
           amount={breakdown.totalMonthlyDeductions}
           sublabel={`Employer CTC ~${formatCurrency(employerMonthly * 12)} / yr`}
           sentiment="neutral"
-          icon={Receipt}
+          icon={ClipboardList}
         />
       </div>
 

@@ -120,7 +120,7 @@ export function RegimeTaxSlabReferenceCard({
         : null;
 
   const footSimple = (
-    <div className="space-y-0.5 text-[9px] leading-snug text-navy-500">
+    <div className="space-y-1 text-[10px] leading-snug text-navy-500">
       <p>
         <span className="font-semibold text-navy-600">Taxable:</span> cash minus
         std. deduction ₹{formatIndianNumber(STANDARD_DEDUCTION)}
@@ -136,14 +136,14 @@ export function RegimeTaxSlabReferenceCard({
           : `₹${formatIndianNumber(REBATE_THRESHOLD_NEW)}`}
         .
       </p>
-      <p className="text-[8px] text-navy-400">
+      <p className="text-[9px] text-navy-400">
         Indicative — not tax advice.
       </p>
     </div>
   );
 
   const footBreakdown = (
-    <div className="space-y-0.5 text-[9px] leading-snug text-navy-500">
+    <div className="space-y-1 text-[10px] leading-snug text-navy-500">
       <p>
         <span className="font-semibold text-navy-600">Model:</span> cash earnings →
         std. deduction
@@ -159,14 +159,14 @@ export function RegimeTaxSlabReferenceCard({
           : `; 87A ≤₹${formatIndianNumber(REBATE_MAX_NEW)} below ₹${formatIndianNumber(REBATE_THRESHOLD_NEW)}`}
         .
       </p>
-      <p className="text-[8px] text-navy-400">Estimates — not tax advice.</p>
+      <p className="text-[9px] text-navy-400">Estimates — not tax advice.</p>
     </div>
   );
 
   return (
     <aside
       className={cn(
-        "rounded-xl border bg-gradient-to-b p-2.5 shadow-sm shadow-navy-900/[0.03] sm:p-3",
+        "rounded-xl border bg-gradient-to-b p-3 shadow-sm shadow-navy-900/[0.03] sm:p-3.5",
         shell,
         className
       )}
@@ -177,38 +177,38 @@ export function RegimeTaxSlabReferenceCard({
             <motion.div key={regime} {...motionFade} className="min-w-0">
               <p
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-[0.07em] leading-none",
+                  "text-[11px] font-bold uppercase tracking-[0.07em] leading-none",
                   accentText
                 )}
               >
                 {title}{" "}
                 <span className="font-semibold text-navy-500">· FY 2025-26</span>
               </p>
-              <p className="mt-1 text-[9px] leading-tight text-navy-500">
+              <p className="mt-1.5 text-[10px] leading-snug text-navy-500">
                 AY 2026-27 · resident slabs = in-app TDS basis
               </p>
 
-              <div className="mt-2.5 min-w-0">
+              <div className="mt-3 min-w-0">
           {viz ? (
             <>
-              <div className="flex items-stretch gap-2 rounded-md bg-white/70 px-2 py-1.5 ring-1 ring-navy-900/[0.05]">
+              <div className="flex items-stretch gap-2.5 rounded-md bg-white/70 px-2.5 py-2 ring-1 ring-navy-900/[0.05]">
                 <div className="min-w-0 flex-1">
-                  <p className="text-[8px] font-semibold uppercase tracking-wide text-navy-500">
+                  <p className="text-[9px] font-semibold uppercase tracking-wide text-navy-500">
                     Taxable income
                   </p>
-                  <p className="text-xs font-bold tabular-nums leading-tight text-navy-900">
+                  <p className="text-[13px] font-bold tabular-nums leading-tight text-navy-900">
                     {formatCurrency(viz.taxableIncome)}
                   </p>
                 </div>
                 <div className="w-px shrink-0 bg-navy-200/60" aria-hidden />
                 <div className="min-w-0 flex-1 text-right">
-                  <p className="text-[8px] font-semibold uppercase tracking-wide text-navy-500">
+                  <p className="text-[9px] font-semibold uppercase tracking-wide text-navy-500">
                     Est. tax / yr
                   </p>
-                  <p className="text-xs font-bold tabular-nums leading-tight text-navy-900">
+                  <p className="text-[13px] font-bold tabular-nums leading-tight text-navy-900">
                     {formatCurrency(viz.estimatedAnnualTax)}
                   </p>
-                  <p className="text-[8px] leading-none text-navy-500">
+                  <p className="mt-0.5 text-[9px] leading-none text-navy-500">
                     ~{viz.effectiveRatePercent}% gross
                   </p>
                 </div>
@@ -217,7 +217,7 @@ export function RegimeTaxSlabReferenceCard({
               {insight ? (
                 <p
                   className={cn(
-                    "mt-2 rounded px-2 py-1 text-[9px] font-medium leading-snug",
+                    "mt-2.5 rounded-md px-2.5 py-1.5 text-[10px] font-medium leading-snug",
                     isOld
                       ? "bg-amber-100/40 text-amber-950/95"
                       : "bg-teal-100/35 text-teal-950/95"
@@ -227,8 +227,8 @@ export function RegimeTaxSlabReferenceCard({
                 </p>
               ) : null}
 
-              <div className="mt-2">
-                <p className="mb-1 text-[8px] font-semibold uppercase tracking-wide text-navy-400">
+              <div className="mt-2.5">
+                <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-navy-400">
                   Utilization{" "}
                   <span className="font-normal normal-case text-navy-400">
                     · bracket width · fill · line = income end
@@ -236,7 +236,7 @@ export function RegimeTaxSlabReferenceCard({
                 </p>
                 <div className="relative">
                   <div
-                    className="flex h-5 w-full overflow-hidden rounded border border-navy-200/50 bg-navy-100/40"
+                    className="flex h-6 w-full overflow-hidden rounded border border-navy-200/50 bg-navy-100/40"
                     role="img"
                     aria-label="Tax slab utilization"
                   >
@@ -283,15 +283,15 @@ export function RegimeTaxSlabReferenceCard({
                 </div>
               </div>
 
-              <div className="mt-2 border-t border-navy-100/90 pt-2">
-                <div className="mb-1.5 flex items-baseline justify-between gap-2 text-[8px] font-semibold uppercase tracking-wide text-navy-500">
+              <div className="mt-2.5 border-t border-navy-100/90 pt-2.5">
+                <div className="mb-2 flex items-baseline justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-navy-500">
                   <span>Slab</span>
                   <span>Rate · Used</span>
                 </div>
                 <ul
                   className={cn(
-                    "space-y-px overflow-y-auto overscroll-contain",
-                    "max-h-[8.25rem] min-h-0 sm:max-h-[8.75rem]"
+                    "space-y-0.5 overflow-y-auto overscroll-contain",
+                    "max-h-[8.75rem] min-h-0 sm:max-h-[9.25rem]"
                   )}
                 >
                   {viz.slabs.map((slab, i) => {
@@ -301,7 +301,7 @@ export function RegimeTaxSlabReferenceCard({
                       <li
                         key={`row-${slab.min}-${slab.max}-${i}`}
                         className={cn(
-                          "flex items-center justify-between gap-2 rounded px-1 py-0.5 text-[9px] leading-tight",
+                          "flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-[10px] leading-snug",
                           active
                             ? isOld
                               ? "bg-amber-50/70"
@@ -335,21 +335,21 @@ export function RegimeTaxSlabReferenceCard({
               </div>
             </>
           ) : (
-            <div className="rounded-md bg-white/60 px-2 py-1.5 ring-1 ring-navy-900/[0.04]">
-              <div className="mb-1 flex items-baseline justify-between gap-2 text-[8px] font-semibold uppercase tracking-wide text-navy-500">
+            <div className="rounded-md bg-white/60 px-2.5 py-2 ring-1 ring-navy-900/[0.04]">
+              <div className="mb-1.5 flex items-baseline justify-between gap-2 text-[9px] font-semibold uppercase tracking-wide text-navy-500">
                 <span>Slab (₹/yr)</span>
                 <span>Rate</span>
               </div>
               <ul
                 className={cn(
-                  "space-y-px overflow-y-auto",
-                  "max-h-[8.25rem] sm:max-h-[8.75rem]"
+                  "space-y-0.5 overflow-y-auto",
+                  "max-h-[8.75rem] sm:max-h-[9.25rem]"
                 )}
               >
                 {slabs.map((slab, i) => (
                   <li
                     key={`ref-${slab.min}-${slab.max}-${slab.rate}`}
-                    className="flex items-center justify-between gap-2 py-0.5 text-[9px] leading-tight"
+                    className="flex items-center justify-between gap-2 py-1 text-[10px] leading-snug"
                   >
                     <span className="min-w-0 font-medium text-navy-800 tabular-nums">
                       {slabIncomeLabel(slab, i)}
@@ -360,7 +360,7 @@ export function RegimeTaxSlabReferenceCard({
                   </li>
                 ))}
               </ul>
-              <p className="mt-1 text-[8px] leading-tight text-navy-500">
+              <p className="mt-1.5 text-[9px] leading-snug text-navy-500">
                 Estimate salary to see utilization.
               </p>
             </div>
@@ -370,7 +370,7 @@ export function RegimeTaxSlabReferenceCard({
           </AnimatePresence>
       </div>
 
-      <div className="mt-2.5 border-t border-navy-100/70 pt-2">
+      <div className="mt-3 border-t border-navy-100/70 pt-2.5">
         {engineNotes === "breakdown" ? footBreakdown : footSimple}
       </div>
     </aside>

@@ -33,11 +33,11 @@ export function StatCard({
 
   const iconWrapClass = {
     positive:
-      "rounded-lg bg-teal-100/85 p-1.5 text-teal-700 ring-1 ring-inset ring-teal-200/60",
+      "rounded-md bg-teal-50/75 p-1 text-teal-700/90 ring-1 ring-inset ring-teal-200/40",
     negative:
-      "rounded-lg bg-danger-50 p-1.5 text-danger-600 ring-1 ring-inset ring-danger-100/80",
+      "rounded-md bg-danger-50/70 p-1 text-danger-600/95 ring-1 ring-inset ring-danger-100/50",
     neutral:
-      "rounded-lg bg-navy-100/80 p-1.5 text-navy-600 ring-1 ring-inset ring-navy-200/55",
+      "rounded-md bg-navy-100/55 p-1 text-navy-600/90 ring-1 ring-inset ring-navy-200/40",
   }[sentiment];
 
   return (
@@ -54,7 +54,7 @@ export function StatCard({
         </p>
         {Icon ? (
           <div className={cn("shrink-0", iconWrapClass)} aria-hidden>
-            <Icon className="size-5 sm:size-6" strokeWidth={2} />
+            <Icon className="size-4" strokeWidth={1.5} />
           </div>
         ) : null}
       </div>

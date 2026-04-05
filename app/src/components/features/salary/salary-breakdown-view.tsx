@@ -18,20 +18,23 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowRight,
-  Banknote,
+  BadgePercent,
+  Briefcase,
+  Calendar,
   CalendarDays,
   ChevronLeft,
+  ClipboardList,
   Info,
-  PiggyBank,
+  Layers,
+  PenLine,
   Plus,
-  Receipt,
   Sparkles,
   Trash2,
   LineChart,
   Scale,
-  TrendingUp,
   Upload,
   Loader2,
+  Wallet,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageShell } from "@/components/layout/page-shell";
@@ -107,25 +110,25 @@ const GROUP_ORDER: SalaryComponentGroup[] = [
 /** Wave tint steps: neutral < accent (total cash) < hero (stated CTC). */
 const ANNUAL_PICTURE_WAVE_TONE = {
   neutral: {
-    w1: "bg-teal-500/[0.058]",
-    w2: "bg-teal-400/[0.044]",
-    w3: "bg-teal-600/[0.034]",
-    veilFrom: "from-teal-400/[0.038]",
-    veilVia: "via-teal-500/[0.015]",
+    w1: "bg-teal-500/[0.065]",
+    w2: "bg-teal-400/[0.05]",
+    w3: "bg-teal-600/[0.038]",
+    veilFrom: "from-teal-400/[0.042]",
+    veilVia: "via-teal-500/[0.018]",
   },
   accent: {
-    w1: "bg-teal-500/[0.074]",
-    w2: "bg-teal-400/[0.056]",
-    w3: "bg-teal-600/[0.044]",
-    veilFrom: "from-teal-400/[0.048]",
-    veilVia: "via-teal-500/[0.022]",
+    w1: "bg-teal-500/[0.08]",
+    w2: "bg-teal-400/[0.062]",
+    w3: "bg-teal-600/[0.048]",
+    veilFrom: "from-teal-400/[0.052]",
+    veilVia: "via-teal-500/[0.024]",
   },
   hero: {
-    w1: "bg-teal-500/[0.088]",
-    w2: "bg-teal-400/[0.068]",
-    w3: "bg-teal-600/[0.052]",
-    veilFrom: "from-teal-400/[0.058]",
-    veilVia: "via-teal-500/[0.028]",
+    w1: "bg-teal-500/[0.092]",
+    w2: "bg-teal-400/[0.072]",
+    w3: "bg-teal-600/[0.056]",
+    veilFrom: "from-teal-400/[0.062]",
+    veilVia: "via-teal-500/[0.03]",
   },
 } as const;
 
@@ -175,8 +178,14 @@ function AnnualPictureStatTile({
             />
             <div
               className={cn(
-                "absolute -bottom-8 left-[5%] h-20 w-[125%] rounded-[100%] blur-2xl",
+                "absolute -bottom-8 left-[5%] h-24 w-[135%] rounded-[100%] blur-2xl",
                 t.w3
+              )}
+            />
+            <div
+              className={cn(
+                "absolute -right-[20%] top-[8%] h-[70%] w-[85%] rounded-[55%_45%_48%_52%] blur-3xl",
+                t.w2
               )}
             />
           </>
@@ -201,6 +210,12 @@ function AnnualPictureStatTile({
                 t.w3
               )}
             />
+            <div
+              className={cn(
+                "absolute -right-[18%] bottom-[12%] h-[55%] w-[72%] rounded-[48%_52%_50%_50%] blur-3xl",
+                t.w1
+              )}
+            />
           </>
         ) : fluidVariant === 2 ? (
           <>
@@ -223,6 +238,12 @@ function AnnualPictureStatTile({
                 t.w3
               )}
             />
+            <div
+              className={cn(
+                "absolute left-1/2 top-[28%] h-[48%] w-[78%] -translate-x-1/2 rounded-[50%_50%_46%_54%] blur-3xl",
+                t.w2
+              )}
+            />
           </>
         ) : (
           <>
@@ -242,8 +263,14 @@ function AnnualPictureStatTile({
             />
             <div
               className={cn(
-                "absolute -bottom-8 right-[-8%] h-28 w-[120%] rounded-[100%] blur-2xl",
+                "absolute -bottom-8 right-[-8%] h-32 w-[128%] rounded-[100%] blur-2xl",
                 t.w2
+              )}
+            />
+            <div
+              className={cn(
+                "absolute left-[32%] top-[20%] h-[55%] w-[68%] -translate-x-1/2 rounded-[52%_48%_50%_50%] blur-3xl",
+                t.w3
               )}
             />
           </>
@@ -251,6 +278,18 @@ function AnnualPictureStatTile({
       </div>
       <div className="relative z-[1]">{children}</div>
     </div>
+  );
+}
+
+function annualPictureTileIconShell(tone: "neutral" | "accent" | "hero") {
+  return cn(
+    "flex size-7 shrink-0 items-center justify-center rounded-md ring-1 ring-inset",
+    tone === "neutral" &&
+      "bg-navy-100/60 text-navy-600 ring-navy-200/45",
+    tone === "accent" &&
+      "bg-teal-100/70 text-teal-800 ring-teal-200/55",
+    tone === "hero" &&
+      "bg-teal-50/95 text-teal-700 ring-teal-200/60"
   );
 }
 
@@ -414,6 +453,35 @@ export function SalaryBreakdownView() {
     return {
       grossAnnualSalary: Math.round(gross),
       oldRegimeAdditionalDeductions: Math.round((pf?.annualValue ?? 0) + 150_000),
+    };
+  }, [breakdown]);
+
+  const annualPictureHints = useMemo(() => {
+    if (!breakdown) {
+      return {
+        fixed: "",
+        variable: "",
+        total: "",
+        stated: "",
+      };
+    }
+    const ctc = breakdown.statedAnnualCTC;
+    const cash = breakdown.annualCashCompensation;
+    const variableAnnual = breakdown.annualVariableCashTotal;
+    const cashPctOfCtc =
+      ctc > 0 ? Math.round((cash / ctc) * 100) : null;
+    return {
+      fixed: "Recurring earnings from your breakdown table",
+      variable:
+        variableAnnual > 0
+          ? "Variable-pay rows (cash in this model)"
+          : "Optional — add rows if you have variable pay",
+      total:
+        cashPctOfCtc != null
+          ? `About ${cashPctOfCtc}% of stated CTC · cash subtotal`
+          : "Sum of fixed + variable cash",
+      stated:
+        "Your entered CTC · employer lines sit in modeled package",
     };
   }, [breakdown]);
 
@@ -710,7 +778,7 @@ export function SalaryBreakdownView() {
               amount={breakdown.monthlyInHandExcludingVariable}
               sublabel={`~${formatCurrency(annualInHandExclVar)} / yr`}
               sentiment="positive"
-              icon={Banknote}
+              icon={Wallet}
               className={cn(
                 "transition-shadow duration-500",
                 totalsFlashActive && "shadow-md shadow-teal-900/[0.06]"
@@ -723,7 +791,7 @@ export function SalaryBreakdownView() {
               amount={breakdown.monthlyInHandIncludingVariable}
               sublabel="÷12 spread — illustrative only"
               sentiment="positive"
-              icon={TrendingUp}
+              icon={Calendar}
               className="transition-shadow duration-500"
             />
           </motion.div>
@@ -733,7 +801,7 @@ export function SalaryBreakdownView() {
               amount={breakdown.annualIncomeTax}
               sublabel={`${regimeLabel} · ÷12 for monthly TDS`}
               sentiment="negative"
-              icon={PiggyBank}
+              icon={BadgePercent}
               className="transition-shadow duration-500"
             />
           </motion.div>
@@ -743,7 +811,7 @@ export function SalaryBreakdownView() {
               amount={breakdown.totalMonthlyDeductions}
               sublabel={`Employer CTC ~${formatCurrency(employerMonthly * 12)} / yr`}
               sentiment="neutral"
-              icon={Receipt}
+              icon={ClipboardList}
               className="transition-shadow duration-500"
             />
           </motion.div>
@@ -776,47 +844,99 @@ export function SalaryBreakdownView() {
             <div className="grid flex-1 grid-cols-2 gap-3 text-sm sm:gap-4">
               <AnnualPictureStatTile
                 fluidVariant={0}
-                className="rounded-lg bg-navy-50/50 px-3.5 py-3 ring-1 ring-navy-100/80"
+                className="rounded-lg bg-navy-50/50 px-4 py-3.5 ring-1 ring-navy-100/80"
               >
-                <p className="text-[11px] font-medium text-navy-500">
-                  Annual fixed (cash)
-                </p>
-                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
-                  {formatCurrency(breakdown.annualFixedCashTotal)}
-                </p>
+                <div className="flex min-h-[6.75rem] flex-col">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-xs font-medium leading-snug text-navy-600">
+                      Annual fixed (cash)
+                    </p>
+                    <div
+                      className={annualPictureTileIconShell("neutral")}
+                      aria-hidden
+                    >
+                      <Briefcase className="size-3.5" strokeWidth={1.5} />
+                    </div>
+                  </div>
+                  <p className="mt-1 text-lg font-semibold tabular-nums leading-tight text-navy-900">
+                    {formatCurrency(breakdown.annualFixedCashTotal)}
+                  </p>
+                  <p className="mt-auto pt-3 text-[10px] leading-snug text-navy-500">
+                    {annualPictureHints.fixed}
+                  </p>
+                </div>
               </AnnualPictureStatTile>
               <AnnualPictureStatTile
                 fluidVariant={1}
-                className="rounded-lg bg-navy-50/50 px-3.5 py-3 ring-1 ring-navy-100/80"
+                className="rounded-lg bg-navy-50/50 px-4 py-3.5 ring-1 ring-navy-100/80"
               >
-                <p className="text-[11px] font-medium text-navy-500">
-                  Annual variable (cash)
-                </p>
-                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
-                  {formatCurrency(breakdown.annualVariableCashTotal)}
-                </p>
+                <div className="flex min-h-[6.75rem] flex-col">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-xs font-medium leading-snug text-navy-600">
+                      Annual variable (cash)
+                    </p>
+                    <div
+                      className={annualPictureTileIconShell("neutral")}
+                      aria-hidden
+                    >
+                      <Layers className="size-3.5" strokeWidth={1.5} />
+                    </div>
+                  </div>
+                  <p className="mt-1 text-lg font-semibold tabular-nums leading-tight text-navy-900">
+                    {formatCurrency(breakdown.annualVariableCashTotal)}
+                  </p>
+                  <p className="mt-auto pt-3 text-[10px] leading-snug text-navy-500">
+                    {annualPictureHints.variable}
+                  </p>
+                </div>
               </AnnualPictureStatTile>
               <AnnualPictureStatTile
                 fluidVariant={2}
-                className="rounded-lg bg-teal-50/40 px-3.5 py-3 ring-1 ring-teal-100/70"
+                className="rounded-lg bg-teal-50/40 px-4 py-3.5 ring-1 ring-teal-100/70"
               >
-                <p className="text-[11px] font-medium text-teal-800/90">
-                  Total cash (fixed + variable)
-                </p>
-                <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-900">
-                  {formatCurrency(breakdown.annualCashCompensation)}
-                </p>
+                <div className="flex min-h-[6.75rem] flex-col">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-xs font-medium leading-snug text-teal-900/90">
+                      Total cash (fixed + variable)
+                    </p>
+                    <div
+                      className={annualPictureTileIconShell("accent")}
+                      aria-hidden
+                    >
+                      <Wallet className="size-3.5" strokeWidth={1.5} />
+                    </div>
+                  </div>
+                  <p className="mt-1 text-lg font-semibold tabular-nums leading-tight text-navy-900">
+                    {formatCurrency(breakdown.annualCashCompensation)}
+                  </p>
+                  <p className="mt-auto pt-3 text-[10px] leading-snug text-teal-900/75">
+                    {annualPictureHints.total}
+                  </p>
+                </div>
               </AnnualPictureStatTile>
               <AnnualPictureStatTile
                 fluidVariant={3}
-                className="rounded-lg bg-white px-3.5 py-3 ring-1 ring-teal-200/60"
+                className="rounded-lg bg-white px-4 py-3.5 ring-1 ring-teal-200/60"
               >
-                <p className="text-[11px] font-medium text-teal-700">
-                  Stated CTC (your input)
-                </p>
-                <p className="mt-0.5 text-base font-semibold tabular-nums text-teal-800">
-                  {formatCurrency(breakdown.statedAnnualCTC)}
-                </p>
+                <div className="flex min-h-[6.75rem] flex-col">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-xs font-medium leading-snug text-teal-800">
+                      Stated CTC (your input)
+                    </p>
+                    <div
+                      className={annualPictureTileIconShell("hero")}
+                      aria-hidden
+                    >
+                      <PenLine className="size-3.5" strokeWidth={1.5} />
+                    </div>
+                  </div>
+                  <p className="mt-1 text-lg font-semibold tabular-nums leading-tight text-teal-900">
+                    {formatCurrency(breakdown.statedAnnualCTC)}
+                  </p>
+                  <p className="mt-auto pt-3 text-[10px] leading-snug text-teal-800/80">
+                    {annualPictureHints.stated}
+                  </p>
+                </div>
               </AnnualPictureStatTile>
             </div>
             <p className="text-[11px] text-navy-400 mt-3 leading-relaxed lg:mt-auto lg:pt-3">

@@ -8,14 +8,14 @@ import {
   startTransition,
 } from "react";
 import {
-  Banknote,
+  BadgePercent,
+  Calendar,
+  ClipboardList,
   Info,
-  PiggyBank,
   Plus,
-  Receipt,
   Sparkles,
   Trash2,
-  TrendingUp,
+  Wallet,
 } from "lucide-react";
 import { StatCard } from "@/components/shared/stat-card";
 import { CashPathInteractiveRow } from "@/components/shared/cash-path-interactive-row";
@@ -712,7 +712,7 @@ export function SalaryBreakdownEditablePanel({
             amount={breakdown.monthlyInHandExcludingVariable}
             sublabel={`~${formatCurrency(annualInHandExclVar)} / yr`}
             sentiment="positive"
-            icon={Banknote}
+            icon={Wallet}
             className={cn(
               "transition-shadow duration-500",
               totalsFlashActive && "shadow-md shadow-teal-900/[0.06]"
@@ -723,7 +723,7 @@ export function SalaryBreakdownEditablePanel({
             amount={breakdown.monthlyInHandIncludingVariable}
             sublabel="÷12 spread — illustrative only"
             sentiment="positive"
-            icon={TrendingUp}
+            icon={Calendar}
             className="transition-shadow duration-500"
           />
           <StatCard
@@ -731,7 +731,7 @@ export function SalaryBreakdownEditablePanel({
             amount={breakdown.annualIncomeTax}
             sublabel={regimeLabel}
             sentiment="negative"
-            icon={PiggyBank}
+            icon={BadgePercent}
             className="transition-shadow duration-500"
           />
           <StatCard
@@ -739,7 +739,7 @@ export function SalaryBreakdownEditablePanel({
             amount={breakdown.totalMonthlyDeductions}
             sublabel={`Employer CTC ~${formatCurrency(employerMonthly * 12)} / yr`}
             sentiment="neutral"
-            icon={Receipt}
+            icon={ClipboardList}
             className="transition-shadow duration-500"
           />
         </div>
