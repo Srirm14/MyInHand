@@ -40,6 +40,10 @@ import {
 } from "@/lib/config/salary-premium-paths";
 import { PremiumPlannerSalaryGate } from "@/components/shared/premium-planner-salary-gate";
 import { cn } from "@/lib/utils";
+import {
+  stableLifestyleSignature,
+  stableLifestyleSignatureFromPlanningJson,
+} from "@/lib/utils/lifestyle-signature";
 import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 
 export function MonthlyPlanView() {
@@ -59,13 +63,10 @@ export function MonthlyPlanView() {
   const setExpense = useLifestyleStore((s) => s.setExpense);
   const calculateSurplus = useLifestyleStore((s) => s.calculateSurplus);
 
-  const expensesSerialized = JSON.stringify(expenses);
-  const planningLifestyleKey =
-    detailQ.data?.planning?.lifestyle_json &&
-    typeof detailQ.data.planning.lifestyle_json === "object" &&
-    !Array.isArray(detailQ.data.planning.lifestyle_json)
-      ? JSON.stringify(detailQ.data.planning.lifestyle_json)
-      : "";
+  const expensesSig = stableLifestyleSignature(expenses);
+  const planningLifestyleSig = stableLifestyleSignatureFromPlanningJson(
+    detailQ.data?.planning?.lifestyle_json
+  );
 
   const lastPersistedLifestyleSig = useRef<string | null>(null);
 
@@ -77,13 +78,12 @@ export function MonthlyPlanView() {
     if (!detailQ.data?.session || detailQ.data.session.id !== activeSalarySessionId) {
       return;
     }
-    lastPersistedLifestyleSig.current =
-      planningLifestyleKey === "" ? "{}" : planningLifestyleKey;
+    lastPersistedLifestyleSig.current = planningLifestyleSig;
   }, [
     activeSalarySessionId,
     detailQ.data?.session?.id,
     detailQ.data?.planning?.updated_at,
-    planningLifestyleKey,
+    planningLifestyleSig,
   ]);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export function MonthlyPlanView() {
     if (!detailQ.data?.session || detailQ.data.session.id !== activeSalarySessionId) {
       return;
     }
-    const snap = expensesSerialized;
+    const snap = expensesSig;
     if (
       lastPersistedLifestyleSig.current != null &&
       snap === lastPersistedLifestyleSig.current
@@ -99,7 +99,9 @@ export function MonthlyPlanView() {
       return;
     }
     return deferExecution(900, () => {
-      const now = JSON.stringify(useLifestyleStore.getState().expenses);
+      const now = stableLifestyleSignature(
+        useLifestyleStore.getState().expenses
+      );
       if (
         lastPersistedLifestyleSig.current != null &&
         now === lastPersistedLifestyleSig.current
@@ -113,7 +115,7 @@ export function MonthlyPlanView() {
         },
         {
           onSuccess: () => {
-            lastPersistedLifestyleSig.current = JSON.stringify(
+            lastPersistedLifestyleSig.current = stableLifestyleSignature(
               useLifestyleStore.getState().expenses
             );
             appToast.monthlyPlan.autosaved();
@@ -122,7 +124,7 @@ export function MonthlyPlanView() {
       );
     });
   }, [
-    expensesSerialized,
+    expensesSig,
     persist,
     activeSalarySessionId,
     upsertPlanning,
