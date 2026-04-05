@@ -24,7 +24,7 @@ export interface CalculateSalaryOptions {
  * (e.g. PDF field mapping) or user_edited. Document flow relied on "parsed" for
  * every row before, which hid what actually came from the file.
  */
-function lineSourceFromMeta(_meta: SalaryBreakdownMeta | undefined): ComponentLineSource {
+function lineSourceFromMeta(): ComponentLineSource {
   return "estimated";
 }
 
@@ -128,7 +128,7 @@ export function calculateSalaryBreakdown(
   options?: CalculateSalaryOptions
 ): SalaryBreakdown {
   const tierConfig = CITY_TIERS.find((t) => t.value === cityTier)!;
-  const src = lineSourceFromMeta(metaOverrides as SalaryBreakdownMeta | undefined);
+  const src = lineSourceFromMeta();
   const variableAnnual = Math.max(0, Math.round(options?.variableAnnual ?? 0));
 
   const annualBasic = Math.round(annualCTC * 0.4);
@@ -317,10 +317,7 @@ export function calculateSalaryBreakdown(
         tags: ["conditional", "one_time"],
       },
       src
-    )
-  );
-
-  components.push(
+    ),
     comp(
       {
         id: "employer_pf",
@@ -511,24 +508,21 @@ function cloneCustomFromPrev(
   return comp({ ...p, lineSource: ls }, base);
 }
 
-/**
- * Formula rows + overrides + custom allowance/variable lines. Special allowance
- * is residual to stated CTC after other slices (incl. custom allowances).
- */
-export function recalculateBreakdownFromComponents(
-  prev: SalaryComponent[],
-  ctx: BreakdownRecalcContext
-): SalaryBreakdown {
-  const tierConfig = CITY_TIERS.find((t) => t.value === ctx.cityTier)!;
-  const base = ctx.baseLineSource;
+const DEFAULT_MEAL_ALLOWANCE = 3000;
+const DEFAULT_TELECOM_ALLOWANCE = 2000;
 
+function recalcCoreFixed(
+  prev: SalaryComponent[],
+  annualCTC: number,
+  tierConfig: (typeof CITY_TIERS)[number]
+) {
   let monthlyBasic: number;
   let annualBasic: number;
   if (isRowOverridden(rowById(prev, "basic"))) {
     monthlyBasic = monthlyOf(prev, "basic");
     annualBasic = monthlyBasic * 12;
   } else {
-    annualBasic = Math.round(ctx.annualCTC * 0.4);
+    annualBasic = Math.round(annualCTC * 0.4);
     monthlyBasic = Math.round(annualBasic / 12);
   }
 
@@ -544,10 +538,7 @@ export function recalculateBreakdownFromComponents(
 
   let monthlyDA: number;
   let annualDA: number;
-  if (!hasRow(prev, "da")) {
-    monthlyDA = 0;
-    annualDA = 0;
-  } else if (isRowOverridden(rowById(prev, "da"))) {
+  if (hasRow(prev, "da") && isRowOverridden(rowById(prev, "da"))) {
     monthlyDA = monthlyOf(prev, "da");
     annualDA = monthlyDA * 12;
   } else {
@@ -555,10 +546,17 @@ export function recalculateBreakdownFromComponents(
     annualDA = 0;
   }
 
-  const DEF_MEAL = 3000;
-  const DEF_TELE = 2000;
-  const docPlain = documentSkipsIllustrativeDefaults(ctx);
+  return {
+    monthlyBasic,
+    annualBasic,
+    monthlyHRA,
+    annualHRA,
+    monthlyDA,
+    annualDA,
+  };
+}
 
+function recalcMealTeleAllowances(prev: SalaryComponent[], docPlain: boolean) {
   let monthlyMeal = 0;
   let annualMeal = 0;
   if (hasRow(prev, "meal_allowance")) {
@@ -566,7 +564,7 @@ export function recalculateBreakdownFromComponents(
       monthlyMeal = monthlyOf(prev, "meal_allowance");
       annualMeal = monthlyMeal * 12;
     } else {
-      monthlyMeal = docPlain ? 0 : DEF_MEAL;
+      monthlyMeal = docPlain ? 0 : DEFAULT_MEAL_ALLOWANCE;
       annualMeal = monthlyMeal * 12;
     }
   }
@@ -578,19 +576,24 @@ export function recalculateBreakdownFromComponents(
       monthlyTelecom = monthlyOf(prev, "telecom_reimbursement");
       annualTelecom = monthlyTelecom * 12;
     } else {
-      monthlyTelecom = docPlain ? 0 : DEF_TELE;
+      monthlyTelecom = docPlain ? 0 : DEFAULT_TELECOM_ALLOWANCE;
       annualTelecom = monthlyTelecom * 12;
     }
   }
 
-  const ctxVariableAnnual = Math.max(0, Math.round(ctx.variableAnnual));
+  return { monthlyMeal, annualMeal, monthlyTelecom, annualTelecom };
+}
+
+function recalcStandardVariable(
+  prev: SalaryComponent[],
+  ctxVariableAnnual: number
+) {
   let monthlyVariable = 0;
   let variableAnnualStandard = 0;
+  const variablePayOverridden = isRowOverridden(rowById(prev, "variable_pay"));
+
   if (hasRow(prev, "variable_pay")) {
-    if (
-      ctxVariableAnnual > 0 &&
-      !isRowOverridden(rowById(prev, "variable_pay"))
-    ) {
+    if (ctxVariableAnnual > 0 && variablePayOverridden === false) {
       variableAnnualStandard = ctxVariableAnnual;
       monthlyVariable = Math.round(ctxVariableAnnual / 12);
     } else {
@@ -601,6 +604,180 @@ export function recalculateBreakdownFromComponents(
     variableAnnualStandard = ctxVariableAnnual;
     monthlyVariable = Math.round(ctxVariableAnnual / 12);
   }
+
+  return { monthlyVariable, variableAnnualStandard };
+}
+
+function recalcEsop(prev: SalaryComponent[]) {
+  let monthlyEsop = 0;
+  let annualEsop = 0;
+  if (
+    hasRow(prev, "esop_estimate") &&
+    isRowOverridden(rowById(prev, "esop_estimate"))
+  ) {
+    monthlyEsop = monthlyOf(prev, "esop_estimate");
+    annualEsop = monthlyEsop * 12;
+  }
+  return { monthlyEsop, annualEsop };
+}
+
+function recalcEmployeePf(
+  prev: SalaryComponent[],
+  docPlain: boolean,
+  pfBase: number
+) {
+  if (isRowOverridden(rowById(prev, "employee_pf"))) {
+    const monthly = monthlyOf(prev, "employee_pf");
+    return { monthlyPFEmployee: monthly, annualPFEmployee: monthly * 12 };
+  }
+  if (docPlain) {
+    return { monthlyPFEmployee: 0, annualPFEmployee: 0 };
+  }
+  const monthlyPFEmployee = Math.round(pfBase * EPF_RATE);
+  return {
+    monthlyPFEmployee,
+    annualPFEmployee: monthlyPFEmployee * 12,
+  };
+}
+
+function recalcEmployerPf(
+  prev: SalaryComponent[],
+  docPlain: boolean,
+  pfBase: number
+) {
+  if (isRowOverridden(rowById(prev, "employer_pf"))) {
+    const monthly = monthlyOf(prev, "employer_pf");
+    return { monthlyPFEmployer: monthly, annualPFEmployer: monthly * 12 };
+  }
+  if (docPlain) {
+    return { monthlyPFEmployer: 0, annualPFEmployer: 0 };
+  }
+  const monthlyPFEmployer = Math.round(pfBase * EPF_RATE);
+  return {
+    monthlyPFEmployer,
+    annualPFEmployer: monthlyPFEmployer * 12,
+  };
+}
+
+function recalcGratuity(
+  prev: SalaryComponent[],
+  docPlain: boolean,
+  annualBasic: number
+) {
+  if (isRowOverridden(rowById(prev, "gratuity_accrual"))) {
+    const monthlyGratuity = monthlyOf(prev, "gratuity_accrual");
+    return {
+      monthlyGratuity,
+      annualGratuityAccrual: monthlyGratuity * 12,
+    };
+  }
+  if (docPlain) {
+    return { monthlyGratuity: 0, annualGratuityAccrual: 0 };
+  }
+  const annualGratuityAccrual = Math.round(annualBasic * 0.0481);
+  const monthlyGratuity = Math.round(annualGratuityAccrual / 12);
+  return { monthlyGratuity, annualGratuityAccrual };
+}
+
+function recalcSpecialAllowance(
+  prev: SalaryComponent[],
+  annualCTC: number,
+  slices: {
+    annualBasic: number;
+    annualHRA: number;
+    annualDA: number;
+    annualMeal: number;
+    annualTelecom: number;
+    customAllowAnnualSum: number;
+    variableBlockAnnual: number;
+    annualPFEmployer: number;
+    annualGratuityAccrual: number;
+  }
+) {
+  if (isRowOverridden(rowById(prev, "special_allowance"))) {
+    const monthlySpecial = monthlyOf(prev, "special_allowance");
+    return { monthlySpecial, annualSpecial: monthlySpecial * 12 };
+  }
+  const annualSpecial = Math.max(
+    0,
+    annualCTC -
+      slices.annualBasic -
+      slices.annualHRA -
+      slices.annualDA -
+      slices.annualMeal -
+      slices.annualTelecom -
+      slices.customAllowAnnualSum -
+      slices.variableBlockAnnual -
+      slices.annualPFEmployer -
+      slices.annualGratuityAccrual
+  );
+  return {
+    monthlySpecial: Math.round(annualSpecial / 12),
+    annualSpecial,
+  };
+}
+
+function recalcIncomeTaxRow(
+  prev: SalaryComponent[],
+  grossAnnualSalary: number,
+  regime: TaxRegime,
+  annualPFEmployee: number
+) {
+  if (isRowOverridden(rowById(prev, "income_tax"))) {
+    const monthlyTax = monthlyOf(prev, "income_tax");
+    return { monthlyTax, annualTax: monthlyTax * 12 };
+  }
+  const oldRegimeDeductions =
+    regime === "old" ? annualPFEmployee + 150000 : 0;
+  const taxResult = calculateIncomeTax(
+    grossAnnualSalary,
+    regime,
+    oldRegimeDeductions
+  );
+  return { monthlyTax: taxResult.monthlyTax, annualTax: taxResult.annualTax };
+}
+
+function recalcProfessionalTaxRow(prev: SalaryComponent[], docPlain: boolean) {
+  if (isRowOverridden(rowById(prev, "professional_tax"))) {
+    const monthlyProfTax = monthlyOf(prev, "professional_tax");
+    return { monthlyProfTax, annualProfTax: monthlyProfTax * 12 };
+  }
+  if (docPlain) {
+    return { monthlyProfTax: 0, annualProfTax: 0 };
+  }
+  const monthlyProfTax = PROFESSIONAL_TAX_MONTHLY;
+  return { monthlyProfTax, annualProfTax: monthlyProfTax * 12 };
+}
+
+/**
+ * Formula rows + overrides + custom allowance/variable lines. Special allowance
+ * is residual to stated CTC after other slices (incl. custom allowances).
+ */
+export function recalculateBreakdownFromComponents(
+  prev: SalaryComponent[],
+  ctx: BreakdownRecalcContext
+): SalaryBreakdown {
+  const tierConfig = CITY_TIERS.find((t) => t.value === ctx.cityTier)!;
+  const base = ctx.baseLineSource;
+  const docPlain = documentSkipsIllustrativeDefaults(ctx);
+
+  const {
+    monthlyBasic,
+    annualBasic,
+    monthlyHRA,
+    annualHRA,
+    monthlyDA,
+    annualDA,
+  } = recalcCoreFixed(prev, ctx.annualCTC, tierConfig);
+
+  const { monthlyMeal, annualMeal, monthlyTelecom, annualTelecom } =
+    recalcMealTeleAllowances(prev, docPlain);
+
+  const ctxVariableAnnual = Math.max(0, Math.round(ctx.variableAnnual));
+  const { monthlyVariable, variableAnnualStandard } = recalcStandardVariable(
+    prev,
+    ctxVariableAnnual
+  );
 
   const allowCustoms = customAllowances(prev);
   const customAllowAnnualSum = allowCustoms.reduce(
@@ -614,116 +791,63 @@ export function recalculateBreakdownFromComponents(
     0
   );
 
-  let monthlyEsop = 0;
-  let annualEsop = 0;
-  if (hasRow(prev, "esop_estimate")) {
-    if (isRowOverridden(rowById(prev, "esop_estimate"))) {
-      monthlyEsop = monthlyOf(prev, "esop_estimate");
-      annualEsop = monthlyEsop * 12;
-    }
-  }
+  const { monthlyEsop, annualEsop } = recalcEsop(prev);
 
   const variableBlockAnnual =
     variableAnnualStandard + customVarAnnualSum + annualEsop;
 
   const pfBase = Math.min(monthlyBasic, EPF_WAGE_CEILING);
 
-  let monthlyPFEmployee: number;
-  let annualPFEmployee: number;
-  if (isRowOverridden(rowById(prev, "employee_pf"))) {
-    monthlyPFEmployee = monthlyOf(prev, "employee_pf");
-    annualPFEmployee = monthlyPFEmployee * 12;
-  } else if (docPlain) {
-    monthlyPFEmployee = 0;
-    annualPFEmployee = 0;
-  } else {
-    monthlyPFEmployee = Math.round(pfBase * EPF_RATE);
-    annualPFEmployee = monthlyPFEmployee * 12;
-  }
+  const { monthlyPFEmployee, annualPFEmployee } = recalcEmployeePf(
+    prev,
+    docPlain,
+    pfBase
+  );
 
-  let monthlyPFEmployer: number;
-  let annualPFEmployer: number;
-  if (isRowOverridden(rowById(prev, "employer_pf"))) {
-    monthlyPFEmployer = monthlyOf(prev, "employer_pf");
-    annualPFEmployer = monthlyPFEmployer * 12;
-  } else if (docPlain) {
-    monthlyPFEmployer = 0;
-    annualPFEmployer = 0;
-  } else {
-    monthlyPFEmployer = Math.round(pfBase * EPF_RATE);
-    annualPFEmployer = monthlyPFEmployer * 12;
-  }
+  const { monthlyPFEmployer, annualPFEmployer } = recalcEmployerPf(
+    prev,
+    docPlain,
+    pfBase
+  );
 
-  let annualGratuityAccrual: number;
-  let monthlyGratuity: number;
-  if (isRowOverridden(rowById(prev, "gratuity_accrual"))) {
-    monthlyGratuity = monthlyOf(prev, "gratuity_accrual");
-    annualGratuityAccrual = monthlyGratuity * 12;
-  } else if (docPlain) {
-    monthlyGratuity = 0;
-    annualGratuityAccrual = 0;
-  } else {
-    annualGratuityAccrual = Math.round(annualBasic * 0.0481);
-    monthlyGratuity = Math.round(annualGratuityAccrual / 12);
-  }
+  const { monthlyGratuity, annualGratuityAccrual } = recalcGratuity(
+    prev,
+    docPlain,
+    annualBasic
+  );
 
-  let monthlySpecial: number;
-  let annualSpecial: number;
-  if (isRowOverridden(rowById(prev, "special_allowance"))) {
-    monthlySpecial = monthlyOf(prev, "special_allowance");
-    annualSpecial = monthlySpecial * 12;
-  } else {
-    annualSpecial = Math.max(
-      0,
-      ctx.annualCTC -
-        annualBasic -
-        annualHRA -
-        annualDA -
-        annualMeal -
-        annualTelecom -
-        customAllowAnnualSum -
-        variableBlockAnnual -
-        annualPFEmployer -
-        annualGratuityAccrual
-    );
-    monthlySpecial = Math.round(annualSpecial / 12);
-  }
+  const { monthlySpecial, annualSpecial } = recalcSpecialAllowance(
+    prev,
+    ctx.annualCTC,
+    {
+      annualBasic,
+      annualHRA,
+      annualDA,
+      annualMeal,
+      annualTelecom,
+      customAllowAnnualSum,
+      variableBlockAnnual,
+      annualPFEmployer,
+      annualGratuityAccrual,
+    }
+  );
 
   const grossAnnualSalary = Math.max(
     0,
     ctx.annualCTC - annualPFEmployer - annualGratuityAccrual
   );
 
-  const oldRegimeDeductions =
-    ctx.regime === "old" ? annualPFEmployee + 150000 : 0;
-  const taxResult = calculateIncomeTax(
+  const { monthlyTax, annualTax } = recalcIncomeTaxRow(
+    prev,
     grossAnnualSalary,
     ctx.regime,
-    oldRegimeDeductions
+    annualPFEmployee
   );
 
-  let monthlyTax: number;
-  let annualTax: number;
-  if (isRowOverridden(rowById(prev, "income_tax"))) {
-    monthlyTax = monthlyOf(prev, "income_tax");
-    annualTax = monthlyTax * 12;
-  } else {
-    monthlyTax = taxResult.monthlyTax;
-    annualTax = taxResult.annualTax;
-  }
-
-  let monthlyProfTax: number;
-  let annualProfTax: number;
-  if (isRowOverridden(rowById(prev, "professional_tax"))) {
-    monthlyProfTax = monthlyOf(prev, "professional_tax");
-    annualProfTax = monthlyProfTax * 12;
-  } else if (docPlain) {
-    monthlyProfTax = 0;
-    annualProfTax = 0;
-  } else {
-    monthlyProfTax = PROFESSIONAL_TAX_MONTHLY;
-    annualProfTax = monthlyProfTax * 12;
-  }
+  const { monthlyProfTax, annualProfTax } = recalcProfessionalTaxRow(
+    prev,
+    docPlain
+  );
 
   const daRow = rowById(prev, "da");
   const components: SalaryComponent[] = [

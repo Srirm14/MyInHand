@@ -106,6 +106,74 @@ const COMPONENT_MAP: Partial<
   professionalTax: "professional_tax",
 };
 
+function variableFieldWhenIncluded(
+  fields: ExtractedSalaryField[],
+  inc: Set<SalaryPdfSemanticKey>
+): ExtractedSalaryField | undefined {
+  if (inc.has("variableAnnual")) return fieldMap(fields, "variableAnnual");
+  if (inc.has("variablePay")) return fieldMap(fields, "variablePay");
+  return undefined;
+}
+
+function annualFromField(f: ExtractedSalaryField | undefined): number | null {
+  if (f === undefined) return null;
+  return amountAnnualRupees(f);
+}
+
+function reconcileCompensationSplit(
+  mode: CompensationMode,
+  annualCTC: number,
+  fixedAnnual: number,
+  variableAnnual: number,
+  fixedAnnualFromField: number | null,
+  varAnnualFromField: number | null
+): { compensationMode: CompensationMode; fixedAnnual: number; variableAnnual: number } {
+  let nextMode = mode;
+  let fixed = fixedAnnual;
+  let variable = variableAnnual;
+
+  if (
+    nextMode === "fixed_variable" &&
+    variable === 0 &&
+    varAnnualFromField !== null
+  ) {
+    variable = varAnnualFromField;
+  }
+  if (
+    nextMode === "fixed_variable" &&
+    fixed === 0 &&
+    fixedAnnualFromField !== null
+  ) {
+    fixed = fixedAnnualFromField;
+  }
+
+  if (
+    nextMode === "total_only" &&
+    varAnnualFromField !== null &&
+    varAnnualFromField > 0 &&
+    annualCTC > 0
+  ) {
+    nextMode = "fixed_variable";
+    variable = varAnnualFromField;
+    fixed = Math.max(0, annualCTC - variable);
+  }
+
+  if (nextMode === "fixed_variable" && annualCTC > 0) {
+    if (fixed === 0 && variable > 0) {
+      fixed = Math.max(0, annualCTC - variable);
+    }
+    if (variable === 0 && fixed > 0) {
+      variable = Math.max(0, annualCTC - fixed);
+    }
+  }
+
+  return {
+    compensationMode: nextMode,
+    fixedAnnual: fixed,
+    variableAnnual: variable,
+  };
+}
+
 /**
  * Resolve CTC and compensation split from extracted fields + user review state.
  */
@@ -119,63 +187,28 @@ export function resolveSalaryInputFromPdfReview(
 
   const ctcField = inc.has("annualCTC") ? fieldMap(fields, "annualCTC") : undefined;
   const fixedF = inc.has("fixedAnnual") ? fieldMap(fields, "fixedAnnual") : undefined;
-  const varF = inc.has("variableAnnual")
-    ? fieldMap(fields, "variableAnnual")
-    : inc.has("variablePay")
-      ? fieldMap(fields, "variablePay")
-      : undefined;
+  const varF = variableFieldWhenIncluded(fields, inc);
 
   let annualCTC = Math.max(0, Math.round(selection.annualCTC));
   if (annualCTC <= 0 && ctcField) {
     annualCTC = amountAnnualRupees(ctcField) ?? 0;
   }
-  if (annualCTC <= 0 && fixedF && varF) {
+  if (annualCTC <= 0 && fixedF !== undefined && varF !== undefined) {
     annualCTC =
       (amountAnnualRupees(fixedF) ?? 0) + (amountAnnualRupees(varF) ?? 0);
   }
 
-  let compensationMode: CompensationMode = selection.compensationMode;
-  let fixedAnnual = Math.max(0, Math.round(selection.fixedAnnual));
-  let variableAnnual = Math.max(0, Math.round(selection.variableAnnual));
+  const fixedAnnualFromField = annualFromField(fixedF);
+  const varAnnualFromField = annualFromField(varF);
 
-  const varAnnualFromField =
-    varF != null ? amountAnnualRupees(varF) : null;
-  const fixedAnnualFromField =
-    fixedF != null ? amountAnnualRupees(fixedF) : null;
-
-  if (
-    compensationMode === "fixed_variable" &&
-    variableAnnual === 0 &&
-    varAnnualFromField != null
-  ) {
-    variableAnnual = varAnnualFromField;
-  }
-  if (
-    compensationMode === "fixed_variable" &&
-    fixedAnnual === 0 &&
-    fixedAnnualFromField != null
-  ) {
-    fixedAnnual = fixedAnnualFromField;
-  }
-
-  if (
-    compensationMode === "total_only" &&
-    (varAnnualFromField != null && varAnnualFromField > 0) &&
-    annualCTC > 0
-  ) {
-    compensationMode = "fixed_variable";
-    variableAnnual = varAnnualFromField;
-    fixedAnnual = Math.max(0, annualCTC - variableAnnual);
-  }
-
-  if (compensationMode === "fixed_variable" && annualCTC > 0) {
-    if (fixedAnnual === 0 && variableAnnual > 0) {
-      fixedAnnual = Math.max(0, annualCTC - variableAnnual);
-    }
-    if (variableAnnual === 0 && fixedAnnual > 0) {
-      variableAnnual = Math.max(0, annualCTC - fixedAnnual);
-    }
-  }
+  const split = reconcileCompensationSplit(
+    selection.compensationMode,
+    annualCTC,
+    Math.max(0, Math.round(selection.fixedAnnual)),
+    Math.max(0, Math.round(selection.variableAnnual)),
+    fixedAnnualFromField,
+    varAnnualFromField
+  );
 
   const fullName = selection.fullName?.trim() ?? "";
 
@@ -185,9 +218,9 @@ export function resolveSalaryInputFromPdfReview(
     annualCTC: Math.max(0, Math.round(annualCTC)),
     cityTier: defaults.cityTier,
     taxRegime: defaults.taxRegime,
-    compensationMode,
-    fixedAnnual,
-    variableAnnual,
+    compensationMode: split.compensationMode,
+    fixedAnnual: split.fixedAnnual,
+    variableAnnual: split.variableAnnual,
     resultSource: "document_parsed",
     documentFileName: parse.fileName,
   };
@@ -245,7 +278,7 @@ function buildComponentMonthlyPatches(
 }
 
 function pdfDistinctAllowanceIdSuffix(): string {
-  return crypto.randomUUID().replace(/-/g, "").slice(0, 10);
+  return crypto.randomUUID().replaceAll("-", "").slice(0, 10);
 }
 
 function buildDistinctParsedAllowanceComponents(
@@ -334,7 +367,7 @@ function buildManualAllowanceAndVariableComponents(
     const monthly = Math.max(0, Math.round(row.monthly));
     if (monthly <= 0) continue;
     extra.push({
-      id: `allow_pdf_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`,
+      id: `allow_pdf_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
       name,
       description: "Added from document review",
       monthlyValue: monthly,
@@ -354,7 +387,7 @@ function buildManualAllowanceAndVariableComponents(
     const monthly = Math.max(0, Math.round(row.monthly));
     if (monthly <= 0) continue;
     extra.push({
-      id: `var_pdf_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`,
+      id: `var_pdf_${crypto.randomUUID().replaceAll("-", "").slice(0, 12)}`,
       name,
       description: "Added from document review",
       monthlyValue: monthly,
@@ -475,10 +508,14 @@ export function suggestInitialAnnualCtc(
   const a = ctc ? amountAnnualRupees(ctc) : null;
   if (a != null && a >= MIN_ANNUAL_CTC_RUPEES) return a;
 
-  const lakh = fileName.match(/(\d+(?:\.\d+)?)\s*l(?:akh)?/i);
-  if (lakh) return Math.round(parseFloat(lakh[1]!) * 100_000);
-  const digits = fileName.match(/(\d{6,9})/);
-  if (digits) return Math.min(parseInt(digits[1]!, 10), 999_999_999);
+  const lakhMatch = /(\d+(?:\.\d+)?)\s*l(?:akh)?/i.exec(fileName);
+  if (lakhMatch) {
+    return Math.round(Number.parseFloat(lakhMatch[1]) * 100_000);
+  }
+  const digitMatch = /(\d{6,9})/.exec(fileName);
+  if (digitMatch) {
+    return Math.min(Number.parseInt(digitMatch[1], 10), 999_999_999);
+  }
 
   const gross = parse.fields.find((f) => f.key === "annualGross");
   const g = gross ? amountAnnualRupees(gross) : null;
