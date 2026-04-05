@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   startTransition,
+  type ReactNode,
 } from "react";
 import {
   clearSalaryBreakdownScrollSave,
@@ -102,6 +103,156 @@ const GROUP_ORDER: SalaryComponentGroup[] = [
   "employer_contributions",
   "deductions",
 ];
+
+/** Wave tint steps: neutral < accent (total cash) < hero (stated CTC). */
+const ANNUAL_PICTURE_WAVE_TONE = {
+  neutral: {
+    w1: "bg-teal-500/[0.058]",
+    w2: "bg-teal-400/[0.044]",
+    w3: "bg-teal-600/[0.034]",
+    veilFrom: "from-teal-400/[0.038]",
+    veilVia: "via-teal-500/[0.015]",
+  },
+  accent: {
+    w1: "bg-teal-500/[0.074]",
+    w2: "bg-teal-400/[0.056]",
+    w3: "bg-teal-600/[0.044]",
+    veilFrom: "from-teal-400/[0.048]",
+    veilVia: "via-teal-500/[0.022]",
+  },
+  hero: {
+    w1: "bg-teal-500/[0.088]",
+    w2: "bg-teal-400/[0.068]",
+    w3: "bg-teal-600/[0.052]",
+    veilFrom: "from-teal-400/[0.058]",
+    veilVia: "via-teal-500/[0.028]",
+  },
+} as const;
+
+type AnnualPictureWaveTone = keyof typeof ANNUAL_PICTURE_WAVE_TONE;
+
+/**
+ * Layered teal wave texture — sized for the card, kept low-contrast and
+ * biased to edges so labels and amounts stay crisp.
+ */
+function AnnualPictureStatTile({
+  fluidVariant,
+  className,
+  children,
+}: Readonly<{
+  fluidVariant: 0 | 1 | 2 | 3;
+  className?: string;
+  children: ReactNode;
+}>) {
+  const tone: AnnualPictureWaveTone =
+    fluidVariant === 0 || fluidVariant === 1
+      ? "neutral"
+      : fluidVariant === 2
+        ? "accent"
+        : "hero";
+  const t = ANNUAL_PICTURE_WAVE_TONE[tone];
+
+  return (
+    <div className={cn("relative overflow-hidden", className)}>
+      <div
+        className="pointer-events-none absolute inset-0 overflow-hidden"
+        aria-hidden
+      >
+        {fluidVariant === 0 ? (
+          <>
+            {/* Bottom wave stack — flows right; keeps top-left clear for copy */}
+            <div
+              className={cn(
+                "absolute -bottom-12 -right-10 h-36 w-[165%] rounded-[100%] blur-3xl",
+                t.w1
+              )}
+            />
+            <div
+              className={cn(
+                "absolute -bottom-16 left-[-22%] h-32 w-[155%] rounded-[100%] blur-3xl",
+                t.w2
+              )}
+            />
+            <div
+              className={cn(
+                "absolute -bottom-8 left-[5%] h-20 w-[125%] rounded-[100%] blur-2xl",
+                t.w3
+              )}
+            />
+          </>
+        ) : fluidVariant === 1 ? (
+          <>
+            {/* Rising wave from lower-left */}
+            <div
+              className={cn(
+                "absolute -bottom-14 -left-12 h-40 w-[175%] rotate-[9deg] rounded-[100%] blur-3xl",
+                t.w1
+              )}
+            />
+            <div
+              className={cn(
+                "absolute -bottom-10 right-[-18%] h-28 w-[135%] -rotate-[7deg] rounded-[100%] blur-3xl",
+                t.w2
+              )}
+            />
+            <div
+              className={cn(
+                "absolute top-[18%] -left-14 h-24 w-48 rotate-[21deg] rounded-[50%] blur-2xl",
+                t.w3
+              )}
+            />
+          </>
+        ) : fluidVariant === 2 ? (
+          <>
+            {/* Crest + trough — accent tier; waves top and bottom */}
+            <div
+              className={cn(
+                "absolute -top-12 left-[-18%] h-36 w-[155%] rounded-[100%] blur-3xl",
+                t.w1
+              )}
+            />
+            <div
+              className={cn(
+                "absolute -bottom-14 right-[-28%] h-40 w-[165%] rounded-[100%] blur-3xl",
+                t.w2
+              )}
+            />
+            <div
+              className={cn(
+                "absolute top-[42%] -right-4 h-24 w-[95%] translate-y-[-50%] rotate-[11deg] rounded-[50%] blur-2xl",
+                t.w3
+              )}
+            />
+          </>
+        ) : (
+          <>
+            {/* Atmospheric veil + pooled base — hero tier */}
+            <div
+              className={cn(
+                "absolute inset-x-[-12%] -top-10 h-[58%] bg-gradient-to-b to-transparent blur-3xl",
+                t.veilFrom,
+                t.veilVia
+              )}
+            />
+            <div
+              className={cn(
+                "absolute -bottom-12 left-[-15%] h-36 w-[160%] rounded-[100%] blur-3xl",
+                t.w1
+              )}
+            />
+            <div
+              className={cn(
+                "absolute -bottom-8 right-[-8%] h-28 w-[120%] rounded-[100%] blur-2xl",
+                t.w2
+              )}
+            />
+          </>
+        )}
+      </div>
+      <div className="relative z-[1]">{children}</div>
+    </div>
+  );
+}
 
 const TAG_LABELS: Record<string, string> = {
   employer_side: "Employer-side",
@@ -250,6 +401,20 @@ export function SalaryBreakdownView() {
     return breakdown.components
       .filter((c) => c.group === "employer_contributions")
       .reduce((s, c) => s + c.monthlyValue, 0);
+  }, [breakdown]);
+
+  /** Gross cash earnings + old-regime deductions — matches `calculateSalaryBreakdown` tax base. */
+  const regimeTaxCardContext = useMemo(() => {
+    if (!breakdown) return null;
+    let gross = 0;
+    for (const c of breakdown.components) {
+      if (c.group === "earnings") gross += c.annualValue;
+    }
+    const pf = breakdown.components.find((c) => c.id === "employee_pf");
+    return {
+      grossAnnualSalary: Math.round(gross),
+      oldRegimeAdditionalDeductions: Math.round((pf?.annualValue ?? 0) + 150_000),
+    };
   }, [breakdown]);
 
   const annualInHandExclVar = breakdown
@@ -595,6 +760,10 @@ export function SalaryBreakdownView() {
             regime={input.taxRegime}
             engineNotes="breakdown"
             className="min-w-0 w-full lg:h-full"
+            grossAnnualSalary={regimeTaxCardContext?.grossAnnualSalary}
+            oldRegimeAdditionalDeductions={
+              regimeTaxCardContext?.oldRegimeAdditionalDeductions
+            }
           />
           <div className="flex min-w-0 flex-col rounded-2xl border border-navy-200/50 bg-white px-5 py-4 shadow-sm lg:h-full">
             <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-navy-400 mb-1">
@@ -605,38 +774,50 @@ export function SalaryBreakdownView() {
               follow the table — change a row and totals refresh together.
             </p>
             <div className="grid flex-1 grid-cols-2 gap-3 text-sm sm:gap-4">
-              <div className="rounded-lg bg-navy-50/50 px-3 py-2.5 ring-1 ring-navy-100/80">
+              <AnnualPictureStatTile
+                fluidVariant={0}
+                className="rounded-lg bg-navy-50/50 px-3.5 py-3 ring-1 ring-navy-100/80"
+              >
                 <p className="text-[11px] font-medium text-navy-500">
                   Annual fixed (cash)
                 </p>
                 <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
                   {formatCurrency(breakdown.annualFixedCashTotal)}
                 </p>
-              </div>
-              <div className="rounded-lg bg-navy-50/50 px-3 py-2.5 ring-1 ring-navy-100/80">
+              </AnnualPictureStatTile>
+              <AnnualPictureStatTile
+                fluidVariant={1}
+                className="rounded-lg bg-navy-50/50 px-3.5 py-3 ring-1 ring-navy-100/80"
+              >
                 <p className="text-[11px] font-medium text-navy-500">
                   Annual variable (cash)
                 </p>
                 <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-800">
                   {formatCurrency(breakdown.annualVariableCashTotal)}
                 </p>
-              </div>
-              <div className="rounded-lg bg-teal-50/40 px-3 py-2.5 ring-1 ring-teal-100/70">
+              </AnnualPictureStatTile>
+              <AnnualPictureStatTile
+                fluidVariant={2}
+                className="rounded-lg bg-teal-50/40 px-3.5 py-3 ring-1 ring-teal-100/70"
+              >
                 <p className="text-[11px] font-medium text-teal-800/90">
                   Total cash (fixed + variable)
                 </p>
                 <p className="mt-0.5 text-base font-semibold tabular-nums text-navy-900">
                   {formatCurrency(breakdown.annualCashCompensation)}
                 </p>
-              </div>
-              <div className="rounded-lg bg-white px-3 py-2.5 ring-1 ring-teal-200/60">
+              </AnnualPictureStatTile>
+              <AnnualPictureStatTile
+                fluidVariant={3}
+                className="rounded-lg bg-white px-3.5 py-3 ring-1 ring-teal-200/60"
+              >
                 <p className="text-[11px] font-medium text-teal-700">
                   Stated CTC (your input)
                 </p>
                 <p className="mt-0.5 text-base font-semibold tabular-nums text-teal-800">
                   {formatCurrency(breakdown.statedAnnualCTC)}
                 </p>
-              </div>
+              </AnnualPictureStatTile>
             </div>
             <p className="text-[11px] text-navy-400 mt-3 leading-relaxed lg:mt-auto lg:pt-3">
               Full modeled package (cash + employer lines):{" "}

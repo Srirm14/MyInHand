@@ -28,6 +28,109 @@ function calculateSlabTax(taxableIncome: number, slabs: TaxSlab[]): number {
   return tax;
 }
 
+/**
+ * Mirrors {@link calculateSlabTax} allocation — rupees of taxable income falling in each slab.
+ */
+export function allocateTaxableIncomeAcrossSlabs(
+  taxableIncome: number,
+  slabs: TaxSlab[]
+): number[] {
+  let remaining = taxableIncome;
+  const amounts: number[] = [];
+  for (const slab of slabs) {
+    if (remaining <= 0) {
+      amounts.push(0);
+      continue;
+    }
+    const inSlab = Math.min(remaining, slab.max - slab.min + 1);
+    amounts.push(inSlab);
+    remaining -= inSlab;
+  }
+  return amounts;
+}
+
+/** Bracket span in rupees (same formula as slab walk). Top slab uses a display cap for charts. */
+export function slabBracketSpanRupees(
+  slab: TaxSlab,
+  opts?: { infinityCapRupees?: number }
+): number {
+  if (slab.max !== Number.POSITIVE_INFINITY) {
+    return slab.max - slab.min + 1;
+  }
+  const cap = opts?.infinityCapRupees ?? 5_000_000;
+  return cap;
+}
+
+export interface RegimeVisualizationModel {
+  regime: TaxRegime;
+  taxableIncome: number;
+  estimatedAnnualTax: number;
+  effectiveRatePercent: number;
+  slabs: TaxSlab[];
+  allocations: number[];
+  topSlabIndex: number;
+  topSlabIncomeSharePercent: number;
+  /** Sum of visual spans used for the bar (finite + capped top). */
+  totalVisualSpan: number;
+  /** Per-slab horizontal weights for the utilization bar. */
+  visualSpans: number[];
+}
+
+/**
+ * Taxable income, slab fills, and tax — aligned with {@link calculateIncomeTax} for the same inputs.
+ */
+export function buildRegimeVisualizationModel(
+  grossAnnualSalary: number,
+  regime: TaxRegime,
+  oldRegimeAdditionalDeductions = 0
+): RegimeVisualizationModel | null {
+  const g = Math.max(0, Math.round(grossAnnualSalary));
+  if (g <= 0) return null;
+
+  const slabs = regime === "old" ? OLD_REGIME_SLABS : NEW_REGIME_SLABS;
+  const tax = calculateIncomeTax(g, regime, oldRegimeAdditionalDeductions);
+  const taxableIncome = tax.taxableIncome;
+  const allocations = allocateTaxableIncomeAcrossSlabs(taxableIncome, slabs);
+
+  let topSlabIndex = -1;
+  for (let i = slabs.length - 1; i >= 0; i--) {
+    if (allocations[i]! > 0) {
+      topSlabIndex = i;
+      break;
+    }
+  }
+
+  const topAlloc =
+    topSlabIndex >= 0 ? allocations[topSlabIndex]! : 0;
+  const topSlabIncomeSharePercent =
+    taxableIncome > 0
+      ? Math.round((topAlloc / taxableIncome) * 1000) / 10
+      : 0;
+
+  const spans = slabs.map((s, i) =>
+    slabBracketSpanRupees(s, {
+      infinityCapRupees: Math.max(
+        500_000,
+        Math.min(5_000_000, (allocations[i] ?? 0) * 2 || 500_000)
+      ),
+    })
+  );
+  const totalVisualSpan = spans.reduce((a, b) => a + b, 0);
+
+  return {
+    regime,
+    taxableIncome,
+    estimatedAnnualTax: tax.annualTax,
+    effectiveRatePercent: tax.effectiveRate,
+    slabs,
+    allocations,
+    topSlabIndex,
+    topSlabIncomeSharePercent,
+    totalVisualSpan,
+    visualSpans: spans,
+  };
+}
+
 export interface TaxResult {
   annualTax: number;
   monthlyTax: number;
