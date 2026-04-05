@@ -6,11 +6,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Info, LineChart, Loader2, Upload } from "lucide-react";
+import { ArrowRight, Info, Loader2, Upload } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SegmentedSelector } from "@/components/shared/segmented-selector";
 import { SalaryRecentsPanels } from "@/components/features/salary/salary-recents-panels";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
@@ -24,7 +24,6 @@ import {
 } from "@/lib/schemas/ctc-input.schema";
 import { clearSalaryBreakdownScrollSave } from "@/lib/hooks/use-salary-breakdown-scroll-restoration";
 import { salaryPremiumBreakdownHref } from "@/lib/config/salary-premium-paths";
-import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import {
   useCreateSalarySessionMutation,
   useSalarySessionsListQuery,
@@ -65,7 +64,6 @@ export function CtcInputForm() {
   const persist = shouldPersistSessions(user);
   const createSalarySession = useCreateSalarySessionMutation();
   const { data: cloudSalaryList = [] } = useSalarySessionsListQuery(persist);
-  const { premium, hubHref } = useTieredPremiumLinks();
   const input = useSalaryStore((s) => s.input);
   const setInput = useSalaryStore((s) => s.setInput);
   const calculateBreakdown = useSalaryStore((s) => s.calculateBreakdown);
@@ -435,19 +433,6 @@ export function CtcInputForm() {
 
         <SalaryRecentsPanels />
       </PageShell>
-
-      {premium && (
-        <Link
-          href={hubHref()}
-          className={cn(
-            buttonVariants({ size: "icon" }),
-            "fixed bottom-8 right-6 z-40 size-12 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 md:size-14"
-          )}
-          aria-label="Open premium tools"
-        >
-          <LineChart className="size-5 md:size-6" />
-        </Link>
-      )}
     </div>
   );
 }

@@ -47,7 +47,7 @@ import {
 import type { LifestyleExpenses } from "@/lib/types/lifestyle.types";
 
 export function MonthlyPlanView() {
-  const { toolHref, hubHref, premium } = useTieredPremiumLinks();
+  const { toolHref, premium } = useTieredPremiumLinks();
   const user = useAuthStore((s) => s.user);
   const persist = shouldPersistSessions(user);
   const activeSalarySessionId = useSalaryStore((s) => s.activeSalaryHistoryId);
@@ -474,19 +474,6 @@ export function MonthlyPlanView() {
         </div>
         </PremiumPlannerSalaryGate>
       </PageShell>
-
-      {premium && (
-        <Link
-          href={hubHref()}
-          className={cn(
-            buttonVariants({ size: "icon" }),
-            "fixed bottom-8 right-6 z-40 size-12 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 md:size-14"
-          )}
-          aria-label="Open premium tools"
-        >
-          <LineChart className="size-5 md:size-6" />
-        </Link>
-      )}
     </div>
   );
 }
