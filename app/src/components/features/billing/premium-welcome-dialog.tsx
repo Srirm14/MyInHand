@@ -1,8 +1,5 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import Lottie from "lottie-react";
-import { CheckCircle2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -12,14 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import animationData from "@/lib/lottie/premium-unlock.json";
-
-function usePrefersReducedMotion(): boolean {
-  return useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-  }, []);
-}
+import { PremiumSuccessAbstract } from "@/components/features/billing/premium-success-abstract";
 
 export interface PremiumWelcomeDialogProps {
   open: boolean;
@@ -34,13 +24,6 @@ export function PremiumWelcomeDialog({
   onPrimary,
   onSecondary,
 }: Readonly<PremiumWelcomeDialogProps>) {
-  const reduceMotion = usePrefersReducedMotion();
-
-  // Ensure animation restarts when reopening.
-  useEffect(() => {
-    // no-op placeholder: Dialog mount/unmount handles reset via key below
-  }, [open]);
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden">
@@ -52,18 +35,7 @@ export function PremiumWelcomeDialog({
             )}
           >
             <div className="mx-auto flex size-20 items-center justify-center rounded-2xl bg-white/80 ring-1 ring-navy-200/60 shadow-sm">
-              {reduceMotion ? (
-                <CheckCircle2 className="size-9 text-teal-700" aria-hidden />
-              ) : (
-                <Lottie
-                  key={open ? "open" : "closed"}
-                  animationData={animationData}
-                  loop={false}
-                  autoplay
-                  className="size-16"
-                  aria-hidden
-                />
-              )}
+              <PremiumSuccessAbstract key={open ? "open" : "closed"} />
             </div>
           </div>
 

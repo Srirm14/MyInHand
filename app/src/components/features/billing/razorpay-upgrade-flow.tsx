@@ -11,6 +11,7 @@ import { toPlanCode, type BillingInterval } from "@/lib/billing/razorpay-types";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { hasPremiumProductAccess } from "@/lib/access/product-access";
 import { PremiumWelcomeDialog } from "@/components/features/billing/premium-welcome-dialog";
+import { closePremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
 
 async function safeReadJson<T>(
   res: Response
@@ -81,10 +82,17 @@ export function RazorpayUpgradeFlow({
       }
       await refreshProfileFromAuthUser();
       setState({ kind: "success" });
+      // Smooth post-purchase experience:
+      // If checkout ran from the Premium plans modal, navigate to Profile and show the welcome there.
+      if (embedded) {
+        closePremiumPlansModal();
+        router.push("/profile?welcome=premium");
+        return;
+      }
       setWelcomeOpen(true);
       router.refresh();
     },
-    [refreshProfileFromAuthUser, router]
+    [embedded, refreshProfileFromAuthUser, router]
   );
 
   const startCheckout = useCallback(

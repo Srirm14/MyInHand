@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -20,6 +20,7 @@ import { ProfilePageSkeleton } from "@/components/shared/loading-skeletons";
 import { appToast } from "@/lib/notify/app-notify";
 import { hasPremiumProductAccess } from "@/lib/access/product-access";
 import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
+import { PremiumWelcomeDialog } from "@/components/features/billing/premium-welcome-dialog";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function ProfilePage() {
   const authReady = useAuthStore((s) => s.authReady);
   const updateProfile = useAuthStore((s) => s.updateProfile);
   const logout = useAuthStore((s) => s.logout);
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
   const form = useForm<ProfileUpdateFormData>({
     resolver: zodResolver(profileUpdateSchema),
@@ -49,11 +51,21 @@ export default function ProfilePage() {
     });
   }, [user, router, form]);
 
+  const isPremium = hasPremiumProductAccess(user?.planTier);
+
+  const shouldShowWelcome =
+    Boolean(authReady && user && isPremium) &&
+    typeof globalThis !== "undefined" &&
+    typeof globalThis.window !== "undefined" &&
+    new URLSearchParams(globalThis.window.location.search).get("welcome") ===
+      "premium" &&
+    !welcomeDismissed;
+
   if (!authReady || !user) {
     return <ProfilePageSkeleton />;
   }
 
-  const isPremium = hasPremiumProductAccess(user.planTier);
+  // `isPremium` already computed above.
 
   const onSave = async (data: ProfileUpdateFormData) => {
     const result = await updateProfile({
@@ -188,6 +200,17 @@ export default function ProfilePage() {
           </div>
         </form>
       </div>
+
+      <PremiumWelcomeDialog
+        open={shouldShowWelcome}
+        onOpenChange={(open) => {
+          if (open) return;
+          setWelcomeDismissed(true);
+          router.replace("/profile");
+        }}
+        onPrimary={() => router.push("/salary/premium/offer-comparison")}
+        onSecondary={() => router.push("/profile/billing")}
+      />
     </PageShell>
   );
 }
