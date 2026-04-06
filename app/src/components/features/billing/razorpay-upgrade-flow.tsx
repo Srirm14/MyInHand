@@ -10,6 +10,7 @@ import { loadRazorpayCheckoutScript } from "@/lib/billing/load-razorpay";
 import { toPlanCode, type BillingInterval } from "@/lib/billing/razorpay-types";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { hasPremiumProductAccess } from "@/lib/access/product-access";
+import { PremiumWelcomeDialog } from "@/components/features/billing/premium-welcome-dialog";
 
 async function safeReadJson<T>(
   res: Response
@@ -51,6 +52,7 @@ export function RazorpayUpgradeFlow({
 
   const alreadyPremium = hasPremiumProductAccess(user?.planTier);
   const [state, setState] = useState<FlowState>({ kind: "idle" });
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
   const canUpgrade = Boolean(user) && !alreadyPremium;
 
   const premiumHref = useMemo(() => "/profile", []);
@@ -79,6 +81,7 @@ export function RazorpayUpgradeFlow({
       }
       await refreshProfileFromAuthUser();
       setState({ kind: "success" });
+      setWelcomeOpen(true);
       router.refresh();
     },
     [refreshProfileFromAuthUser, router]
@@ -252,30 +255,10 @@ export function RazorpayUpgradeFlow({
 
         {state.kind === "success" ? (
           <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/40 p-4 text-sm text-emerald-950 shadow-sm">
-            <div className="flex items-start gap-2.5">
-              <CheckCircle2 className="mt-0.5 size-5 text-emerald-700" aria-hidden />
-              <div className="min-w-0">
-                <p className="font-semibold">Premium unlocked.</p>
-                <p className="mt-1 text-xs text-emerald-900/80">
-                  You can now access advanced salary insights and planning tools.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button
-                    className="rounded-full bg-emerald-700 hover:bg-emerald-800"
-                    onClick={() => router.push("/salary/detailed")}
-                  >
-                    Go to detailed breakdown
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="rounded-full border-emerald-200 bg-white"
-                    onClick={() => router.push("/salary/premium/offers")}
-                  >
-                    Compare offers
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <p className="font-semibold">Premium unlocked.</p>
+            <p className="mt-1 text-xs text-emerald-900/80">
+              Your account is upgraded. Opening your welcome moment…
+            </p>
           </div>
         ) : null}
 
@@ -311,6 +294,13 @@ export function RazorpayUpgradeFlow({
           </div>
         ) : null}
       </div>
+
+      <PremiumWelcomeDialog
+        open={welcomeOpen}
+        onOpenChange={setWelcomeOpen}
+        onPrimary={() => router.push("/salary/premium/offer-comparison")}
+        onSecondary={() => router.push("/profile/billing")}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Crown, X } from "lucide-react";
+import { SalaryPricingSection } from "@/components/features/pricing/salary-pricing-section";
 import { buttonVariants } from "@/components/ui/button";
 import { buildLoginUrlWithReturn } from "@/lib/auth/sanitize-internal-redirect";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
@@ -28,7 +29,7 @@ export function PremiumPlansModal() {
   const loggedIn = Boolean(user);
   const premiumHref = loggedIn
     ? "/profile/billing"
-    : buildLoginUrlWithReturn("/paywall");
+    : buildLoginUrlWithReturn("/paywall?from=premium");
 
   const handleClose = useCallback(() => {
     closePremiumPlansModal();
@@ -127,15 +128,23 @@ export function PremiumPlansModal() {
             {loggedIn ? (
               <RazorpayUpgradeFlow embedded />
             ) : (
-              <div className="rounded-2xl border border-navy-200/60 bg-navy-50/40 px-4 py-4 sm:px-5">
-                <p className="text-sm font-semibold text-navy-900">
-                  Sign in to upgrade
-                </p>
-                <p className="mt-1 text-xs text-navy-600 leading-relaxed">
-                  Premium is tied to your account so your planners and comparisons
-                  stay synced across sessions.
-                </p>
-              </div>
+              <>
+                <div className="mb-5 rounded-2xl border border-navy-200/60 bg-navy-50/40 px-4 py-4 sm:px-5">
+                  <p className="text-sm font-semibold text-navy-900">
+                    Sign in to upgrade
+                  </p>
+                  <p className="mt-1 text-xs text-navy-600 leading-relaxed">
+                    Premium is tied to your account so your planners, comparisons,
+                    and saved workspaces stay synced across sessions.
+                  </p>
+                </div>
+                <SalaryPricingSection
+                  premiumHref={premiumHref}
+                  freeHref="/salary"
+                  id="pricing-modal"
+                  embedded
+                />
+              </>
             )}
 
             <div className="mt-6 flex flex-col gap-2 border-t border-navy-100 pt-6 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-3">
