@@ -1,0 +1,194 @@
+<!--
+SECURITY — FACTS (reviewed against this app as of 2026-04-06)
+
+- Auth + DB: Supabase (session cookies, RLS, profiles, saved sessions, billing_subscriptions).
+- Payments: Razorpay Checkout; server verifies signatures before granting Premium.
+- Cookies: first-party workspace cookies for restore.
+-->
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Security • InHand</title>
+    <meta
+      name="description"
+      content="Security practices for InHand — encryption, access controls, payment security, and vulnerability disclosure."
+    />
+    <style>
+      :root{--bg:#f8fafc;--card:#fff;--ink:#0f172a;--muted:#475569;--line:#e2e8f0;--teal:#0f766e;--radius:18px}
+      *{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+      a{color:var(--teal);text-decoration:none} a:hover{text-decoration:underline}
+      .wrap{max-width:980px;margin:0 auto;padding:22px 18px 64px}
+      .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+      .back{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 14px;color:#334155;font-weight:700;font-size:13px}
+      .back:hover{border-color:#cbd5e1;text-decoration:none}
+      .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 12px 34px rgba(15,23,42,.06)}
+      header.card{padding:26px 24px} main.card{margin-top:14px;padding:22px 24px}
+      h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em} .sub{margin:0;color:var(--muted);font-size:14px}
+      h2{margin:22px 0 8px;font-size:16px;text-transform:uppercase;letter-spacing:.12em;color:#334155}
+      p{margin:8px 0;color:var(--muted)} ul{margin:8px 0 8px 18px;color:var(--muted)}
+      .note{margin-top:10px;padding:12px 14px;border:1px solid #ccfbf1;background:#f0fdfa;border-radius:14px;color:#064e3b}
+      .k{color:var(--ink);font-weight:600}
+      footer{margin-top:14px;color:#64748b;font-size:12px}
+    </style>
+    <script>
+      function goBack() {
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = "/";
+      }
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top">
+        <button class="back" onclick="goBack()" type="button" aria-label="Go back">
+          ← Back
+        </button>
+      </div>
+
+      <header class="card">
+        <h1>Security</h1>
+        <p class="sub">Last updated: <span class="k">April 6, 2026</span></p>
+        <div class="note">
+          If you believe you’ve found a security issue, please report it responsibly:
+          <a href="mailto:sriram.venkatachalam@vyzifytech.com">sriram.venkatachalam@vyzifytech.com</a>
+        </div>
+      </header>
+
+      <main class="card">
+        <h2>1) Encryption</h2>
+        <p>We use HTTPS to protect data in transit between your browser and our servers/vendors.</p>
+
+        <h2>2) Access controls</h2>
+        <ul>
+          <li><span class="k">Auth:</span> Supabase Auth for session management.</li>
+          <li><span class="k">Authorization:</span> Supabase Row Level Security (RLS) prevents access to other users’ rows.</li>
+          <li><span class="k">Least privilege:</span> server-only secrets stay on the server; client uses a public anon key scoped to the project.</li>
+        </ul>
+
+        <h2>3) Payment security (Razorpay)</h2>
+        <p>
+          Payments are processed by Razorpay. We do not store card/UPI credentials. We verify Razorpay signatures server-side before
+          enabling Premium access.
+        </p>
+
+        <h2>4) Incident response</h2>
+        <p>
+          If we suspect a security incident, we take steps to contain, investigate, and remediate. Where required by law, we will
+          notify affected users and authorities.
+        </p>
+
+        <footer>
+          Also see: <a href="/privacy.html">Privacy</a> • <a href="/terms.html">Terms</a>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
+
+<!--
+INHAND SECURITY — FACTS (auto-derived from codebase as of 2026-04-06)
+
+- Auth + DB: Supabase (session cookies, RLS, `profiles`, saved sessions, billing_subscriptions).
+- Payments: Razorpay Checkout (client loads https://checkout.razorpay.com/v1/checkout.js); server verifies signatures; card/UPI credentials handled by Razorpay.
+- Cookies: first-party cookies for workspace restore (`inhand_last_salary_session`, `inhand_active_offer_workspace`).
+- No first-party analytics SDK detected in app source at time of writing.
+-->
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Security • InHand</title>
+    <meta
+      name="description"
+      content="Security practices for InHand — encryption, access controls, payment security, and vulnerability disclosure."
+    />
+    <style>
+      :root{--bg:#f8fafc;--card:#fff;--ink:#0f172a;--muted:#475569;--line:#e2e8f0;--teal:#0f766e;--radius:18px}
+      *{box-sizing:border-box} body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+      a{color:var(--teal);text-decoration:none} a:hover{text-decoration:underline}
+      .wrap{max-width:980px;margin:0 auto;padding:32px 18px 64px}
+      .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 12px 34px rgba(15,23,42,.06)}
+      header.card{padding:26px 24px} main.card{margin-top:14px;padding:22px 24px}
+      h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em} .sub{margin:0;color:var(--muted);font-size:14px}
+      h2{margin:22px 0 8px;font-size:16px;text-transform:uppercase;letter-spacing:.12em;color:#334155}
+      p{margin:8px 0;color:var(--muted)} ul{margin:8px 0 8px 18px;color:var(--muted)}
+      .note{margin-top:10px;padding:12px 14px;border:1px solid #ccfbf1;background:#f0fdfa;border-radius:14px;color:#064e3b}
+      .k{color:var(--ink);font-weight:600}
+      footer{margin-top:14px;color:#64748b;font-size:12px}
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="card">
+        <h1>Security</h1>
+        <p class="sub">Last updated: <span class="k">06 Apr 2026</span></p>
+        <div class="note">
+          We aim to protect user data with reasonable security safeguards. If you believe you’ve found a security issue,
+          please report it responsibly (see “Vulnerability disclosure” below).
+        </div>
+      </header>
+
+      <main class="card">
+        <h2>1) Encryption in transit</h2>
+        <p>
+          We use HTTPS to protect data in transit between your browser and our servers and between our servers and vendors.
+        </p>
+
+        <h2>2) Authentication and access controls</h2>
+        <ul>
+          <li><span class="k">Authentication:</span> handled via Supabase Auth.</li>
+          <li><span class="k">Authorization:</span> database access is protected with Row Level Security (RLS) so users access only their own rows.</li>
+          <li><span class="k">Least privilege:</span> server-side service keys are kept server-only; client uses a public anon key tied to the Supabase project.</li>
+        </ul>
+
+        <h2>3) Payment security (Razorpay)</h2>
+        <p>
+          Premium subscriptions are processed by Razorpay. Payment instruments (cards/UPI/mandates) are handled by Razorpay
+          and are not stored by InHand. We store only identifiers and status needed to enable Premium.
+        </p>
+        <ul>
+          <li><span class="k">Signature verification:</span> we verify Razorpay signatures server-side before granting Premium.</li>
+          <li><span class="k">Webhooks:</span> when enabled, webhook signatures are validated before processing lifecycle events.</li>
+        </ul>
+
+        <h2>4) Data storage</h2>
+        <p>
+          Saved workspaces and subscription state are stored in Supabase (database). We follow vendor guidance for secure hosting,
+          backups, and access control.
+        </p>
+
+        <h2>5) Monitoring and logging</h2>
+        <p>
+          Infrastructure providers may maintain standard logs (for example, IP address, timestamps, and request metadata)
+          for reliability and security. We do not intentionally collect advertising identifiers.
+        </p>
+
+        <h2>6) Incident and breach response</h2>
+        <p>
+          If we suspect a security incident, we take steps to contain it, investigate, and remediate.
+          Where required by law, we will notify affected users and authorities.
+        </p>
+
+        <h2>7) Vendor management</h2>
+        <p>
+          We use reputable vendors (such as Supabase and Razorpay) for core infrastructure.
+          We review vendor security documentation and configure access keys and permissions carefully.
+        </p>
+
+        <h2>8) Vulnerability disclosure</h2>
+        <p>
+          Please email <a href="mailto:security@yourdomain.com">security@yourdomain.com</a> with details.
+          Do not publicly disclose vulnerabilities before we have a reasonable opportunity to investigate and fix.
+        </p>
+
+        <footer>
+          Also see: <a href="/privacy.html">Privacy</a> • <a href="/terms.html">Terms</a>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
+

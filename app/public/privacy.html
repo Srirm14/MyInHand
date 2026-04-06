@@ -1,0 +1,187 @@
+<!--
+PRIVACY POLICY — FACTS (reviewed against this app as of 2026-04-06)
+
+Product:
+- InHand is a salary estimation / decision-support SaaS for Indian employees.
+- Users may enter salary structure (CTC components, assumptions) and optionally select salary/offer PDFs for in-browser extraction and review.
+- Premium subscription is optional and is processed via Razorpay.
+
+Data processed:
+- Account: email + password (Supabase Auth), plus profile fields (display name, company, role).
+- Salary inputs: salary structure, assumptions, offer comparison inputs.
+- PDFs: processed on-device in the browser for extraction/review; not intentionally uploaded to InHand servers by default.
+- Billing: Razorpay subscription id, payment id, subscription status and renewal timestamps stored by InHand; payment instruments are handled by Razorpay.
+- Cookies: first-party workspace cookies like `inhand_last_salary_session` and `inhand_active_offer_workspace` for restore.
+- Session storage: small UI state (e.g. scroll restoration).
+
+Storage:
+- Supabase database: `profiles`, saved salary/offer sessions (if user saves), `billing_subscriptions`.
+- Device: first-party cookies and in-browser state.
+
+Vendors:
+- Supabase (auth + database), Razorpay (payments). Hosting platform may keep standard infrastructure logs.
+No first-party analytics SDK detected in source at time of writing.
+-->
+<!doctype html>
+<html lang="en-IN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Privacy Policy • InHand</title>
+    <meta
+      name="description"
+      content="Privacy Policy for InHand — a salary estimation and decision-support tool for Indian employees."
+    />
+    <style>
+      :root{
+        --bg:#f8fafc; --card:#ffffff; --ink:#0f172a; --muted:#475569;
+        --line:#e2e8f0; --teal:#0f766e; --teal-ink:#064e3b; --warn:#7c2d12;
+        --radius:18px;
+      }
+      *{box-sizing:border-box}
+      body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+      a{color:var(--teal);text-decoration:none}
+      a:hover{text-decoration:underline}
+      .wrap{max-width:980px;margin:0 auto;padding:32px 18px 64px}
+      .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 12px 34px rgba(15,23,42,.06)}
+      header.card{padding:26px 24px}
+      h1{margin:0 0 6px;font-size:28px;letter-spacing:-.02em}
+      .sub{margin:0;color:var(--muted);font-size:14px}
+      main.card{margin-top:14px;padding:22px 24px}
+      h2{margin:22px 0 8px;font-size:16px;text-transform:uppercase;letter-spacing:.12em;color:#334155}
+      h3{margin:14px 0 6px;font-size:15px}
+      p{margin:8px 0}
+      ul{margin:8px 0 8px 18px;color:var(--muted)}
+      .note{margin-top:10px;padding:12px 14px;border:1px solid #ccfbf1;background:#f0fdfa;border-radius:14px;color:var(--teal-ink)}
+      .warn{border-color:#fed7aa;background:#fff7ed;color:var(--warn)}
+      table{width:100%;border-collapse:separate;border-spacing:0;margin-top:10px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+      th,td{padding:12px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+      th{background:#f1f5f9;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:#334155}
+      tr:last-child td{border-bottom:0}
+      td{font-size:14px;color:var(--muted)}
+      .k{color:var(--ink);font-weight:600}
+      footer{margin-top:14px;color:#64748b;font-size:12px}
+      .cols{display:grid;grid-template-columns:1fr;gap:14px}
+      @media(min-width:860px){.cols{grid-template-columns:1fr 1fr}}
+      code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px;background:#f1f5f9;padding:2px 6px;border-radius:8px;border:1px solid var(--line)}
+    </style>
+    <script>
+      function goBack() {
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = "/";
+      }
+    </script>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="top" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <button class="back" onclick="goBack()" type="button" aria-label="Go back"
+          style="display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 14px;color:#334155;font-weight:700;font-size:13px">
+          ← Back
+        </button>
+      </div>
+      <header class="card">
+        <h1>PRIVACY POLICY</h1>
+        <p class="sub">Last updated: <span class="k">April 6, 2026</span></p>
+        <div class="note warn">
+          <strong>Accuracy disclaimer:</strong>
+          All calculations and estimations are approximate only and may not be accurate. Actual in-hand salary depends on employer
+          payroll practices, tax filings, declarations, and other factors. Premium users can adjust/edit parameters to customize
+          estimates. Outputs are high-level estimations for decision-support only. You must verify outputs with your employer or a tax
+          advisor. We are not liable for decisions or financial losses based on estimates.
+        </div>
+      </header>
+
+      <main class="card">
+        <h2>Introduction</h2>
+        <p>
+          InHand is a <span class="k">salary estimation and decision-support</span> web app for Indian employees. It helps you estimate
+          in-hand salary and understand your salary structure through high-level calculations and planning views.
+        </p>
+        <p class="note">
+          <strong>Not financial advice:</strong> InHand is not an investment advisory service, loan broking service, tax filing service,
+          or payroll processor. It does not sell financial products.
+        </p>
+
+        <h2>Data We Collect</h2>
+        <p>Depending on how you use InHand, we may collect and process:</p>
+        <ul>
+          <li><span class="k">Account data</span>: email address and authentication data (handled via Supabase Auth).</li>
+          <li><span class="k">Profile data</span>: display name, company, role (optional).</li>
+          <li><span class="k">Salary inputs</span>: salary structure/CTC components, assumptions you enter, and offer comparison inputs.</li>
+          <li><span class="k">Uploaded documents (optional)</span>: salary/offer PDFs you select. These are processed in-browser for extraction/review.</li>
+          <li><span class="k">Usage/session data</span>: first-party cookies to restore your last active workspace and basic UI state.</li>
+          <li><span class="k">Billing identifiers (Premium)</span>: Razorpay subscription/payment identifiers and status required to enable Premium.</li>
+        </ul>
+        <div class="note">
+          <strong>Consent for upload/processing (DPDPA):</strong>
+          If you choose to upload/select a document or enter salary data, you consent to InHand processing that data solely for salary
+          estimation, comparisons, and related decision-support features. You can withdraw consent by deleting your account or by
+          requesting erasure (see “Your Rights”).
+        </div>
+
+        <h2>How We Use Your Data</h2>
+        <p>
+          We use your data only for the purposes below:
+        </p>
+        <ul>
+          <li><span class="k">Provide the service</span>: run salary estimations, show breakdowns, offer comparisons, and planners.</li>
+          <li><span class="k">Account management</span>: sign-in, profile, and Premium entitlement.</li>
+          <li><span class="k">Security</span>: protect accounts, prevent abuse, and maintain service reliability.</li>
+          <li><span class="k">Session continuity</span>: restore your last active workspace using first-party cookies like <code>inhand_last_salary_session</code>.</li>
+        </ul>
+        <p class="note">
+          <strong>No selling:</strong> We do not sell your personal data.
+        </p>
+
+        <h2>Razorpay Payments</h2>
+        <p>
+          We use <span class="k">Razorpay</span> for secure payments and subscriptions. When you pay:
+        </p>
+        <ul>
+          <li>Razorpay collects card/UPI details directly. We do <span class="k">not</span> store your card/UPI credentials.</li>
+          <li>We receive only payment confirmation details such as amount, status, and Razorpay payment/subscription identifiers.</li>
+          <li>You consent to Razorpay processing your payment data for completing the transaction.</li>
+          <li>Razorpay’s privacy policy applies: <a href="https://razorpay.com/privacy" target="_blank" rel="noreferrer noopener">razorpay.com/privacy</a></li>
+        </ul>
+
+        <h2>Your Rights (DPDPA)</h2>
+        <p>As a Data Principal, you may request:</p>
+        <ul>
+          <li><span class="k">Access</span>: a copy/summary of personal data we process about you.</li>
+          <li><span class="k">Correction</span>: update inaccurate profile information.</li>
+          <li><span class="k">Erasure</span>: request deletion/erasure of your personal data, subject to lawful retention for billing and dispute handling.</li>
+          <li><span class="k">Withdraw consent</span>: stop processing by deleting your account and/or requesting erasure.</li>
+        </ul>
+        <p class="note">
+          <strong>Erasure process:</strong> Email us with your account email and request. We may verify identity before acting.
+        </p>
+
+        <h2>Data Security</h2>
+        <p>
+          We use reasonable security practices including HTTPS encryption in transit, access controls, and least-privilege principles.
+          Payment data security for cards/UPI is handled by Razorpay.
+        </p>
+
+        <h2>Grievance Contact</h2>
+        <div class="note">
+          <p style="margin:0">
+            📧 <span class="k">sriram.venkatachalam@vyzifytech.com</span><br />
+            For disputes, complaints, and DPDPA data requests. <span class="k">Response within 24–48 hours.</span>
+          </p>
+        </div>
+
+        <h2>Changes to Policy</h2>
+        <p>
+          We may update this Privacy Policy from time to time. We will update the “Last updated” date and, where appropriate, provide
+          notice in-product or via email.
+        </p>
+
+        <footer>
+          Also see: <a href="/terms.html">Terms of Use</a> • <a href="/security.html">Security</a>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>
+

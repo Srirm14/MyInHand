@@ -1,15 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Award, Lock, Receipt, Scale, Shield, ShieldCheck } from "lucide-react";
+import { Lock, Receipt, Scale, Shield, ShieldCheck } from "lucide-react";
 import { InhandLogoMark } from "@/components/layout/inhand-logo-mark";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { cn } from "@/lib/utils";
 
 const legalLinks = [
-  { href: "#", label: "Privacy" },
-  { href: "#", label: "Terms" },
-  { href: "#", label: "Security" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
+  { href: "/security", label: "Security" },
 ];
 
 export function Footer() {
@@ -163,13 +163,13 @@ export function Footer() {
         <div className="mt-10 flex flex-col md:flex-row items-center justify-between gap-4 border-t border-navy-200/60 pt-6">
           <div className="flex items-center gap-6 text-xs text-navy-400">
             <span className="flex items-center gap-1.5">
-              <Lock className="size-3.5" /> 256-BIT SSL
+              <Lock className="size-3.5" /> HTTPS secured
             </span>
             <span className="flex items-center gap-1.5">
-              <Award className="size-3.5" /> ISO CERTIFIED
+              <Receipt className="size-3.5" /> Payments by Razorpay
             </span>
             <span className="flex items-center gap-1.5">
-              <Shield className="size-3.5" /> GDPR COMPLIANT
+              <Shield className="size-3.5" /> Privacy-first design
             </span>
           </div>
           <p className="text-xs text-navy-400">
