@@ -47,6 +47,7 @@ export async function POST(req: Request) {
     }).rpc("inhand_email_exists", { p_email: email });
 
     if (error) {
+      console.error("[email-exists] rpc failed", { error });
       return NextResponse.json(
         { ok: false, error: "Could not validate email. Try again." },
         { status: 500 }
