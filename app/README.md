@@ -54,7 +54,16 @@ Copy **`.env.example`** → **`.env.local`** and set:
 
 - **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** (Supabase project → API).
 - **`NEXT_PUBLIC_SITE_URL`** — public origin with no trailing slash (e.g. `http://localhost:3000` in dev). Used for auth email redirects (reset password, email confirmation). Must match **Authentication → URL Configuration** in Supabase (Site URL + redirect allowlist).
+- **Razorpay (Premium subscriptions):**
+  - **`NEXT_PUBLIC_RAZORPAY_KEY_ID`** (or `RAZORPAY_KEY_ID`) + **`RAZORPAY_KEY_SECRET`**
+  - **`RAZORPAY_PLAN_ID_MONTHLY`** + **`RAZORPAY_PLAN_ID_YEARLY`** (must be real `plan_...` ids from the same mode as the keys)
+  - **`SUPABASE_SERVICE_ROLE_KEY`** (server-only; required to write billing rows and set `profiles.plan_tier`)
 
 Auth emails are delivered by **Supabase Auth**; use **Resend** (or another provider) as **custom SMTP** in the Supabase Dashboard—not in this app’s env. See [`../docs/SUPABASE_AUTH_SMTP.md`](../docs/SUPABASE_AUTH_SMTP.md) and [`../docs/email/README.md`](../docs/email/README.md) for templates.
 
 Restart the dev server after env changes.
+
+## Premium checkout entry points
+
+- **Modal (recommended UX):** open the global Premium plans modal from any CTA; logged-in users can complete Razorpay Checkout inside the modal.
+- **Deep link:** `/billing/upgrade`

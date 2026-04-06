@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Crown, X } from "lucide-react";
-import { SalaryPricingSection } from "@/components/features/pricing/salary-pricing-section";
 import { buttonVariants } from "@/components/ui/button";
 import { buildLoginUrlWithReturn } from "@/lib/auth/sanitize-internal-redirect";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
@@ -13,6 +12,7 @@ import {
   usePremiumPlansModalStore,
 } from "@/lib/stores/use-premium-plans-modal-store";
 import { cn } from "@/lib/utils";
+import { RazorpayUpgradeFlow } from "@/components/features/billing/razorpay-upgrade-flow";
 
 /**
  * Shared full-screen Premium pricing modal. Mounted once in the app shell;
@@ -122,12 +122,19 @@ export function PremiumPlansModal() {
               </p>
             ) : null}
 
-            <SalaryPricingSection
-              premiumHref={premiumHref}
-              freeHref="/salary"
-              id="pricing-modal"
-              embedded
-            />
+            {loggedIn ? (
+              <RazorpayUpgradeFlow embedded />
+            ) : (
+              <div className="rounded-2xl border border-navy-200/60 bg-navy-50/40 px-4 py-4 sm:px-5">
+                <p className="text-sm font-semibold text-navy-900">
+                  Sign in to upgrade
+                </p>
+                <p className="mt-1 text-xs text-navy-600 leading-relaxed">
+                  Premium is tied to your account so your planners and comparisons
+                  stay synced across sessions.
+                </p>
+              </div>
+            )}
 
             <div className="mt-6 flex flex-col gap-2 border-t border-navy-100 pt-6 sm:flex-row sm:flex-wrap sm:justify-center sm:gap-3">
               <Link
@@ -138,7 +145,7 @@ export function PremiumPlansModal() {
                   "h-10 rounded-full border-0 bg-teal-700 px-5 text-xs font-semibold text-white shadow-sm hover:bg-teal-800 sm:h-10 sm:min-w-[200px] sm:text-sm"
                 )}
               >
-                {loggedIn ? "Account & Premium" : "Sign in for Premium"}
+                {loggedIn ? "Account & billing" : "Sign in for Premium"}
               </Link>
               <Link
                 href="/salary"

@@ -12,6 +12,44 @@ export interface Database {
   };
   public: {
     Tables: {
+      billing_subscriptions: {
+        Row: {
+          id: string;
+          user_id: string;
+          provider: string;
+          plan_code: string;
+          razorpay_subscription_id: string;
+          status: string;
+          latest_payment_id: string | null;
+          current_start_at: string | null;
+          current_end_at: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          provider?: string;
+          plan_code: string;
+          razorpay_subscription_id: string;
+          status: string;
+          latest_payment_id?: string | null;
+          current_start_at?: string | null;
+          current_end_at?: string | null;
+          metadata?: Json;
+        };
+        Update: {
+          provider?: string;
+          plan_code?: string;
+          status?: string;
+          latest_payment_id?: string | null;
+          current_start_at?: string | null;
+          current_end_at?: string | null;
+          metadata?: Json;
+        };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;

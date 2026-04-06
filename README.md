@@ -38,7 +38,7 @@
 cd app
 npm install
 cp .env.example .env.local
-# Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY from Supabase project settings.
+# Add env values (see `app/.env.example`).
 npm run dev
 ```
 
@@ -54,6 +54,49 @@ npm run dev    # forwarded: npm run dev --prefix app
 **Access modes:** `NEXT_PUBLIC_ACCESS_MODE` unset or `default` = free-tier routing (calculator on `/salary`; premium paths redirect unless user has premium in DB). `premium` = treat the app as fully unlocked for local QA. See [`app/src/lib/config/access-mode.ts`](app/src/lib/config/access-mode.ts).
 
 **Security:** Do not commit `.env.local`. The anon key is public by design but must stay tied to your project; rotate if leaked. `npm audit` is clean as of last check; report issues via your usual channel.
+
+---
+
+## Premium billing (Razorpay subscriptions)
+
+Premium (Pro) is a **recurring subscription** (monthly / yearly) for **individual users**. Checkout runs from the existing **Premium plans** modal (and `/billing/upgrade` is available as a deep link).
+
+### Required environment variables
+
+Set these in `app/.env.local` (see `app/.env.example`):
+
+- **`NEXT_PUBLIC_RAZORPAY_KEY_ID`** (or `RAZORPAY_KEY_ID`): Razorpay **Test** key id (public)
+- **`RAZORPAY_KEY_SECRET`**: Razorpay **Test** key secret (server-only)
+- **`RAZORPAY_PLAN_ID_MONTHLY`**: Razorpay plan id like `plan_...` (monthly)
+- **`RAZORPAY_PLAN_ID_YEARLY`**: Razorpay plan id like `plan_...` (yearly)
+- **`SUPABASE_SERVICE_ROLE_KEY`**: server-only key used to persist subscription rows and update `profiles.plan_tier`
+
+Optional (recommended):
+
+- **`RAZORPAY_WEBHOOK_SECRET`**: enables webhook verification for subscription lifecycle sync
+
+### Create Razorpay plans (Test mode)
+
+In Razorpay Dashboard (Test mode): **Subscriptions → Plans → New Plan**
+
+- Monthly: every 1 month, amount ₹199 → copy the generated `plan_...` into `RAZORPAY_PLAN_ID_MONTHLY`
+- Yearly: every 1 year, amount ₹1910 → copy the generated `plan_...` into `RAZORPAY_PLAN_ID_YEARLY`
+
+### Apply Supabase migration
+
+Billing requires a DB table and a safety trigger:
+
+- `supabase/migrations/20260406120000_inhand_billing_razorpay.sql`
+
+Apply via Supabase CLI (`supabase db push`) or SQL editor in the dashboard.
+
+### Payment flow (high level)
+
+- Client: opens Razorpay Checkout after calling `POST /api/billing/razorpay/subscription`
+- Server: verifies payment signature via `POST /api/billing/razorpay/verify`
+- Entitlement: user becomes premium only after verification (`profiles.plan_tier = 'premium'`)
+
+Webhook endpoint (optional): `POST /api/billing/razorpay/webhook`
 
 ---
 

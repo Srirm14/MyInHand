@@ -18,6 +18,8 @@ import {
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { ProfilePageSkeleton } from "@/components/shared/loading-skeletons";
 import { appToast } from "@/lib/notify/app-notify";
+import { hasPremiumProductAccess } from "@/lib/access/product-access";
+import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -51,6 +53,8 @@ export default function ProfilePage() {
     return <ProfilePageSkeleton />;
   }
 
+  const isPremium = hasPremiumProductAccess(user.planTier);
+
   const onSave = async (data: ProfileUpdateFormData) => {
     const result = await updateProfile({
       displayName: data.displayName,
@@ -78,6 +82,21 @@ export default function ProfilePage() {
           <p className="text-sm font-medium text-navy-800 capitalize">
             {user.planTier}
           </p>
+          {!isPremium ? (
+            <div className="mt-3">
+              <button
+                type="button"
+                className="inline-flex items-center text-sm font-semibold text-teal-700 hover:underline"
+                onClick={() => openPremiumPlansModal()}
+              >
+                Upgrade to Premium →
+              </button>
+            </div>
+          ) : (
+            <p className="mt-2 text-xs text-navy-500">
+              Premium is active. Your advanced metrics and tools are unlocked.
+            </p>
+          )}
         </div>
 
         <div>

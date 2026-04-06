@@ -88,6 +88,9 @@ function Cell({
 export interface SalaryPricingSectionProps {
   /** Primary paid CTA target (e.g. profile or login). */
   premiumHref: string;
+  /** Optional: run real checkout instead of a link. */
+  onUpgrade?: (billing: "monthly" | "yearly") => void | Promise<void>;
+  upgradeBusy?: boolean;
   /** Free tier entry (usually `/salary`). */
   freeHref: string;
   className?: string;
@@ -102,6 +105,8 @@ export interface SalaryPricingSectionProps {
  */
 export function SalaryPricingSection({
   premiumHref,
+  onUpgrade,
+  upgradeBusy = false,
   freeHref,
   className,
   id = "pricing",
@@ -440,16 +445,31 @@ export function SalaryPricingSection({
               </li>
             ))}
           </ul>
-          <Link
-            href={premiumHref}
-            className={cn(
-              buttonVariants({ variant: "default" }),
-              "w-full rounded-full border-0 bg-teal-700 font-semibold text-white shadow-sm hover:bg-teal-800",
-              compact ? "mt-5 h-9 text-xs sm:text-sm" : "mt-8 h-11"
-            )}
-          >
-            Upgrade to Premium
-          </Link>
+          {onUpgrade ? (
+            <button
+              type="button"
+              disabled={upgradeBusy}
+              onClick={() => onUpgrade(billing)}
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "w-full rounded-full border-0 bg-teal-700 font-semibold text-white shadow-sm hover:bg-teal-800 disabled:opacity-60",
+                compact ? "mt-5 h-9 text-xs sm:text-sm" : "mt-8 h-11"
+              )}
+            >
+              {upgradeBusy ? "Preparing checkout…" : "Upgrade to Premium"}
+            </button>
+          ) : (
+            <Link
+              href={premiumHref}
+              className={cn(
+                buttonVariants({ variant: "default" }),
+                "w-full rounded-full border-0 bg-teal-700 font-semibold text-white shadow-sm hover:bg-teal-800",
+                compact ? "mt-5 h-9 text-xs sm:text-sm" : "mt-8 h-11"
+              )}
+            >
+              Upgrade to Premium
+            </Link>
+          )}
         </div>
       </div>
 
