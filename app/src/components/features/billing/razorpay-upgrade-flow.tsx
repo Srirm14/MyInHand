@@ -197,11 +197,26 @@ export function RazorpayUpgradeFlow({
         <div className="flex items-start gap-3">
           <CheckCircle2 className="mt-0.5 size-5 text-teal-700" aria-hidden />
           <div>
-            <p className="font-semibold">You’re already Premium.</p>
+            <p className="font-semibold">Premium is active on your account.</p>
             <p className="mt-1 text-sm text-teal-900/80">
-              Your Pro features are unlocked across breakdowns, offer comparison,
-              forecasts, and planners.
+              Use the tools right away—or manage your plan and billing details
+              from your account.
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                className="rounded-full bg-teal-700 hover:bg-teal-800"
+                onClick={() => router.push("/salary/premium/offer-comparison")}
+              >
+                Open premium tools
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-full border-teal-200 bg-white"
+                onClick={() => router.push("/profile/billing")}
+              >
+                Manage plan
+              </Button>
+            </div>
           </div>
         </div>
       </div>

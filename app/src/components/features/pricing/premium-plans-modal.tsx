@@ -26,7 +26,9 @@ export function PremiumPlansModal() {
 
   const user = useAuthStore((s) => s.user);
   const loggedIn = Boolean(user);
-  const premiumHref = loggedIn ? "/profile" : buildLoginUrlWithReturn("/paywall");
+  const premiumHref = loggedIn
+    ? "/profile/billing"
+    : buildLoginUrlWithReturn("/paywall");
 
   const handleClose = useCallback(() => {
     closePremiumPlansModal();

@@ -18,7 +18,9 @@ export async function GET() {
   const supabase = await createServerSupabaseClient();
   const { data, error } = await supabase
     .from("billing_subscriptions")
-    .select("plan_code,status,latest_payment_id,current_start_at,current_end_at,updated_at")
+    .select(
+      "plan_code,status,latest_payment_id,current_start_at,current_end_at,updated_at"
+    )
     .eq("user_id", auth.user.id)
     .order("updated_at", { ascending: false })
     .limit(1)

@@ -93,9 +93,17 @@ export default function ProfilePage() {
               </button>
             </div>
           ) : (
-            <p className="mt-2 text-xs text-navy-500">
-              Premium is active. Your advanced metrics and tools are unlocked.
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3">
+              <p className="text-xs text-navy-500">
+                Premium is active. Your advanced metrics and tools are unlocked.
+              </p>
+              <Link
+                href="/profile/billing"
+                className="text-xs font-semibold text-teal-700 hover:underline"
+              >
+                Manage plan →
+              </Link>
+            </div>
           )}
         </div>
 
