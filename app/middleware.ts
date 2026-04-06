@@ -11,11 +11,13 @@ import { getPremiumUnlockedFromEnv } from "@/lib/config/access-mode";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { updateSession } from "@/lib/supabase/middleware/update-session";
 
+/** Exact paths that skip further gates (still run `updateSession` above). */
 const PUBLIC_EXACT = new Set([
   "/",
   "/login",
   "/signup",
   "/forgot-password",
+  "/auth/callback",
   "/auth/reset-password",
 ]);
 

@@ -89,6 +89,15 @@ test.describe("Auth — login page", () => {
     }
   });
 
+  test("login with error=auth shows callback error message", async ({ page }) => {
+    await page.goto("/login?error=auth");
+    await page.waitForLoadState("networkidle");
+    await expect(
+      page.getByText(/expired|invalid|sign-in link/i).first()
+    ).toBeVisible();
+    await assertNoError(page);
+  });
+
   test("wrong credentials show error without crashing", async ({ page }) => {
     await page.getByRole("textbox", { name: /email/i }).first().fill("wrong@example.com");
     await page.locator('input[type="password"]').first().fill("wrongpassword");
@@ -149,6 +158,19 @@ test.describe("Auth — signup page", () => {
       .getByRole("link", { name: /sign in|log in|already.*account/i })
       .first();
     await expect(loginLink).toBeVisible();
+  });
+});
+
+// ─── Reset password page (no session) ─────────────────────────────────────────
+
+test.describe("Auth — reset password page", () => {
+  test("shows invalid/expired state without session", async ({ page }) => {
+    await page.goto("/auth/reset-password");
+    await page.waitForLoadState("networkidle");
+    await expect(
+      page.getByRole("heading", { name: /invalid|expired|link/i })
+    ).toBeVisible();
+    await assertNoError(page);
   });
 });
 

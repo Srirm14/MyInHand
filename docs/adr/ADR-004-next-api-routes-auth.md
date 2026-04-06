@@ -68,6 +68,7 @@ Option A keeps middleware predictable and forces each Route Handler to state wha
 - [`app/middleware.ts`](../../app/middleware.ts) — early return for `pathname.startsWith("/api")`
 - [`app/src/lib/supabase/client/server.ts`](../../app/src/lib/supabase/client/server.ts) — `createServerSupabaseClient`
 - [`app/src/lib/supabase/middleware/update-session.ts`](../../app/src/lib/supabase/middleware/update-session.ts) — cookie refresh pattern used for pages, not `/api` today
+- [`app/src/app/auth/callback/route.ts`](../../app/src/app/auth/callback/route.ts) — **public** `GET` handler: exchanges Supabase `code` from email links (`exchangeCodeForSession`), sets cookies, redirects to sanitized `next`. No API key; identity is established only by Supabase’s one-time code exchange. Documented per §2 above.
 
 ## Related ADRs
 

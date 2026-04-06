@@ -5,8 +5,10 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { requestPasswordReset } from "@/lib/auth/auth-operations";
 import { ConfigureSupabaseMessage } from "@/components/auth/configure-supabase-message";
 import { AuthPageShell } from "@/components/auth/auth-page-shell";
+import { AuthErrorAlert } from "@/components/auth/auth-error-alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +21,6 @@ import {
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const supabase = useMemo(() => tryGetBrowserSupabase(), []);
 
   const form = useForm<ForgotPasswordFormData>({
@@ -28,20 +29,9 @@ export default function ForgotPasswordPage() {
   });
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
-    setError(null);
-    if (!supabase) {
-      setError("Supabase is not configured.");
-      return;
-    }
-    const origin = globalThis.location?.origin ?? "";
-    const { error: e } = await supabase.auth.resetPasswordForEmail(
-      data.email,
-      {
-        redirectTo: origin ? `${origin}/auth/reset-password` : undefined,
-      }
-    );
-    if (e) {
-      setError(e.message);
+    const result = await requestPasswordReset(data.email);
+    if (!result.ok) {
+      form.setError("root", { message: result.error ?? "Failed to send email." });
       return;
     }
     setSent(true);
@@ -86,14 +76,13 @@ export default function ForgotPasswordPage() {
         <div className="rounded-xl bg-teal-50 border border-teal-100 px-4 py-4 text-sm text-navy-700 text-center">
           If an account exists for{" "}
           <span className="font-semibold">{form.getValues("email")}</span>, check
-          your inbox for a link to set a new password.
+          your inbox for a link to set a new password. The link opens InHand and
+          then this device can set a new password.
         </div>
       ) : (
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-          {error ? (
-            <p className="text-sm text-danger-600 text-center bg-danger-50 rounded-lg px-3 py-2">
-              {error}
-            </p>
+          {form.formState.errors.root ? (
+            <AuthErrorAlert message={form.formState.errors.root.message ?? ""} />
           ) : null}
           <div className="space-y-2">
             <Label htmlFor="fp-email">Email</Label>

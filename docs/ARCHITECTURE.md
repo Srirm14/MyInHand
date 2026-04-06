@@ -23,7 +23,20 @@
 - **`PRODUCT_FLOW.md`** — Screen definitions, access tiers, CTA behavior.
 - **`salary-pdf-upload.md`** — Client PDF parse → review → breakdown (`lib/salary/pdf/`, tests).
 - **`adr/ADR-003-salary-session-client-persistence.md`** — `inhand_last_salary_session` cookie + global salary workspace hydrate.
-- **`adr/ADR-004-next-api-routes-auth.md`** — Future `app/.../route.ts` under `/api`: middleware bypass, required auth conventions.
+- **`adr/ADR-004-next-api-routes-auth.md`** — Future `app/.../route.ts` under `/api`: middleware bypass, required auth conventions; includes note on public **`/auth/callback`** route handler.
+- **`SUPABASE_AUTH_SMTP.md`** — Resend SMTP configuration in Supabase (dashboard); **`email/`** — HTML templates to paste into Supabase.
+- **`AUTH_VERIFICATION_CHECKLIST.md`** — Manual QA checklist for auth flows.
+
+## Authentication (Supabase Auth + email)
+
+| Concern | Location |
+|---------|----------|
+| Auth API calls (browser) | [`app/src/lib/auth/auth-operations.ts`](../app/src/lib/auth/auth-operations.ts) — login, signup, reset, resend, update password |
+| Error messages | [`app/src/lib/auth/map-auth-error.ts`](../app/src/lib/auth/map-auth-error.ts) |
+| Site URL for `redirectTo` / `emailRedirectTo` | [`app/src/lib/auth/site-url.ts`](../app/src/lib/auth/site-url.ts) — requires **`NEXT_PUBLIC_SITE_URL`** in deployed env |
+| PKCE email link handler | [`app/src/app/auth/callback/route.ts`](../app/src/app/auth/callback/route.ts) — `exchangeCodeForSession`, sanitized `next` redirect |
+| Session + profile store | [`app/src/lib/stores/use-auth-store.ts`](../app/src/lib/stores/use-auth-store.ts), [`app/src/components/providers/auth-sync.tsx`](../app/src/components/providers/auth-sync.tsx) |
+| SMTP / templates | Configured in **Supabase Dashboard** (Resend as SMTP provider). See [`SUPABASE_AUTH_SMTP.md`](./SUPABASE_AUTH_SMTP.md). |
 
 ## Folder Structure (app grows with features; see tree below)
 

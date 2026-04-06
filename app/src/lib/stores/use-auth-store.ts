@@ -1,4 +1,9 @@
 import { create } from "zustand";
+import {
+  loginWithPassword,
+  resendSignupConfirmation,
+  signupWithPassword,
+} from "@/lib/auth/auth-operations";
 import { getBrowserSupabase } from "@/lib/supabase/client/browser";
 import { mapProfileToUser } from "@/lib/supabase/auth/map-user";
 import { fetchProfileRow, updateProfileRow } from "@/lib/supabase/queries/profile";
@@ -17,12 +22,20 @@ interface AuthState {
   login: (
     email: string,
     password: string
-  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  ) => Promise<
+    | { ok: true }
+    | { ok: false; error: string; unconfirmedEmail?: boolean }
+  >;
   signup: (
     email: string,
     password: string,
     displayName: string
-  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  ) => Promise<
+    | { ok: true; needsEmailConfirmation: false }
+    | { ok: true; needsEmailConfirmation: true; email: string }
+    | { ok: false; error: string }
+  >;
+  resendSignupEmail: (email: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (
     patch: Partial<Pick<UserProfile, "displayName" | "company" | "role">>
@@ -59,62 +72,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   login: async (email, password) => {
-    if (!isSupabaseConfigured()) {
-      return { ok: false, error: "Supabase is not configured." };
-    }
-    try {
-      const supabase = getBrowserSupabase();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
-      if (error) return { ok: false, error: error.message };
-      if (!data.user) return { ok: false, error: "No user returned." };
-      const row = await fetchProfileRow(supabase, data.user.id);
-      set({ user: mapProfileToUser(data.user, row), authReady: true });
-      return { ok: true };
-    } catch (e) {
+    const result = await loginWithPassword(email, password);
+    if (!result.ok) {
       return {
         ok: false,
-        error: e instanceof Error ? e.message : "Sign in failed.",
+        error: result.error,
+        unconfirmedEmail: result.unconfirmedEmail,
       };
     }
+    set({ user: result.profile, authReady: true });
+    return { ok: true };
   },
 
   signup: async (email, password, displayName) => {
-    if (!isSupabaseConfigured()) {
-      return { ok: false, error: "Supabase is not configured." };
+    const result = await signupWithPassword(email, password, displayName);
+    if (!result.ok) {
+      return { ok: false, error: result.error };
     }
-    try {
-      const supabase = getBrowserSupabase();
-      const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: {
-          data: { display_name: displayName.trim() },
-        },
-      });
-      if (error) return { ok: false, error: error.message };
-      if (!data.session?.user) {
-        return {
-          ok: false,
-          error:
-            "Check your email to confirm your account, then sign in.",
-        };
-      }
-      const row = await fetchProfileRow(supabase, data.session.user.id);
-      set({
-        user: mapProfileToUser(data.session.user, row),
-        authReady: true,
-      });
-      return { ok: true };
-    } catch (e) {
+    if (result.kind === "needs_email_confirmation") {
       return {
-        ok: false,
-        error: e instanceof Error ? e.message : "Sign up failed.",
+        ok: true,
+        needsEmailConfirmation: true,
+        email: result.email,
       };
     }
+    set({ user: result.profile, authReady: true });
+    return { ok: true, needsEmailConfirmation: false };
   },
+
+  resendSignupEmail: (email) => resendSignupConfirmation(email),
 
   logout: async () => {
     clearAllWorkspaceSessionCookies();

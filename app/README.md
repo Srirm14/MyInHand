@@ -50,4 +50,11 @@ Design tokens and patterns: [`../docs/DESIGN_SYSTEM.md`](../docs/DESIGN_SYSTEM.m
 
 ## Environment
 
-Copy **`.env.example`** → **`.env.local`** and set Supabase URL + anon key. Restart the dev server after changes.
+Copy **`.env.example`** → **`.env.local`** and set:
+
+- **`NEXT_PUBLIC_SUPABASE_URL`** and **`NEXT_PUBLIC_SUPABASE_ANON_KEY`** (Supabase project → API).
+- **`NEXT_PUBLIC_SITE_URL`** — public origin with no trailing slash (e.g. `http://localhost:3000` in dev). Used for auth email redirects (reset password, email confirmation). Must match **Authentication → URL Configuration** in Supabase (Site URL + redirect allowlist).
+
+Auth emails are delivered by **Supabase Auth**; use **Resend** (or another provider) as **custom SMTP** in the Supabase Dashboard—not in this app’s env. See [`../docs/SUPABASE_AUTH_SMTP.md`](../docs/SUPABASE_AUTH_SMTP.md) and [`../docs/email/README.md`](../docs/email/README.md) for templates.
+
+Restart the dev server after env changes.
