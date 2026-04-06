@@ -9,7 +9,7 @@ import {
   SALARY_PREMIUM_LIFESTYLE,
   SALARY_PREMIUM_OFFER_COMPARISON,
   SALARY_PREMIUM_WEALTH_FORECAST,
-} from "@/lib/config/salary-premium-paths";
+} from "./salary-premium-paths";
 
 export type AccessMode = "default" | "premium";
 
