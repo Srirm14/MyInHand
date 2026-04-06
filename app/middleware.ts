@@ -6,10 +6,10 @@
  */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { sanitizeInternalAuthRedirect } from "@/lib/auth/sanitize-internal-redirect";
-import { getPremiumUnlockedFromEnv } from "@/lib/config/access-mode";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { updateSession } from "@/lib/supabase/middleware/update-session";
+import { sanitizeInternalAuthRedirect } from "./src/lib/auth/sanitize-internal-redirect";
+import { getPremiumUnlockedFromEnv } from "./src/lib/config/access-mode";
+import { isSupabaseConfigured } from "./src/lib/supabase/env";
+import { updateSession } from "./src/lib/supabase/middleware/update-session";
 
 /** Exact paths that skip further gates (still run `updateSession` above). */
 const PUBLIC_EXACT = new Set([
