@@ -19,8 +19,15 @@ const TOOL_PATHS: Record<PaywallTool, string> = {
 };
 
 /**
- * Tiered destinations: anonymous → sign-in first; signed-in free → paywall;
- * signed-in premium → real premium routes.
+ * Nav links to premium tools (navbar, marketing, footer).
+ *
+ * | Session   | Plan (product) | `toolHref` result                                      |
+ * |-----------|----------------|--------------------------------------------------------|
+ * | Logged out| any            | `/login?from=/paywall?tool=<tool>`                     |
+ * | Logged in | free           | `/paywall?tool=<tool>`                                 |
+ * | Logged in | premium        | real route e.g. `/salary/premium/offer-comparison`     |
+ *
+ * Env `NEXT_PUBLIC_ACCESS_MODE=premium` still requires **logged in** before deep-linking to real routes.
  */
 export function useTieredPremiumLinks() {
   const user = useAuthStore((s) => s.user);
@@ -30,7 +37,8 @@ export function useTieredPremiumLinks() {
     const premium = hasPremiumProductAccess(user?.planTier);
 
     function toolHref(tool: PaywallTool): string {
-      if (premium) return TOOL_PATHS[tool];
+      // Real tool URLs only when signed in; env premium must not skip login for anonymous users.
+      if (premium && loggedIn) return TOOL_PATHS[tool];
       const paywall = `/paywall?tool=${tool}`;
       if (loggedIn) return paywall;
       return `/login?from=${encodeURIComponent(paywall)}`;

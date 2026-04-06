@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Crown, Lock } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
+import { requestPremiumPurchase } from "@/lib/premium/request-premium-purchase";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { cn } from "@/lib/utils";
 
 interface SalaryCalculatorPremiumTeaserProps {
@@ -157,6 +159,9 @@ export function SalaryCalculatorPremiumTeaser({
   onRequestUnlock,
   className,
 }: Readonly<SalaryCalculatorPremiumTeaserProps>) {
+  const router = useRouter();
+  const loggedIn = Boolean(useAuthStore((s) => s.user));
+
   if (!locked) return null;
 
   return (
@@ -222,7 +227,9 @@ export function SalaryCalculatorPremiumTeaser({
             buttonVariants({ variant: "outline", size: "lg" }),
             "h-10 w-full rounded-full border-navy-200 text-sm font-semibold text-teal-800 hover:bg-teal-50 sm:min-w-[200px] sm:flex-1"
           )}
-          onClick={() => openPremiumPlansModal()}
+          onClick={() =>
+            requestPremiumPurchase(router, { loggedIn })
+          }
         >
           Compare Free &amp; Premium plans
         </button>

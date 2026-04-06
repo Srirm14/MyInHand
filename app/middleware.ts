@@ -1,5 +1,12 @@
+/**
+ * Auth + premium gating. Complements `sanitize-internal-redirect.ts` (same `from` rules).
+ * - Premium salary/tool URLs: no session → `/login?from=…`; session but no plan → `/paywall?from=premium` (when not env-unlocked)
+ * - `/paywall`: no session → `/login?from=/paywall…` (preserve query e.g. `tool=offers`)
+ * - `/login` or `/signup` while already signed in → redirect to sanitized `from`, else `/salary`
+ */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { sanitizeInternalAuthRedirect } from "@/lib/auth/sanitize-internal-redirect";
 import { getPremiumUnlockedFromEnv } from "@/lib/config/access-mode";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { updateSession } from "@/lib/supabase/middleware/update-session";
@@ -10,7 +17,6 @@ const PUBLIC_EXACT = new Set([
   "/signup",
   "/forgot-password",
   "/auth/reset-password",
-  "/paywall",
 ]);
 
 function isPremiumSalaryDeepPath(pathname: string) {
@@ -88,11 +94,29 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  /** Premium purchase UI requires an account — anonymous users cannot browse /paywall. */
+  if (pathname === "/paywall" && isSupabaseConfigured() && !user) {
+    const login = new URL("/login", request.url);
+    const dest = pathname + request.nextUrl.search;
+    const safe = sanitizeInternalAuthRedirect(dest) ?? "/paywall";
+    login.searchParams.set("from", safe);
+    return NextResponse.redirect(login);
+  }
+
   if (user && (pathname === "/login" || pathname === "/signup")) {
+    const rawFrom = request.nextUrl.searchParams.get("from");
+    const from = sanitizeInternalAuthRedirect(rawFrom);
+    if (from) {
+      return NextResponse.redirect(new URL(from, request.url));
+    }
     return NextResponse.redirect(new URL("/salary", request.url));
   }
 
   if (PUBLIC_EXACT.has(pathname)) {
+    return response;
+  }
+
+  if (pathname === "/paywall") {
     return response;
   }
 

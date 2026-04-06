@@ -1,10 +1,11 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useId, useMemo } from "react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
+import { requestPremiumPurchase } from "@/lib/premium/request-premium-purchase";
+import { useAuthStore } from "@/lib/stores/use-auth-store";
 import { cn } from "@/lib/utils";
 
 interface PremiumBlurOfferTeaserProps {
@@ -199,6 +200,8 @@ export function PremiumBlurOfferTeaser({
   className,
   compact = false,
 }: Readonly<PremiumBlurOfferTeaserProps>) {
+  const router = useRouter();
+  const loggedIn = Boolean(useAuthStore((s) => s.user));
   const pathname = usePathname() ?? "";
   const scenarioIdx = useMemo(
     () => scenarioIndexForPath(pathname),
@@ -382,7 +385,9 @@ export function PremiumBlurOfferTeaser({
           <Button
             type="button"
             className="pointer-events-auto h-10 gap-1.5 rounded-full bg-teal-700 px-6 text-xs font-semibold text-white shadow-sm hover:bg-teal-800 sm:h-11 sm:text-sm"
-            onClick={() => openPremiumPlansModal()}
+            onClick={() =>
+              requestPremiumPurchase(router, { loggedIn })
+            }
           >
             {COPY.cta}
             <ArrowRight className="size-4 shrink-0" aria-hidden />

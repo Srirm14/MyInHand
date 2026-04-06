@@ -11,13 +11,15 @@ import { Button } from "@/components/ui/button";
 import { AuthFormSkeleton } from "@/components/shared/loading-skeletons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sanitizeInternalAuthRedirect } from "@/lib/auth/sanitize-internal-redirect";
 import { loginSchema, type LoginFormData } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/salary";
+  const from =
+    sanitizeInternalAuthRedirect(searchParams.get("from")) ?? "/salary";
   const login = useAuthStore((s) => s.login);
   const user = useAuthStore((s) => s.user);
   const authReady = useAuthStore((s) => s.authReady);
@@ -30,7 +32,7 @@ function LoginForm() {
   useEffect(() => {
     if (!authReady) return;
     if (user?.email) {
-      router.replace(from.startsWith("/") ? from : "/salary");
+      router.replace(from);
     }
   }, [authReady, user, from, router]);
 
@@ -40,7 +42,14 @@ function LoginForm() {
         footer={
           <>
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-semibold text-teal-600 hover:underline">
+            <Link
+              href={
+                from === "/salary"
+                  ? "/signup"
+                  : `/signup?from=${encodeURIComponent(from)}`
+              }
+              className="font-semibold text-teal-600 hover:underline"
+            >
               Sign up
             </Link>
           </>
@@ -57,7 +66,7 @@ function LoginForm() {
       form.setError("root", { message: result.error });
       return;
     }
-    router.replace(from.startsWith("/") ? from : "/salary");
+    router.replace(from);
     router.refresh();
   };
 
@@ -66,7 +75,14 @@ function LoginForm() {
       footer={
         <>
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-semibold text-teal-600 hover:underline">
+          <Link
+            href={
+              from === "/salary"
+                ? "/signup"
+                : `/signup?from=${encodeURIComponent(from)}`
+            }
+            className="font-semibold text-teal-600 hover:underline"
+          >
             Sign up
           </Link>
         </>

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Crown, X } from "lucide-react";
 import { SalaryPricingSection } from "@/components/features/pricing/salary-pricing-section";
 import { buttonVariants } from "@/components/ui/button";
+import { buildLoginUrlWithReturn } from "@/lib/auth/sanitize-internal-redirect";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 import {
   closePremiumPlansModal,
@@ -25,7 +26,7 @@ export function PremiumPlansModal() {
 
   const user = useAuthStore((s) => s.user);
   const loggedIn = Boolean(user);
-  const premiumHref = loggedIn ? "/profile" : "/login?from=%2Fpaywall";
+  const premiumHref = loggedIn ? "/profile" : buildLoginUrlWithReturn("/paywall");
 
   const handleClose = useCallback(() => {
     closePremiumPlansModal();

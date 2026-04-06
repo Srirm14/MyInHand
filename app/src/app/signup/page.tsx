@@ -11,13 +11,15 @@ import { Button } from "@/components/ui/button";
 import { AuthFormSkeleton } from "@/components/shared/loading-skeletons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sanitizeInternalAuthRedirect } from "@/lib/auth/sanitize-internal-redirect";
 import { signupSchema, type SignupFormData } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
 
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/salary";
+  const from =
+    sanitizeInternalAuthRedirect(searchParams.get("from")) ?? "/salary";
   const signup = useAuthStore((s) => s.signup);
   const user = useAuthStore((s) => s.user);
   const authReady = useAuthStore((s) => s.authReady);
@@ -30,7 +32,7 @@ function SignupForm() {
   useEffect(() => {
     if (!authReady) return;
     if (user?.email) {
-      router.replace(from.startsWith("/") ? from : "/salary");
+      router.replace(from);
     }
   }, [authReady, user, from, router]);
 
@@ -69,7 +71,7 @@ function SignupForm() {
       form.setError("root", { message: result.error });
       return;
     }
-    router.replace(from.startsWith("/") ? from : "/salary");
+    router.replace(from);
     router.refresh();
   };
 

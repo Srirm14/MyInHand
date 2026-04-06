@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   BarChart3,
@@ -24,8 +25,9 @@ import { FeatureCard } from "@/components/shared/feature-card";
 import { buttonVariants } from "@/components/ui/button";
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { usePremiumProductAccess } from "@/lib/hooks/use-premium-product-access";
+import { buildLoginUrlWithReturn } from "@/lib/auth/sanitize-internal-redirect";
+import { requestPremiumPurchase } from "@/lib/premium/request-premium-purchase";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
-import { openPremiumPlansModal } from "@/lib/stores/use-premium-plans-modal-store";
 import { cn } from "@/lib/utils";
 
 // ─── Static data ─────────────────────────────────────────────────────────────
@@ -248,11 +250,14 @@ function FreeUserPricingBlock({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function MarketingLanding() {
+  const router = useRouter();
   const { toolHref } = useTieredPremiumLinks();
   const hasPremium = usePremiumProductAccess();
   const user = useAuthStore((s) => s.user);
   const loggedIn = Boolean(user);
-  const pricingPremiumHref = loggedIn ? "/profile" : "/login?from=%2Fpaywall";
+  const pricingPremiumHref = loggedIn
+    ? "/profile"
+    : buildLoginUrlWithReturn("/paywall");
   const trustChips = hasPremium
     ? PREMIUM_TRUST_CHIPS
     : (["No sign-up needed", "No bank linking", "Old & new regime"] as const);
@@ -390,7 +395,9 @@ export function MarketingLanding() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => openPremiumPlansModal()}
+                  onClick={() =>
+                    requestPremiumPurchase(router, { loggedIn })
+                  }
                   className={cn(
                     buttonVariants({ variant: "outline", size: "lg" }),
                     "h-12 rounded-full border-navy-200 px-8 text-base"
@@ -696,7 +703,9 @@ export function MarketingLanding() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => openPremiumPlansModal()}
+                  onClick={() =>
+                    requestPremiumPurchase(router, { loggedIn })
+                  }
                   className="text-sm font-semibold text-teal-100 underline-offset-4 hover:underline"
                 >
                   View premium plans →
