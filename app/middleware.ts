@@ -59,70 +59,74 @@ async function hasPremiumPlan(
 }
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  try {
+    const { pathname } = request.nextUrl;
 
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname === "/favicon.ico"
-  ) {
-    return NextResponse.next();
-  }
-
-  const { response, user, supabase } = await updateSession(request);
-  const premiumEnv = getPremiumUnlockedFromEnv();
-
-  if (requiresPremiumAccess(pathname)) {
-    if (!isSupabaseConfigured() || !user) {
-      const login = new URL("/login", request.url);
-      login.searchParams.set("from", pathname);
-      return NextResponse.redirect(login);
+    if (
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/api") ||
+      pathname === "/favicon.ico"
+    ) {
+      return NextResponse.next();
     }
-    if (!premiumEnv && supabase) {
-      const ok = await hasPremiumPlan(user.id, supabase);
-      if (!ok) {
-        const paywall = new URL("/paywall", request.url);
-        paywall.searchParams.set("from", "premium");
-        return NextResponse.redirect(paywall);
+
+    const { response, user, supabase } = await updateSession(request);
+    const premiumEnv = getPremiumUnlockedFromEnv();
+
+    if (requiresPremiumAccess(pathname)) {
+      if (!isSupabaseConfigured() || !user) {
+        const login = new URL("/login", request.url);
+        login.searchParams.set("from", pathname);
+        return NextResponse.redirect(login);
+      }
+      if (!premiumEnv && supabase) {
+        const ok = await hasPremiumPlan(user.id, supabase);
+        if (!ok) {
+          const paywall = new URL("/paywall", request.url);
+          paywall.searchParams.set("from", "premium");
+          return NextResponse.redirect(paywall);
+        }
       }
     }
-  }
 
-  if (isProtectedProfile(pathname)) {
-    if (!isSupabaseConfigured() || !user) {
+    if (isProtectedProfile(pathname)) {
+      if (!isSupabaseConfigured() || !user) {
+        const login = new URL("/login", request.url);
+        login.searchParams.set("from", pathname);
+        return NextResponse.redirect(login);
+      }
+    }
+
+    /** Premium purchase UI requires an account — anonymous users cannot browse /paywall. */
+    if (pathname === "/paywall" && isSupabaseConfigured() && !user) {
       const login = new URL("/login", request.url);
-      login.searchParams.set("from", pathname);
+      const dest = pathname + request.nextUrl.search;
+      const safe = sanitizeInternalAuthRedirect(dest) ?? "/paywall";
+      login.searchParams.set("from", safe);
       return NextResponse.redirect(login);
     }
-  }
 
-  /** Premium purchase UI requires an account — anonymous users cannot browse /paywall. */
-  if (pathname === "/paywall" && isSupabaseConfigured() && !user) {
-    const login = new URL("/login", request.url);
-    const dest = pathname + request.nextUrl.search;
-    const safe = sanitizeInternalAuthRedirect(dest) ?? "/paywall";
-    login.searchParams.set("from", safe);
-    return NextResponse.redirect(login);
-  }
-
-  if (user && (pathname === "/login" || pathname === "/signup")) {
-    const rawFrom = request.nextUrl.searchParams.get("from");
-    const from = sanitizeInternalAuthRedirect(rawFrom);
-    if (from) {
-      return NextResponse.redirect(new URL(from, request.url));
+    if (user && (pathname === "/login" || pathname === "/signup")) {
+      const rawFrom = request.nextUrl.searchParams.get("from");
+      const from = sanitizeInternalAuthRedirect(rawFrom);
+      if (from) {
+        return NextResponse.redirect(new URL(from, request.url));
+      }
+      return NextResponse.redirect(new URL("/salary", request.url));
     }
-    return NextResponse.redirect(new URL("/salary", request.url));
-  }
 
-  if (PUBLIC_EXACT.has(pathname)) {
+    if (PUBLIC_EXACT.has(pathname)) {
+      return response;
+    }
+
+    if (pathname === "/paywall") {
+      return response;
+    }
+
     return response;
+  } catch {
+    return NextResponse.next();
   }
-
-  if (pathname === "/paywall") {
-    return response;
-  }
-
-  return response;
 }
 
 export const config = {
