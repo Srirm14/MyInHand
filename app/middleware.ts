@@ -9,7 +9,15 @@ import type { NextRequest } from "next/server";
 import { sanitizeInternalAuthRedirect } from "./src/lib/auth/sanitize-internal-redirect";
 import { getPremiumUnlockedFromEnv } from "./src/lib/config/access-mode";
 import { isSupabaseConfigured } from "./src/lib/supabase/env";
-import { updateSession } from "./src/lib/supabase/middleware/update-session";
+
+async function safeUpdateSession(request: NextRequest) {
+  try {
+    const mod = await import("./src/lib/supabase/middleware/update-session");
+    return await mod.updateSession(request);
+  } catch {
+    return { response: NextResponse.next({ request }), user: null, supabase: null } as const;
+  }
+}
 
 /** Exact paths that skip further gates (still run `updateSession` above). */
 const PUBLIC_EXACT = new Set([
@@ -45,7 +53,7 @@ function isProtectedProfile(pathname: string) {
 
 async function hasPremiumPlan(
   userId: string,
-  supabase: NonNullable<Awaited<ReturnType<typeof updateSession>>["supabase"]>
+  supabase: NonNullable<Awaited<ReturnType<typeof safeUpdateSession>>["supabase"]>
 ): Promise<boolean> {
   if (getPremiumUnlockedFromEnv()) return true;
   const { data, error } = await supabase
@@ -70,7 +78,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next();
     }
 
-    const { response, user, supabase } = await updateSession(request);
+    const { response, user, supabase } = await safeUpdateSession(request);
     const premiumEnv = getPremiumUnlockedFromEnv();
 
     if (requiresPremiumAccess(pathname)) {
