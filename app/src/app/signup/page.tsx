@@ -13,6 +13,7 @@ import { AuthFormSkeleton } from "@/components/shared/loading-skeletons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sanitizeInternalAuthRedirect } from "@/lib/auth/sanitize-internal-redirect";
+import { checkEmailExists } from "@/lib/auth/email-exists";
 import { useResendCooldown } from "@/lib/hooks/use-resend-cooldown";
 import { signupSchema, type SignupFormData } from "@/lib/schemas/auth.schema";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
@@ -74,6 +75,17 @@ function SignupForm() {
 
   const onSubmit = async (data: SignupFormData) => {
     setResendMsg(null);
+    const preflight = await checkEmailExists(data.email);
+    if (!preflight.ok) {
+      form.setError("root", { message: preflight.error });
+      return;
+    }
+    if (preflight.exists) {
+      form.setError("root", {
+        message: "An account with this email already exists. Sign in instead.",
+      });
+      return;
+    }
     const result = await signup(data.email, data.password, data.displayName);
     if (!result.ok) {
       form.setError("root", { message: result.error });
