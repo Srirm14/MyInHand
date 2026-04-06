@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { SectionHeader } from "@/components/shared/section-header";
+import { ShimmerBlock } from "@/components/shared/loading-skeletons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuthStore } from "@/lib/stores/use-auth-store";
@@ -40,6 +42,26 @@ function fmtDate(iso: string | null | undefined): string | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "2-digit" });
+}
+
+function statusUi(status: string | null | undefined): {
+  label: string;
+  tone: "neutral" | "good" | "warn";
+} {
+  const s = (status ?? "").toLowerCase();
+  if (!s) return { label: "—", tone: "neutral" };
+  const good = new Set(["active", "authenticated"]);
+  const warn = new Set(["cancel_requested"]);
+  if (good.has(s)) {
+    return {
+      label: s === "authenticated" ? "Mandate authorized" : "Active",
+      tone: "good",
+    };
+  }
+  if (warn.has(s)) return { label: "Cancellation scheduled", tone: "warn" };
+  if (s.includes("cancel")) return { label: "Cancelled", tone: "neutral" };
+  if (s.includes("halt")) return { label: "Payment halted", tone: "warn" };
+  return { label: status ?? "—", tone: "neutral" };
 }
 
 export default function BillingManagePage() {
@@ -107,10 +129,21 @@ export default function BillingManagePage() {
   }
 
   const billing = data && "ok" in data && data.ok ? data.billing : null;
-  const renewal = fmtDate(billing?.current_end_at);
+  const periodEnd = fmtDate(billing?.current_end_at);
+  const status = statusUi(billing?.status);
+  const scheduledCancel = (billing?.status ?? "").toLowerCase() === "cancel_requested";
 
   return (
     <PageShell narrow className="py-8 md:py-10">
+      <div className="mb-4">
+        <Link
+          href="/profile"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-navy-700 hover:text-navy-900"
+        >
+          <ChevronLeft className="size-4" aria-hidden />
+          Back to profile
+        </Link>
+      </div>
       <SectionHeader
         title="Plan & billing"
         subtitle="Manage your Premium subscription. Your salary calculators stay the same—billing only controls access to advanced tools."
@@ -125,7 +158,11 @@ export default function BillingManagePage() {
             </p>
             {isPremium ? (
               <p className="mt-1 text-xs text-navy-500">
-                {renewal ? `Renews on ${renewal}.` : "Premium is active."}
+                {periodEnd
+                  ? scheduledCancel
+                    ? `Premium active until ${periodEnd}.`
+                    : `Renews on ${periodEnd}.`
+                  : "Premium is active."}
               </p>
             ) : (
               <p className="mt-1 text-xs text-navy-500">
@@ -161,12 +198,57 @@ export default function BillingManagePage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-navy-500">
             Billing status
           </p>
-          <p className="mt-1 text-sm font-medium text-navy-900">
-            {billing?.status ? billing.status : busy === "loading" ? "Loading…" : "—"}
-          </p>
-          <p className="mt-1 text-xs text-navy-500">
-            If you just paid, it may take a few seconds for the subscription status to sync.
-          </p>
+          {busy === "loading" ? (
+            <div className="mt-2 space-y-2">
+              <ShimmerBlock className="h-4 w-28 rounded" />
+              <ShimmerBlock className="h-3 w-full max-w-md rounded" />
+            </div>
+          ) : (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
+                  status.tone === "good" &&
+                    "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/70",
+                  status.tone === "warn" &&
+                    "bg-amber-100 text-amber-900 ring-1 ring-amber-200/70",
+                  status.tone === "neutral" &&
+                    "bg-navy-100 text-navy-800 ring-1 ring-navy-200/70"
+                )}
+              >
+                {status.label}
+              </span>
+              <span className="text-xs text-navy-500">
+                {periodEnd
+                  ? scheduledCancel
+                    ? `Access stays active until ${periodEnd}.`
+                    : `Next renewal: ${periodEnd}.`
+                  : null}
+              </span>
+            </div>
+          )}
+          <div className="mt-3 space-y-2 text-xs leading-relaxed text-navy-500">
+            <p>
+              If you paid using <span className="font-semibold text-navy-700">UPI AutoPay</span>,
+              you’ll see a one-time mandate authorization step. Once the mandate is active,
+              future renewals happen automatically.
+            </p>
+            <p>
+              <span className="font-semibold text-navy-700">Cancel subscription</span> stops
+              future auto-debits and prevents renewal. You’ll keep access until the current
+              period ends (where supported by Razorpay/payment method).
+            </p>
+            <div className="rounded-lg border border-navy-200/60 bg-white/70 px-3 py-2">
+              <p className="font-semibold text-navy-700">Your saved work is safe</p>
+              <ul className="mt-1 list-disc space-y-1 pl-4">
+                <li>Saved salary runs and offer comparisons stay in your account.</li>
+                <li>
+                  If you switch to Free after the period ends, Premium tools become locked,
+                  but nothing is deleted.
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         <div className={cn("flex flex-wrap gap-3", !canCancel && "opacity-95")}>
@@ -194,7 +276,7 @@ export default function BillingManagePage() {
             <DialogTitle>Cancel Premium subscription?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-navy-600 leading-relaxed">
-            We’ll cancel renewal for your Premium plan. You’ll keep access until the end of the current billing period (where supported).
+            This will stop future auto-debits for Premium (UPI AutoPay / card, depending on what you used) and cancel renewal. You’ll keep access until the end of the current billing period where supported.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={busy !== "idle"}>
