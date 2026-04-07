@@ -47,6 +47,7 @@ export function RazorpayUpgradeFlow({
 }: Readonly<RazorpayUpgradeFlowProps>) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const setSessionUser = useAuthStore((s) => s.setSessionUser);
   const refreshProfileFromAuthUser = useAuthStore(
     (s) => s.refreshProfileFromAuthUser
   );
@@ -71,7 +72,7 @@ export function RazorpayUpgradeFlow({
         body: JSON.stringify(payload),
       });
       const data = (await res.json()) as
-        | { ok: true }
+        | { ok: true; planTier?: string }
         | { ok: false; error: string };
       if (!res.ok || !data.ok) {
         setState({
@@ -80,7 +81,12 @@ export function RazorpayUpgradeFlow({
         });
         return;
       }
-      await refreshProfileFromAuthUser();
+      // Instant UI reaction: optimistic tier flip so Premium screens + welcome dialog render immediately.
+      // We still refresh from DB to sync server truth (billing row, timestamps, etc).
+      if (data.planTier === "premium" && user) {
+        setSessionUser({ ...user, planTier: "premium" });
+      }
+      void refreshProfileFromAuthUser();
       setState({ kind: "success" });
       // Smooth post-purchase experience:
       // If checkout ran from the Premium plans modal, navigate to Profile and show the welcome there.
@@ -92,7 +98,7 @@ export function RazorpayUpgradeFlow({
       setWelcomeOpen(true);
       router.refresh();
     },
-    [embedded, refreshProfileFromAuthUser, router]
+    [embedded, refreshProfileFromAuthUser, router, setSessionUser, user]
   );
 
   const startCheckout = useCallback(
@@ -137,7 +143,10 @@ export function RazorpayUpgradeFlow({
 
       setState({ kind: "opening" });
 
-      const RazorpayCtor = (globalThis as unknown as { Razorpay?: typeof window.Razorpay })
+      type RazorpayCtor = new (opts: Record<string, unknown>) => {
+        open: () => void;
+      };
+      const RazorpayCtor = (globalThis as unknown as { Razorpay?: RazorpayCtor })
         .Razorpay;
       if (!RazorpayCtor) {
         setState({

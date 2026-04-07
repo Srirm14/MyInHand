@@ -130,7 +130,7 @@ function LoginForm() {
         Sign in
       </h1>
       <p className="text-sm text-navy-500 text-center mb-8">
-        Use your work email to continue to your salary workspace.
+        Use your email to continue to your salary workspace.
       </p>
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">

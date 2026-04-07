@@ -198,7 +198,7 @@ function SignupForm() {
           )}
         </div>
         <div className="space-y-2">
-          <Label htmlFor="su-email">Work email</Label>
+          <Label htmlFor="su-email">email</Label>
           <Input
             id="su-email"
             type="email"

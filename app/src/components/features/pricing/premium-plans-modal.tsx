@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Crown, X } from "lucide-react";
 import { SalaryPricingSection } from "@/components/features/pricing/salary-pricing-section";
@@ -24,6 +24,7 @@ export function PremiumPlansModal() {
   const router = useRouter();
   const isOpen = usePremiumPlansModalStore((s) => s.isOpen);
   const fromPremium = usePremiumPlansModalStore((s) => s.fromPremium);
+  const [, startNav] = useTransition();
 
   const user = useAuthStore((s) => s.user);
   const loggedIn = Boolean(user);
@@ -32,11 +33,16 @@ export function PremiumPlansModal() {
     : buildLoginUrlWithReturn("/paywall?from=premium");
 
   const handleClose = useCallback(() => {
-    closePremiumPlansModal();
     if (pathname === "/paywall") {
-      router.replace("/salary");
+      // When `/paywall` is only a modal-shell route, keep modal open during transition.
+      // `PremiumPlansModalHost` will close the modal once pathname changes away from `/paywall`.
+      startNav(() => {
+        router.replace("/salary");
+      });
+      return;
     }
-  }, [pathname, router]);
+    closePremiumPlansModal();
+  }, [pathname, router, startNav]);
 
   useEffect(() => {
     if (!isOpen) return;
