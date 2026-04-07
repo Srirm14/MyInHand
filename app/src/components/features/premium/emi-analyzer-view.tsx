@@ -54,7 +54,27 @@ const LOAN_KINDS: {
   },
 ];
 
-const EMI_ABS_MAX_PRINCIPAL = 50_00_00_000;
+const EMI_ABS_MAX_PRINCIPAL = 500_000_000;
+const EMI_MAX_LOANS = 8;
+
+type LoanScenario = {
+  id: string;
+  kind: string;
+  principal: number;
+  rate: number;
+  tenureYears: number;
+};
+
+function newLoan(partial?: Partial<LoanScenario>): LoanScenario {
+  return {
+    id: crypto.randomUUID(),
+    kind: "car",
+    principal: 800_000,
+    rate: 10.5,
+    tenureYears: 5,
+    ...partial,
+  };
+}
 
 export function EmiAnalyzerView() {
   const { toolHref } = useTieredPremiumLinks();
@@ -69,36 +89,38 @@ export function EmiAnalyzerView() {
   const lifestyleSurplus =
     monthlyInHand <= 0 ? 0 : calculateSurplus(monthlyInHand).surplus;
 
-  const [loan1Kind, setLoan1Kind] = useState("home");
-  const [principal, setPrincipal] = useState(45_00_000);
-  const [rate, setRate] = useState(8.7);
-  const [tenureYears, setTenureYears] = useState(20);
+  const [loans, setLoans] = useState<LoanScenario[]>([
+    newLoan({
+      kind: "home",
+      principal: 4_500_000,
+      rate: 8.7,
+      tenureYears: 20,
+    }),
+  ]);
 
-  const [hasSecondLoan, setHasSecondLoan] = useState(false);
-  const [loan2Kind, setLoan2Kind] = useState("car");
-  const [p2, setP2] = useState(8_00_000);
-  const [r2, setR2] = useState(10.5);
-  const [y2, setY2] = useState(5);
+  const loansWithComputed = useMemo(() => {
+    return loans.map((loan) => {
+      const months = Math.max(1, Math.round(loan.tenureYears * 12));
+      const emi = calculateEmi(loan.principal, loan.rate, months);
+      const interest = totalInterestPayable(loan.principal, emi, months);
+      const repayment = emi * months;
+      const kind = LOAN_KINDS.find((k) => k.id === loan.kind) ?? LOAN_KINDS[0];
+      return { ...loan, months, emi, interest, repayment, kind };
+    });
+  }, [loans]);
 
-  const months1 = Math.max(1, Math.round(tenureYears * 12));
-  const emi1 = useMemo(
-    () => calculateEmi(principal, rate, months1),
-    [principal, rate, months1]
+  const totalEmi = useMemo(
+    () => loansWithComputed.reduce((s, l) => s + l.emi, 0),
+    [loansWithComputed]
   );
-  const interest1 = totalInterestPayable(principal, emi1, months1);
-  const repayment1 = emi1 * months1;
-
-  const months2 = Math.max(1, Math.round(y2 * 12));
-  const emi2 = useMemo(
-    () => calculateEmi(p2, r2, months2),
-    [p2, r2, months2]
+  const totalInterestLifetime = useMemo(
+    () => loansWithComputed.reduce((s, l) => s + l.interest, 0),
+    [loansWithComputed]
   );
-  const interest2 = totalInterestPayable(p2, emi2, months2);
-  const repayment2 = emi2 * months2;
-
-  const totalEmi = emi1 + (hasSecondLoan ? emi2 : 0);
-  const totalInterestLifetime = interest1 + (hasSecondLoan ? interest2 : 0);
-  const totalRepaymentLifetime = repayment1 + (hasSecondLoan ? repayment2 : 0);
+  const totalRepaymentLifetime = useMemo(
+    () => loansWithComputed.reduce((s, l) => s + l.repayment, 0),
+    [loansWithComputed]
+  );
 
   const dti =
     monthlyInHand > 0
@@ -123,13 +145,10 @@ export function EmiAnalyzerView() {
     () =>
       getAdvisoryCopy(verdict, dti, postEmiAfterLife, {
         forecastHref: toolHref("forecast"),
-        hasSecondLoan,
+        loanCount: loansWithComputed.length,
       }),
-    [verdict, dti, postEmiAfterLife, toolHref, hasSecondLoan]
+    [verdict, dti, postEmiAfterLife, toolHref, loansWithComputed.length]
   );
-
-  const kind1 = LOAN_KINDS.find((k) => k.id === loan1Kind) ?? LOAN_KINDS[0];
-  const kind2 = LOAN_KINDS.find((k) => k.id === loan2Kind) ?? LOAN_KINDS[1];
 
   return (
     <PageShell className="py-8 md:py-10">
@@ -153,7 +172,7 @@ export function EmiAnalyzerView() {
       <SectionHeader
         className="mt-1"
         title="EMI & debt planner"
-        subtitle="Model one or two fixed-rate loans against your estimated in-hand pay and Monthly plan. Numbers update as you move sliders—use it to stress-test tenure, rate, and a second obligation before you commit."
+        subtitle="Model multiple fixed-rate loans against your estimated in-hand pay and Monthly plan. Numbers update as you move sliders—use it to stress-test tenure, rate, and combined obligations before you commit."
       />
 
       <PremiumPlannerSalaryGate
@@ -184,114 +203,129 @@ export function EmiAnalyzerView() {
               Loan scenario
             </p>
             <p className="mt-1 text-sm text-navy-500 leading-relaxed max-w-xl">
-              Start with your largest loan, then optionally add another to see
-              combined monthly outflow—not two separate calculators.
+              Add your biggest loan first, then stack additional loans to see
+              combined monthly outflow—not separate calculators.
             </p>
           </div>
 
-          <LoanScenarioCard
-            stepLabel="Primary"
-            title="Main loan"
-            description={`${kind1.label} — ${kind1.hint}`}
-            loanKind={loan1Kind}
-            onLoanKindChange={setLoan1Kind}
-            footer={
-              <LoanEmiPreview
-                emi={emi1}
-                interest={interest1}
-                months={months1}
-                repaymentTotal={repayment1}
-              />
-            }
-          >
-            <LoanFields
-              principal={principal}
-              setPrincipal={(n) =>
-                setPrincipal(Math.min(EMI_ABS_MAX_PRINCIPAL, Math.max(0, n)))
-              }
-              rate={rate}
-              setRate={setRate}
-              tenureYears={tenureYears}
-              setTenureYears={setTenureYears}
-              amountLabel="Principal"
-            />
-          </LoanScenarioCard>
-
-          {hasSecondLoan ? (
+          {loansWithComputed.map((loan, idx) => (
             <LoanScenarioCard
-              stepLabel="Additional"
-              title="Second loan"
-              description={`${kind2.label} — ${kind2.hint}`}
-              loanKind={loan2Kind}
-              onLoanKindChange={setLoan2Kind}
+              key={loan.id}
+              stepLabel={idx === 0 ? "Primary" : `Loan ${idx + 1}`}
+              title={idx === 0 ? "Main loan" : "Additional loan"}
+              description={`${loan.kind.label} — ${loan.kind.hint}`}
+              loanKind={loan.kind.id}
+              onLoanKindChange={(id) =>
+                setLoans((prev) =>
+                  prev.map((l) => (l.id === loan.id ? { ...l, kind: id } : l))
+                )
+              }
               headerAction={
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 rounded-full text-xs font-semibold text-navy-500 hover:text-danger-600 hover:bg-danger-50/60 gap-1"
-                  onClick={() => setHasSecondLoan(false)}
-                >
-                  <Minus className="size-3.5" aria-hidden />
-                  Remove from scenario
-                </Button>
+                idx === 0 ? null : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 rounded-full text-xs font-semibold text-navy-500 hover:text-danger-600 hover:bg-danger-50/60 gap-1"
+                    onClick={() =>
+                      setLoans((prev) => prev.filter((l) => l.id !== loan.id))
+                    }
+                  >
+                    <Minus className="size-3.5" aria-hidden />
+                    Remove
+                  </Button>
+                )
               }
               footer={
                 <LoanEmiPreview
-                  emi={emi2}
-                  interest={interest2}
-                  months={months2}
-                  repaymentTotal={repayment2}
+                  emi={loan.emi}
+                  interest={loan.interest}
+                  months={loan.months}
+                  repaymentTotal={loan.repayment}
                 />
               }
             >
               <LoanFields
-                principal={p2}
+                principal={loan.principal}
                 setPrincipal={(n) =>
-                  setP2(Math.min(EMI_ABS_MAX_PRINCIPAL, Math.max(0, n)))
+                  setLoans((prev) =>
+                    prev.map((l) =>
+                      l.id === loan.id
+                        ? {
+                            ...l,
+                            principal: Math.min(
+                              EMI_ABS_MAX_PRINCIPAL,
+                              Math.max(0, n)
+                            ),
+                          }
+                        : l
+                    )
+                  )
                 }
-                rate={r2}
-                setRate={setR2}
-                tenureYears={y2}
-                setTenureYears={setY2}
+                rate={loan.rate}
+                setRate={(n) =>
+                  setLoans((prev) =>
+                    prev.map((l) => (l.id === loan.id ? { ...l, rate: n } : l))
+                  )
+                }
+                tenureYears={loan.tenureYears}
+                setTenureYears={(n) =>
+                  setLoans((prev) =>
+                    prev.map((l) =>
+                      l.id === loan.id ? { ...l, tenureYears: n } : l
+                    )
+                  )
+                }
                 amountLabel="Principal"
               />
             </LoanScenarioCard>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setHasSecondLoan(true)}
-              className={cn(
-                "group w-full cursor-pointer rounded-2xl border-2 border-dashed border-navy-200/80 bg-gradient-to-b from-navy-50/40 to-white px-6 py-8 text-left transition-colors",
-                "hover:border-teal-300/80 hover:bg-teal-50/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200"
-              )}
-            >
-              <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-                <div className="flex items-start gap-3 text-center sm:text-left">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-100/80">
-                    <Plus className="size-5" strokeWidth={2} aria-hidden />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-navy-800">
-                      Add another loan to the scenario
-                    </p>
-                    <p className="mt-1 text-xs text-navy-500 leading-relaxed max-w-md">
-                      Stack car, personal, or education alongside your main loan.
-                      Combined EMI and buffer update instantly.
-                    </p>
-                  </div>
+          ))}
+
+          <button
+            type="button"
+            onClick={() =>
+              setLoans((prev) =>
+                prev.length >= EMI_MAX_LOANS ? prev : [...prev, newLoan()]
+              )
+            }
+            disabled={loansWithComputed.length >= EMI_MAX_LOANS}
+            className={cn(
+              "group w-full cursor-pointer rounded-2xl border-2 border-dashed border-navy-200/80 bg-gradient-to-b from-navy-50/40 to-white px-6 py-8 text-left transition-colors",
+              "hover:border-teal-300/80 hover:bg-teal-50/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-200",
+              loansWithComputed.length >= EMI_MAX_LOANS &&
+                "cursor-not-allowed opacity-60 hover:border-navy-200/80 hover:bg-white"
+            )}
+          >
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div className="flex items-start gap-3 text-center sm:text-left">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-100/80">
+                  <Plus className="size-5" strokeWidth={2} aria-hidden />
                 </div>
-                <span
-                  className={cn(
-                    buttonVariants({ variant: "outline" }),
-                    "rounded-full border-teal-200 text-teal-800 pointer-events-none shrink-0"
-                  )}
-                >
-                  Add loan
-                </span>
+                <div>
+                  <p className="text-sm font-semibold text-navy-800">
+                    Add another loan to the scenario
+                  </p>
+                  <p className="mt-1 text-xs text-navy-500 leading-relaxed max-w-md">
+                    Stack car, personal, or education loans alongside your main
+                    loan. Combined EMI and buffer update instantly.
+                  </p>
+                  {loansWithComputed.length >= EMI_MAX_LOANS ? (
+                    <p className="mt-2 text-[11px] font-semibold text-navy-500">
+                      Limit reached ({EMI_MAX_LOANS} loans)
+                    </p>
+                  ) : null}
+                </div>
               </div>
-            </button>
-          )}
+              <span
+                className={cn(
+                  buttonVariants({ variant: "outline" }),
+                  "rounded-full border-teal-200 text-teal-800 pointer-events-none shrink-0"
+                )}
+              >
+                Add loan
+              </span>
+            </div>
+          </button>
         </div>
 
         {/* Decision column */}
@@ -309,20 +343,17 @@ export function EmiAnalyzerView() {
               className="text-3xl font-bold tabular-nums text-navy-900"
             />
             <div className="mt-4 space-y-2 rounded-xl bg-navy-50/60 px-3 py-3 text-sm">
-              <div className="flex justify-between gap-2 tabular-nums">
-                <span className="text-navy-500">{kind1.label}</span>
-                <span className="font-semibold text-navy-800">
-                  {formatCurrency(emi1)}/mo
-                </span>
-              </div>
-              {hasSecondLoan ? (
-                <div className="flex justify-between gap-2 tabular-nums">
-                  <span className="text-navy-500">{kind2.label}</span>
+              {loansWithComputed.map((l) => (
+                <div
+                  key={l.id}
+                  className="flex justify-between gap-2 tabular-nums"
+                >
+                  <span className="text-navy-500">{l.kind.label}</span>
                   <span className="font-semibold text-navy-800">
-                    {formatCurrency(emi2)}/mo
+                    {formatCurrency(l.emi)}/mo
                   </span>
                 </div>
-              ) : null}
+              ))}
             </div>
             <div className="mt-5 grid gap-3 border-t border-navy-100 pt-5 text-sm">
               <div className="flex justify-between gap-3">
@@ -427,7 +458,7 @@ function getAdvisoryCopy(
   verdict: "neutral" | "critical" | "warn" | "tight" | "ok",
   dti: number,
   postEmiAfterLife: number,
-  opts: { forecastHref: string; hasSecondLoan: boolean }
+  opts: { forecastHref: string; loanCount: number }
 ): {
   title: string;
   body: string;
@@ -449,11 +480,11 @@ function getAdvisoryCopy(
             label:
               "Lower principal or lengthen tenure in the scenario until EMI fits in-hand.",
           },
-          ...(opts.hasSecondLoan
+          ...(opts.loanCount > 1
             ? [
                 {
                   label:
-                    "Remove the second loan from the scenario to see the main loan on its own.",
+                    "Remove additional loans from the scenario to see the main loan on its own.",
                 },
               ]
             : []),
@@ -477,11 +508,11 @@ function getAdvisoryCopy(
             : "You’re close to the edge after your Monthly plan.",
         actions: [
           { label: "Open Monthly plan", href: SALARY_PREMIUM_LIFESTYLE },
-          ...(opts.hasSecondLoan
+          ...(opts.loanCount > 1
             ? [
                 {
                   label:
-                    "Compare with only the main loan — remove the second from the scenario.",
+                    "Compare with only the main loan — remove additional loans from the scenario.",
                 },
               ]
             : []),
@@ -507,10 +538,10 @@ const VERDICT_PANEL_STYLES: Record<string, string> = {
 function AdvisoryPanel({
   advisory,
   verdict,
-}: {
+}: Readonly<{
   advisory: ReturnType<typeof getAdvisoryCopy>;
   verdict: string;
-}) {
+}>) {
   const panelClass =
     VERDICT_PANEL_STYLES[verdict] ?? VERDICT_PANEL_STYLES.neutral;
 
@@ -586,7 +617,7 @@ function LoanScenarioCard({
   headerAction,
   children,
   footer,
-}: {
+}: Readonly<{
   stepLabel: string;
   title: string;
   description: string;
@@ -595,7 +626,7 @@ function LoanScenarioCard({
   headerAction?: ReactNode;
   children: ReactNode;
   footer: React.ReactNode;
-}) {
+}>) {
   return (
     <div className="rounded-2xl border border-navy-200/50 bg-white p-6 shadow-sm ring-1 ring-navy-900/[0.02]">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -643,12 +674,12 @@ function LoanEmiPreview({
   interest,
   months,
   repaymentTotal,
-}: {
+}: Readonly<{
   emi: number;
   interest: number;
   months: number;
   repaymentTotal: number;
-}) {
+}>) {
   return (
     <div className="rounded-xl border border-teal-100/80 bg-gradient-to-br from-teal-50/50 to-white px-4 py-4">
       <p className="text-label text-teal-800/80 mb-1">This loan — monthly EMI</p>
@@ -685,7 +716,7 @@ function LoanFields({
   tenureYears,
   setTenureYears,
   amountLabel,
-}: {
+}: Readonly<{
   principal: number;
   setPrincipal: (n: number) => void;
   rate: number;
@@ -693,7 +724,7 @@ function LoanFields({
   tenureYears: number;
   setTenureYears: (n: number) => void;
   amountLabel: string;
-}) {
+}>) {
   return (
     <>
       <div className="space-y-2">
@@ -757,14 +788,14 @@ function DashboardRow({
   sub,
   muted,
   valueClass,
-}: {
+}: Readonly<{
   icon: LucideIcon;
   label: string;
   value: string;
   sub?: string;
   muted?: boolean;
   valueClass?: string;
-}) {
+}>) {
   return (
     <div className="flex gap-3">
       <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-navy-50 text-navy-500">
