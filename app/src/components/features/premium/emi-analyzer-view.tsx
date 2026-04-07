@@ -31,7 +31,7 @@ import {
 import { useTieredPremiumLinks } from "@/lib/hooks/use-tiered-premium-links";
 import { useResolvedMonthlyInHand } from "@/lib/hooks/use-resolved-monthly-in-hand";
 import { useLifestyleStore } from "@/lib/stores/use-lifestyle-store";
-import { calculateEmi, totalInterestPayable } from "@/lib/utils/calculate-emi";
+import { computeEmiScenario } from "@/lib/premium/emi-scenario";
 import { PremiumPlannerSalaryGate } from "@/components/shared/premium-planner-salary-gate";
 import { formatCurrency } from "@/lib/utils/format-currency";
 import { cn } from "@/lib/utils";
@@ -98,29 +98,15 @@ export function EmiAnalyzerView() {
     }),
   ]);
 
-  const loansWithComputed = useMemo(() => {
-    return loans.map((loan) => {
-      const months = Math.max(1, Math.round(loan.tenureYears * 12));
-      const emi = calculateEmi(loan.principal, loan.rate, months);
-      const interest = totalInterestPayable(loan.principal, emi, months);
-      const repayment = emi * months;
-      const kind = LOAN_KINDS.find((k) => k.id === loan.kind) ?? LOAN_KINDS[0];
-      return { ...loan, months, emi, interest, repayment, kind };
-    });
-  }, [loans]);
+  const { loans: computedLoans, totalEmi, totalInterestLifetime, totalRepaymentLifetime } =
+    useMemo(() => computeEmiScenario(loans), [loans]);
 
-  const totalEmi = useMemo(
-    () => loansWithComputed.reduce((s, l) => s + l.emi, 0),
-    [loansWithComputed]
-  );
-  const totalInterestLifetime = useMemo(
-    () => loansWithComputed.reduce((s, l) => s + l.interest, 0),
-    [loansWithComputed]
-  );
-  const totalRepaymentLifetime = useMemo(
-    () => loansWithComputed.reduce((s, l) => s + l.repayment, 0),
-    [loansWithComputed]
-  );
+  const loansWithComputed = useMemo(() => {
+    return computedLoans.map((loan) => {
+      const kind = LOAN_KINDS.find((k) => k.id === loan.kind) ?? LOAN_KINDS[0];
+      return { ...loan, kind };
+    });
+  }, [computedLoans]);
 
   const dti =
     monthlyInHand > 0

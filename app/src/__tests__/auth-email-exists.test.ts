@@ -65,5 +65,27 @@ describe("auth email-exists endpoint", () => {
     expect(json.ok).toBe(true);
     expect(json.exists).toBe(false);
   });
+
+  it("rate limits repeated requests", async () => {
+    rpcMock.mockResolvedValue({ data: false, error: null });
+    const makeReq = () =>
+      new Request("http://localhost/api/auth/email-exists", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-forwarded-for": "1.2.3.4",
+        },
+        body: JSON.stringify({ email: "a@b.com" }),
+      });
+
+    // Burn through limit; last should be 429.
+    let lastStatus = 0;
+    for (let i = 0; i < 30; i += 1) {
+      const res = await POST(makeReq());
+      lastStatus = res.status;
+      if (res.status === 429) break;
+    }
+    expect(lastStatus).toBe(429);
+  });
 });
 

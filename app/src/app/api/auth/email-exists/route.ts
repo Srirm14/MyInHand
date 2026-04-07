@@ -2,6 +2,34 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "@/lib/supabase/client/admin";
 
+type RateLimitState = { count: number; resetAt: number };
+const rl = new Map<string, RateLimitState>();
+const RL_WINDOW_MS = 60_000;
+const RL_MAX = 25;
+
+function clientIp(req: Request): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]?.trim() || "unknown";
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
+
+function rateLimitKey(req: Request, email: string): string {
+  // Protect both per-IP and per-email; do not log email.
+  return `${clientIp(req)}|${email}`;
+}
+
+function checkRateLimit(key: string): boolean {
+  const now = Date.now();
+  const prev = rl.get(key);
+  if (!prev || prev.resetAt <= now) {
+    rl.set(key, { count: 1, resetAt: now + RL_WINDOW_MS });
+    return true;
+  }
+  if (prev.count >= RL_MAX) return false;
+  prev.count += 1;
+  return true;
+}
+
 const requestSchema = z.object({
   // Avoid `z.string().email()` to keep Sonar happy (deprecated signature in upstream typings).
   email: z
@@ -36,6 +64,13 @@ export async function POST(req: Request) {
   }
 
   const email = parsed.data.email.trim().toLowerCase();
+
+  if (!checkRateLimit(rateLimitKey(req, email))) {
+    return NextResponse.json(
+      { ok: false, error: "Too many requests. Try again in a minute." },
+      { status: 429 }
+    );
+  }
 
   try {
     const supabase = createSupabaseAdminClient();
